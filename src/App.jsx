@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-
+import { createClient } from "@supabase/supabase-js";
 const STORAGE_KEY = "daejeon-bread-bus-config-ai-space-v1";
 const RESERVATION_KEY = "daejeon-bread-bus-reservations-ai-space-v1";
 const ADMIN_PASSWORD = "tyty5656";
