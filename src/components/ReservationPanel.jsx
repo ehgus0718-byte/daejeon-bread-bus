@@ -5,7 +5,9 @@ export default function ReservationPanel({
   remainingSeats = 0,
   price = 0,
   form = {},
-  onChange
+  onChange,
+  onSubmit,
+  notice
 }) {
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
@@ -77,8 +79,10 @@ export default function ReservationPanel({
             onChange={(e) => onChange?.("people", Number(e.target.value))}
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           >
-            {[1,2,3,4].map((n) => (
-              <option key={n} value={n}>{n}명</option>
+            {[1, 2, 3, 4].map((n) => (
+              <option key={n} value={n}>
+                {n}명
+              </option>
             ))}
           </select>
         </label>
@@ -86,12 +90,19 @@ export default function ReservationPanel({
         <div className="flex items-end">
           <button
             type="button"
+            onClick={onSubmit}
             className="w-full rounded-2xl bg-stone-950 px-5 py-4 text-sm font-black text-white transition hover:translate-y-[-1px]"
           >
             예약 및 결제 진행
           </button>
         </div>
       </div>
+
+      {notice ? (
+        <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700">
+          {notice}
+        </div>
+      ) : null}
     </section>
   );
 }
