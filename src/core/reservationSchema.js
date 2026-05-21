@@ -15,7 +15,9 @@ export const RESERVATION_STATUS = {
   PENDING: "결제대기",
   PAID: "결제완료",
   CONFIRMED: "예약확정",
-  CANCELED: "취소"
+  COMPLETED: "탑승완료",
+  CANCELED: "취소",
+  CANCELED_ALT: "예약취소"
 };
 
 export function getDateSetting(dateSettings, date) {
@@ -37,9 +39,21 @@ export function getStatus(dateSettings, date) {
   return setting?.status || "closed";
 }
 
+export function isOpenSchedule(dateSettings, date) {
+  return getStatus(dateSettings, date) === "open";
+}
+
 export function countReservedPeople(reservations = [], date) {
   return reservations
-    .filter((item) => item.date === date && item.status !== RESERVATION_STATUS.CANCELED)
+    .filter((item) => {
+      const isSameDate = item.date === date;
+      const isCanceled = [
+        RESERVATION_STATUS.CANCELED,
+        RESERVATION_STATUS.CANCELED_ALT
+      ].includes(item.status);
+
+      return isSameDate && !isCanceled;
+    })
     .reduce((sum, item) => sum + Number(item.people || 0), 0);
 }
 
@@ -49,7 +63,12 @@ export function getRemainingSeats({
   date,
   fallbackCapacity = 15
 }) {
+  if (!isOpenSchedule(dateSettings, date)) {
+    return 0;
+  }
+
   const capacity = getCapacity(dateSettings, date, fallbackCapacity);
   const reserved = countReservedPeople(reservations, date);
+
   return Math.max(0, capacity - reserved);
 }
