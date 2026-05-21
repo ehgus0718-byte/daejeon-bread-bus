@@ -3,6 +3,7 @@ import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
 import AdminReservationTable from "./components/AdminReservationTable.jsx";
+import AdminCapacityControl from "./components/AdminCapacityControl.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats,
@@ -28,6 +29,11 @@ const initialReservations = [
   }
 ];
 
+const initialCapacityOverrides = {
+  "2026-05-30": 15,
+  "2026-06-06": 20
+};
+
 export default function AppSafe() {
   const [selectedDate, setSelectedDate] = useState("2026-05-30");
 
@@ -38,15 +44,20 @@ export default function AppSafe() {
   });
 
   const [reservations, setReservations] = useState(initialReservations);
+  const [capacityOverrides, setCapacityOverrides] = useState(
+    initialCapacityOverrides
+  );
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function remaining(date) {
+    const fallbackCapacity = capacityOverrides[date] || 15;
+
     return getRemainingSeats({
       reservations,
       dateSettings: DEFAULT_DATE_SETTINGS,
       date,
-      fallbackCapacity: 15
+      fallbackCapacity
     });
   }
 
@@ -67,6 +78,13 @@ export default function AppSafe() {
       phone: "",
       people: 1
     });
+  }
+
+  function handleCapacityChange(date, nextCapacity) {
+    setCapacityOverrides((prev) => ({
+      ...prev,
+      [date]: Math.max(1, nextCapacity)
+    }));
   }
 
   function handleReservationStatusChange(id, nextStatus) {
@@ -215,6 +233,13 @@ export default function AppSafe() {
           <AdminReservationTable
             reservations={reservations}
             onChangeStatus={handleReservationStatusChange}
+          />
+        </section>
+
+        <section className="mt-10">
+          <AdminCapacityControl
+            capacityOverrides={capacityOverrides}
+            onChangeCapacity={handleCapacityChange}
           />
         </section>
       </main>
