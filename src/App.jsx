@@ -3,7 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 const STORAGE_KEY = "daejeon-bread-bus-config-ai-space-v1";
 const RESERVATION_KEY = "daejeon-bread-bus-reservations-ai-space-v1";
 const ADMIN_PASSWORD = "tyty5656";
+const SUPABASE_URL = "https://ealebncvulczwtvangpr.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_Xc1pInO2nz8drfXkTxh2Pg_K9AMWye6";
 
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const defaultConfig = {
   title: "대전빵버스",
   pricePerPerson: 30000,
