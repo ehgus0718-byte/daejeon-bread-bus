@@ -9,7 +9,7 @@ import {
   getRemainingSeats
 } from "./core/reservationSchema.js";
 
-const ADMIN_ACCESS_CODE = "breadbus2026";
+const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 
 const initialReservations = [
   {
