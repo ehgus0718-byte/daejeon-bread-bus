@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
+import ReservationPanel from "./components/ReservationPanel.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
-  getRemainingSeats
+  getRemainingSeats,
+  getPrice
 } from "./core/reservationSchema.js";
 
 const mockReservations = [
@@ -21,6 +23,14 @@ const mockReservations = [
 ];
 
 export default function AppSafe() {
+  const [selectedDate] = useState("2026-05-30");
+
+  const [reservationForm, setReservationForm] = useState({
+    name: "",
+    phone: "",
+    people: 1
+  });
+
   function remaining(date) {
     return getRemainingSeats({
       reservations: mockReservations,
@@ -28,6 +38,17 @@ export default function AppSafe() {
       date,
       fallbackCapacity: 15
     });
+  }
+
+  const selectedPrice = useMemo(() => {
+    return getPrice(DEFAULT_DATE_SETTINGS, selectedDate, 30000);
+  }, [selectedDate]);
+
+  function handleFormChange(key, value) {
+    setReservationForm((prev) => ({
+      ...prev,
+      [key]: value
+    }));
   }
 
   return (
@@ -68,23 +89,6 @@ export default function AppSafe() {
             날짜별 모집현황, 잔여좌석, 예약마감 상태를 한 번에 확인할 수 있는
             예약 플랫폼 구조로 안정화 중입니다.
           </p>
-
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            <div className="rounded-3xl bg-white/10 p-5 backdrop-blur">
-              <p className="text-sm font-black text-stone-300">기본 정원</p>
-              <p className="mt-2 text-3xl font-black">15명</p>
-            </div>
-
-            <div className="rounded-3xl bg-white/10 p-5 backdrop-blur">
-              <p className="text-sm font-black text-stone-300">관리자 기능</p>
-              <p className="mt-2 text-3xl font-black">정원 변경</p>
-            </div>
-
-            <div className="rounded-3xl bg-white/10 p-5 backdrop-blur">
-              <p className="text-sm font-black text-stone-300">운영 구조</p>
-              <p className="mt-2 text-3xl font-black">예약 플랫폼</p>
-            </div>
-          </div>
         </section>
 
         <section className="mt-10">
@@ -107,6 +111,16 @@ export default function AppSafe() {
             currentDate={new Date(2026, 4, 1)}
             dateSettings={DEFAULT_DATE_SETTINGS}
             getRemainingSeats={remaining}
+          />
+        </section>
+
+        <section className="mt-10">
+          <ReservationPanel
+            selectedDate={selectedDate}
+            remainingSeats={remaining(selectedDate)}
+            price={selectedPrice}
+            form={reservationForm}
+            onChange={handleFormChange}
           />
         </section>
       </main>
