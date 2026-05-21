@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
@@ -8,6 +8,10 @@ import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats
 } from "./core/reservationSchema.js";
+import {
+  loadReservations,
+  saveReservations
+} from "./services/reservationStorage.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 
@@ -70,7 +74,9 @@ export default function AppSafe() {
     people: 1
   });
 
-  const [reservations, setReservations] = useState(initialReservations);
+  const [reservations, setReservations] = useState(() =>
+    loadReservations(initialReservations)
+  );
   const [capacityOverrides, setCapacityOverrides] = useState(initialCapacityOverrides);
   const [priceOverrides, setPriceOverrides] = useState(initialPriceOverrides);
   const [scheduleStatus, setScheduleStatus] = useState(initialScheduleStatus);
@@ -79,6 +85,10 @@ export default function AppSafe() {
   const [isAdminAuthed, setIsAdminAuthed] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
+
+  useEffect(() => {
+    saveReservations(reservations);
+  }, [reservations]);
 
   const managedDateSettings = useMemo(
     () => buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus),
