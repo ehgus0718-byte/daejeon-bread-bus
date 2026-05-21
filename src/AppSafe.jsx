@@ -2,11 +2,14 @@ import React, { useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
+import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats
 } from "./core/reservationSchema.js";
+
+const ADMIN_ACCESS_CODE = "breadbus2026";
 
 const initialReservations = [
   {
@@ -73,6 +76,9 @@ export default function AppSafe() {
   const [scheduleStatus, setScheduleStatus] = useState(initialScheduleStatus);
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAdminAuthed, setIsAdminAuthed] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminError, setAdminError] = useState("");
 
   const managedDateSettings = useMemo(
     () => buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus),
@@ -107,6 +113,24 @@ export default function AppSafe() {
       phone: "",
       people: 1
     });
+  }
+
+  function handleAdminLogin() {
+    setAdminError("");
+
+    if (adminPassword !== ADMIN_ACCESS_CODE) {
+      setAdminError("관리자 비밀번호가 올바르지 않습니다.");
+      return;
+    }
+
+    setIsAdminAuthed(true);
+    setAdminPassword("");
+  }
+
+  function handleAdminLogout() {
+    setIsAdminAuthed(false);
+    setAdminPassword("");
+    setAdminError("");
   }
 
   function handleCapacityChange(date, nextCapacity) {
@@ -212,8 +236,20 @@ export default function AppSafe() {
             </div>
           </div>
 
-          <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
-            실제 운영 구조 안정화 중
+          <div className="flex items-center gap-2">
+            <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
+              실제 운영 구조 안정화 중
+            </div>
+
+            {isAdminAuthed ? (
+              <button
+                type="button"
+                onClick={handleAdminLogout}
+                className="rounded-full bg-stone-950 px-4 py-2 text-xs font-black text-white"
+              >
+                관리자 로그아웃
+              </button>
+            ) : null}
           </div>
         </div>
       </header>
@@ -278,16 +314,25 @@ export default function AppSafe() {
           <ReservationList reservations={reservations} />
         </section>
 
-        <AdminDashboard
-          reservations={reservations}
-          capacityOverrides={capacityOverrides}
-          priceOverrides={priceOverrides}
-          scheduleStatus={scheduleStatus}
-          onChangeReservationStatus={handleReservationStatusChange}
-          onChangeCapacity={handleCapacityChange}
-          onChangePrice={handlePriceChange}
-          onChangeScheduleStatus={handleScheduleStatusChange}
-        />
+        {isAdminAuthed ? (
+          <AdminDashboard
+            reservations={reservations}
+            capacityOverrides={capacityOverrides}
+            priceOverrides={priceOverrides}
+            scheduleStatus={scheduleStatus}
+            onChangeReservationStatus={handleReservationStatusChange}
+            onChangeCapacity={handleCapacityChange}
+            onChangePrice={handlePriceChange}
+            onChangeScheduleStatus={handleScheduleStatusChange}
+          />
+        ) : (
+          <AdminLogin
+            password={adminPassword}
+            error={adminError}
+            onChangePassword={setAdminPassword}
+            onSubmit={handleAdminLogin}
+          />
+        )}
       </main>
     </div>
   );
