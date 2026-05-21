@@ -4,10 +4,10 @@ import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
 import AdminReservationTable from "./components/AdminReservationTable.jsx";
 import AdminCapacityControl from "./components/AdminCapacityControl.jsx";
+import AdminPriceControl from "./components/AdminPriceControl.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
-  getRemainingSeats,
-  getPrice
+  getRemainingSeats
 } from "./core/reservationSchema.js";
 
 const initialReservations = [
@@ -34,6 +34,11 @@ const initialCapacityOverrides = {
   "2026-06-06": 20
 };
 
+const initialPriceOverrides = {
+  "2026-05-30": 30000,
+  "2026-06-06": 35000
+};
+
 export default function AppSafe() {
   const [selectedDate, setSelectedDate] = useState("2026-05-30");
 
@@ -44,9 +49,8 @@ export default function AppSafe() {
   });
 
   const [reservations, setReservations] = useState(initialReservations);
-  const [capacityOverrides, setCapacityOverrides] = useState(
-    initialCapacityOverrides
-  );
+  const [capacityOverrides, setCapacityOverrides] = useState(initialCapacityOverrides);
+  const [priceOverrides, setPriceOverrides] = useState(initialPriceOverrides);
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,8 +66,8 @@ export default function AppSafe() {
   }
 
   const selectedPrice = useMemo(() => {
-    return getPrice(DEFAULT_DATE_SETTINGS, selectedDate, 30000);
-  }, [selectedDate]);
+    return Number(priceOverrides[selectedDate] || 30000);
+  }, [priceOverrides, selectedDate]);
 
   function handleFormChange(key, value) {
     setReservationForm((prev) => ({
@@ -83,7 +87,14 @@ export default function AppSafe() {
   function handleCapacityChange(date, nextCapacity) {
     setCapacityOverrides((prev) => ({
       ...prev,
-      [date]: Math.max(1, nextCapacity)
+      [date]: Math.max(1, Number(nextCapacity || 1))
+    }));
+  }
+
+  function handlePriceChange(date, nextPrice) {
+    setPriceOverrides((prev) => ({
+      ...prev,
+      [date]: Math.max(0, Number(nextPrice || 0))
     }));
   }
 
@@ -135,6 +146,7 @@ export default function AppSafe() {
       name: reservationForm.name.trim(),
       phone: reservationForm.phone.trim(),
       people: reservationForm.people,
+      amount: Number(reservationForm.people || 1) * selectedPrice,
       status: "결제대기",
       createdAt: new Date().toISOString()
     };
@@ -199,7 +211,7 @@ export default function AppSafe() {
             </div>
 
             <div className="rounded-full bg-white px-4 py-3 text-sm font-black shadow-sm">
-              관리자에서 날짜별 정원 수정 가능
+              관리자에서 날짜별 정원·가격 수정 가능
             </div>
           </div>
 
@@ -240,6 +252,13 @@ export default function AppSafe() {
           <AdminCapacityControl
             capacityOverrides={capacityOverrides}
             onChangeCapacity={handleCapacityChange}
+          />
+        </section>
+
+        <section className="mt-10">
+          <AdminPriceControl
+            priceOverrides={priceOverrides}
+            onChangePrice={handlePriceChange}
           />
         </section>
       </main>
