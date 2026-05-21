@@ -1,5 +1,7 @@
 import React from "react";
 
+const PEOPLE_OPTIONS = [1, 2, 3, 4];
+
 export default function ReservationPanel({
   selectedDate,
   remainingSeats = 0,
@@ -9,6 +11,8 @@ export default function ReservationPanel({
   onSubmit,
   notice
 }) {
+  const totalAmount = Number(form.people || 1) * Number(price || 0);
+
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between gap-4">
@@ -18,7 +22,6 @@ export default function ReservationPanel({
             예약 정보 입력
           </h3>
         </div>
-
         <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
           실시간 모집현황 반영
         </div>
@@ -31,18 +34,16 @@ export default function ReservationPanel({
             {selectedDate || "날짜 선택 대기"}
           </p>
         </div>
-
         <div className="rounded-3xl bg-stone-50 p-5">
           <p className="text-xs font-black text-stone-500">잔여 좌석</p>
           <p className="mt-2 text-2xl font-black text-stone-900">
             {remainingSeats}석
           </p>
         </div>
-
         <div className="rounded-3xl bg-stone-50 p-5">
-          <p className="text-xs font-black text-stone-500">1인 금액</p>
-          <p className="mt-2 text-2xl font-black text-stone-900">
-            {price.toLocaleString()}원
+          <p className="text-xs font-black text-stone-500">총 결제 예정금액</p>
+          <p className="mt-2 text-2xl font-black text-orange-600">
+            {totalAmount.toLocaleString()}원
           </p>
         </div>
       </div>
@@ -58,7 +59,6 @@ export default function ReservationPanel({
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           />
         </label>
-
         <label className="flex flex-col gap-2">
           <span className="text-sm font-black text-stone-700">연락처</span>
           <input
@@ -79,14 +79,13 @@ export default function ReservationPanel({
             onChange={(e) => onChange?.("people", Number(e.target.value))}
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           >
-            {[1, 2, 3, 4].map((n) => (
-              <option key={n} value={n}>
-                {n}명
+            {PEOPLE_OPTIONS.map((people) => (
+              <option key={people} value={people}>
+                {people}명
               </option>
             ))}
           </select>
         </label>
-
         <div className="flex items-end">
           <button
             type="button"
