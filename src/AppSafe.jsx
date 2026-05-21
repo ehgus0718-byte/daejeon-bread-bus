@@ -5,6 +5,7 @@ import ReservationList from "./components/ReservationList.jsx";
 import AdminReservationTable from "./components/AdminReservationTable.jsx";
 import AdminCapacityControl from "./components/AdminCapacityControl.jsx";
 import AdminPriceControl from "./components/AdminPriceControl.jsx";
+import AdminScheduleStatusControl from "./components/AdminScheduleStatusControl.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats
@@ -39,6 +40,27 @@ const initialPriceOverrides = {
   "2026-06-06": 35000
 };
 
+const initialScheduleStatus = {
+  "2026-05-30": "open",
+  "2026-06-06": "open"
+};
+
+function buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus) {
+  return Object.keys(DEFAULT_DATE_SETTINGS).reduce((result, date) => {
+    const base = DEFAULT_DATE_SETTINGS[date];
+
+    return {
+      ...result,
+      [date]: {
+        ...base,
+        capacity: Number(capacityOverrides[date] || base.capacity || 15),
+        price: Number(priceOverrides[date] || base.price || 30000),
+        status: scheduleStatus[date] || base.status || "closed"
+      }
+    };
+  }, {});
+}
+
 export default function AppSafe() {
   const [selectedDate, setSelectedDate] = useState("2026-05-30");
 
@@ -51,23 +73,29 @@ export default function AppSafe() {
   const [reservations, setReservations] = useState(initialReservations);
   const [capacityOverrides, setCapacityOverrides] = useState(initialCapacityOverrides);
   const [priceOverrides, setPriceOverrides] = useState(initialPriceOverrides);
+  const [scheduleStatus, setScheduleStatus] = useState(initialScheduleStatus);
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function remaining(date) {
-    const fallbackCapacity = capacityOverrides[date] || 15;
+  const managedDateSettings = useMemo(
+    () => buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus),
+    [capacityOverrides, priceOverrides, scheduleStatus]
+  );
 
+  function remaining(date) {
     return getRemainingSeats({
       reservations,
-      dateSettings: DEFAULT_DATE_SETTINGS,
+      dateSettings: managedDateSettings,
       date,
-      fallbackCapacity
+      fallbackCapacity: 15
     });
   }
 
   const selectedPrice = useMemo(() => {
-    return Number(priceOverrides[selectedDate] || 30000);
-  }, [priceOverrides, selectedDate]);
+    return Number(managedDateSettings[selectedDate]?.price || 30000);
+  }, [managedDateSettings, selectedDate]);
+
+  const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "closed";
 
   function handleFormChange(key, value) {
     setReservationForm((prev) => ({
@@ -98,6 +126,13 @@ export default function AppSafe() {
     }));
   }
 
+  function handleScheduleStatusChange(date, nextStatus) {
+    setScheduleStatus((prev) => ({
+      ...prev,
+      [date]: nextStatus
+    }));
+  }
+
   function handleReservationStatusChange(id, nextStatus) {
     setReservations((prev) =>
       prev.map((reservation) => {
@@ -118,6 +153,11 @@ export default function AppSafe() {
 
     if (!selectedDate) {
       setNotice("예약 날짜를 선택해주세요.");
+      return;
+    }
+
+    if (selectedScheduleStatus !== "open") {
+      setNotice("선택한 날짜는 예약마감 상태입니다.");
       return;
     }
 
@@ -211,13 +251,13 @@ export default function AppSafe() {
             </div>
 
             <div className="rounded-full bg-white px-4 py-3 text-sm font-black shadow-sm">
-              관리자에서 날짜별 정원·가격 수정 가능
+              관리자에서 날짜별 정원·가격·상태 수정 가능
             </div>
           </div>
 
           <TwoMonthCalendar
             currentDate={new Date(2026, 4, 1)}
-            dateSettings={DEFAULT_DATE_SETTINGS}
+            dateSettings={managedDateSettings}
             getRemainingSeats={remaining}
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
@@ -259,6 +299,13 @@ export default function AppSafe() {
           <AdminPriceControl
             priceOverrides={priceOverrides}
             onChangePrice={handlePriceChange}
+          />
+        </section>
+
+        <section className="mt-10">
+          <AdminScheduleStatusControl
+            scheduleStatus={scheduleStatus}
+            onChangeStatus={handleScheduleStatusChange}
           />
         </section>
       </main>
