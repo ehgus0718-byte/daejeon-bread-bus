@@ -23,7 +23,7 @@ const mockReservations = [
 ];
 
 export default function AppSafe() {
-  const [selectedDate] = useState("2026-05-30");
+  const [selectedDate, setSelectedDate] = useState("2026-05-30");
 
   const [reservationForm, setReservationForm] = useState({
     name: "",
@@ -111,6 +111,8 @@ export default function AppSafe() {
             currentDate={new Date(2026, 4, 1)}
             dateSettings={DEFAULT_DATE_SETTINGS}
             getRemainingSeats={remaining}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
           />
         </section>
 
