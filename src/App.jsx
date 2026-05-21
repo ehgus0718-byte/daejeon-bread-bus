@@ -229,8 +229,17 @@ export default function App() {
 
   function login() { const ADMIN_PASSWORD = "tyty5656";
 
-if (password === ADMIN_PASSWORD) { { setAuthed(true); setPassword(""); setNotice(""); } else setNotice(""); }
-  function reserve() {
+function login() {
+  const ADMIN_PASSWORD = "tyty5656";
+
+  if (password === ADMIN_PASSWORD) {
+    setAuthed(true);
+    setPassword("");
+    setNotice("");
+  } else {
+    setNotice("비밀번호가 올바르지 않습니다.");
+  }
+}
     const current = countPeople(reservations, form.date);
     const req = clamp(form.people, 1, Number(config.maxPeople || 1));
     const seats = Math.max(0, Number(config.maxPeople || 1) - current);
