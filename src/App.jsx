@@ -227,7 +227,9 @@ export default function App() {
   loadReservations();
 }, []);
 
-  function login() { if (password === const ADMIN_PASSWORD = "tyty5656";) { setAuthed(true); setPassword(""); setNotice(""); } else setNotice(""); }
+  function login() { const ADMIN_PASSWORD = "tyty5656";
+
+if (password === ADMIN_PASSWORD) { { setAuthed(true); setPassword(""); setNotice(""); } else setNotice(""); }
   function reserve() {
     const current = countPeople(reservations, form.date);
     const req = clamp(form.people, 1, Number(config.maxPeople || 1));
