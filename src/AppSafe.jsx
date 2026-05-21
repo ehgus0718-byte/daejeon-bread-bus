@@ -2,10 +2,7 @@ import React, { useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
-import AdminReservationTable from "./components/AdminReservationTable.jsx";
-import AdminCapacityControl from "./components/AdminCapacityControl.jsx";
-import AdminPriceControl from "./components/AdminPriceControl.jsx";
-import AdminScheduleStatusControl from "./components/AdminScheduleStatusControl.jsx";
+import AdminDashboard from "./components/AdminDashboard.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats
@@ -281,33 +278,16 @@ export default function AppSafe() {
           <ReservationList reservations={reservations} />
         </section>
 
-        <section className="mt-10">
-          <AdminReservationTable
-            reservations={reservations}
-            onChangeStatus={handleReservationStatusChange}
-          />
-        </section>
-
-        <section className="mt-10">
-          <AdminCapacityControl
-            capacityOverrides={capacityOverrides}
-            onChangeCapacity={handleCapacityChange}
-          />
-        </section>
-
-        <section className="mt-10">
-          <AdminPriceControl
-            priceOverrides={priceOverrides}
-            onChangePrice={handlePriceChange}
-          />
-        </section>
-
-        <section className="mt-10">
-          <AdminScheduleStatusControl
-            scheduleStatus={scheduleStatus}
-            onChangeStatus={handleScheduleStatusChange}
-          />
-        </section>
+        <AdminDashboard
+          reservations={reservations}
+          capacityOverrides={capacityOverrides}
+          priceOverrides={priceOverrides}
+          scheduleStatus={scheduleStatus}
+          onChangeReservationStatus={handleReservationStatusChange}
+          onChangeCapacity={handleCapacityChange}
+          onChangePrice={handlePriceChange}
+          onChangeScheduleStatus={handleScheduleStatusChange}
+        />
       </main>
     </div>
   );
