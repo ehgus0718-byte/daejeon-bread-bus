@@ -87,6 +87,63 @@ function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value
 function tourList(config) { return Array.isArray(config.tourPackages) && config.tourPackages.length ? config.tourPackages : defaultConfig.tourPackages; }
 function selectedTour(config, date) { return tourList(config).find((t) => t.date === date) || tourList(config)[0]; }
 function countPeople(reservations, date) { return reservations.filter((r) => r.status !== "취소" && r.date === date).reduce((s, r) => s + Number(r.people || 0), 0); }
+async function fetchReservationsFromDB() {
+  const { data, error } = await supabase
+    .from("reservations")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("예약 목록 불러오기 실패:", error);
+    return [];
+  }
+
+  return (data || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    phone: item.phone,
+    date: item.date,
+    people: Number(item.people || 0),
+    amount: Number(item.amount || 0),
+    status: item.status || "결제대기",
+    createdAt: item.created_at,
+  }));
+}
+async function saveReservationToDB(form, config) {
+  const people = clamp(form.people, 1, Number(config.maxPeople || 1));
+  const amount = people * Number(config.pricePerPerson || 0);
+
+  const { data, error } = await supabase
+    .from("reservations")
+    .insert([
+      {
+        name: String(form.name || "").trim(),
+        phone: String(form.phone || "").trim(),
+        date: form.date,
+        people,
+        amount,
+        status: "결제대기",
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("예약 저장 실패:", error);
+    throw error;
+  }
+
+  return {
+    id: data.id,
+    name: data.name,
+    phone: data.phone,
+    date: data.date,
+    people: Number(data.people || 0),
+    amount: Number(data.amount || 0),
+    status: data.status || "결제대기",
+    createdAt: data.created_at,
+  };
+}
 function remaining(config, reservations, date) { return Math.max(0, Number(config.maxPeople || 18) - countPeople(reservations, date)); }
 function dateKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function months() { const t = new Date(); return [new Date(t.getFullYear(), t.getMonth(), 1), new Date(t.getFullYear(), t.getMonth() + 1, 1)]; }
@@ -150,7 +207,8 @@ function AdminReservations({ reservations, setReservations }) { return <Card cla
 
 export default function App() {
   const [config, setConfig] = useState(() => load(STORAGE_KEY, defaultConfig));
-  const [reservations, setReservations] = useState(() => { try { return JSON.parse(localStorage.getItem(RESERVATION_KEY) || "[]"); } catch { return []; } });
+  const [reservations, setReservations] = useState([]);
+  const [loadingReservations, setLoadingReservations] = useState(false);
   const [mode, setMode] = useState("home");
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
@@ -158,7 +216,16 @@ export default function App() {
   const [form, setForm] = useState({ name: "", phone: "", date: defaultConfig.tourPackages[0].date, people: 1 });
 
   useEffect(() => save(STORAGE_KEY, config), [config]);
-  useEffect(() => save(RESERVATION_KEY, reservations), [reservations]);
+  useEffect(() => {
+  async function loadReservations() {
+    setLoadingReservations(true);
+    const dbReservations = await fetchReservationsFromDB();
+    setReservations(dbReservations);
+    setLoadingReservations(false);
+  }
+
+  loadReservations();
+}, []);
 
   function login() { if (password === const ADMIN_PASSWORD = "tyty5656";) { setAuthed(true); setPassword(""); setNotice(""); } else setNotice(""); }
   function reserve() {
@@ -168,10 +235,17 @@ export default function App() {
     if (!form.name.trim() || !form.phone.trim() || !form.date) return setNotice("이름, 연락처, 투어 날짜를 입력해주세요.");
     if (seats <= 0) return setNotice("해당 날짜는 예약이 완료되었습니다. 다른 날짜를 선택해주세요.");
     if (req > seats) return setNotice(`잔여 좌석은 ${seats}석입니다. 인원을 다시 선택해주세요.`);
-    const item = { id: Date.now(), name: form.name.trim(), phone: form.phone.trim(), date: form.date, people: req, amount: req * Number(config.pricePerPerson || 0), status: "결제대기", createdAt: new Date().toLocaleString("ko-KR") };
+    saveReservationToDB({ ...form, people: req }, config)
+   .then((item) => {
     setReservations([item, ...reservations]);
-    setNotice("예약이 접수되었습니다. 결제 프로그램 연동 전까지는 결제대기 상태로 저장됩니다.");
+    setNotice("예약이 DB에 저장되었습니다. 결제 프로그램 연동 전까지는 결제대기 상태입니다.");
     setForm({ name: "", phone: "", date: form.date, people: 1 });
+  })
+  .catch(() => {
+    setNotice("예약 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+  });
+
+return;
   }
   function resetAll() { setConfig(defaultConfig); setReservations([]); setNotice("기본 설정과 예약 데이터가 초기화되었습니다."); }
 
