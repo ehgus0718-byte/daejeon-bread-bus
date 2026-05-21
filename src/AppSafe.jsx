@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
+import ReservationList from "./components/ReservationList.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats,
@@ -12,13 +13,15 @@ const initialReservations = [
     id: "r1",
     date: "2026-05-30",
     people: 8,
-    status: "결제완료"
+    status: "결제완료",
+    createdAt: "2026-05-21T09:00:00"
   },
   {
     id: "r2",
     date: "2026-06-06",
     people: 13,
-    status: "결제완료"
+    status: "결제완료",
+    createdAt: "2026-05-21T10:00:00"
   }
 ];
 
@@ -184,6 +187,10 @@ export default function AppSafe() {
             notice={notice}
             isSubmitting={isSubmitting}
           />
+        </section>
+
+        <section className="mt-10">
+          <ReservationList reservations={reservations} />
         </section>
       </main>
     </div>
