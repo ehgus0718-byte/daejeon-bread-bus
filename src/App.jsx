@@ -242,11 +242,7 @@ export default function App() {
   loadReservations();
 }, []);
 
-  function login() { const ADMIN_PASSWORD = "tyty5656";
-
 function login() {
-  const ADMIN_PASSWORD = "tyty5656";
-
   if (password === ADMIN_PASSWORD) {
     setAuthed(true);
     setPassword("");
