@@ -23,7 +23,13 @@ function formatKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function CalendarCard({ monthDate, dateSettings = {}, getRemainingSeats }) {
+function CalendarCard({
+  monthDate,
+  dateSettings = {},
+  getRemainingSeats,
+  selectedDate,
+  onSelectDate
+}) {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
   const days = buildMonth(year, month);
@@ -55,26 +61,37 @@ function CalendarCard({ monthDate, dateSettings = {}, getRemainingSeats }) {
           const setting = dateSettings[key];
           const remaining = getRemainingSeats?.(key) ?? 0;
           const isOpen = setting?.status === "open";
+          const isSelected = selectedDate === key;
 
           return (
-            <div
+            <button
+              type="button"
               key={key}
-              className={`aspect-square rounded-2xl border p-2 transition ${
-                isOpen
-                  ? "border-orange-100 bg-orange-50/60"
-                  : "border-stone-100 bg-stone-50"
+              onClick={() => {
+                if (setting && isOpen) {
+                  onSelectDate?.(key);
+                }
+              }}
+              className={`aspect-square rounded-2xl border p-2 text-left transition ${
+                isSelected
+                  ? "border-orange-500 bg-orange-500 text-white shadow-lg shadow-orange-100"
+                  : isOpen
+                    ? "border-orange-100 bg-orange-50/60 hover:border-orange-300"
+                    : "border-stone-100 bg-stone-50"
               }`}
             >
               <div className="flex h-full flex-col justify-between">
-                <div className="text-lg font-black text-stone-900">{date.getDate()}</div>
+                <div className="text-lg font-black">{date.getDate()}</div>
 
                 {setting ? (
                   <div>
                     <div
                       className={`rounded-full px-2 py-1 text-[10px] font-black ${
-                        remaining > 0
+                        isSelected
                           ? "bg-white text-orange-700"
-                          : "bg-stone-900 text-white"
+                          : remaining > 0
+                            ? "bg-white text-orange-700"
+                            : "bg-stone-900 text-white"
                       }`}
                     >
                       {remaining > 0 ? `${remaining}석 남음` : "예약마감"}
@@ -84,7 +101,7 @@ function CalendarCard({ monthDate, dateSettings = {}, getRemainingSeats }) {
                   <div className="text-[10px] font-bold text-stone-400">일정 없음</div>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -95,7 +112,9 @@ function CalendarCard({ monthDate, dateSettings = {}, getRemainingSeats }) {
 export default function TwoMonthCalendar({
   currentDate = new Date(),
   dateSettings = {},
-  getRemainingSeats
+  getRemainingSeats,
+  selectedDate,
+  onSelectDate
 }) {
   const firstMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const secondMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
@@ -106,12 +125,16 @@ export default function TwoMonthCalendar({
         monthDate={firstMonth}
         dateSettings={dateSettings}
         getRemainingSeats={getRemainingSeats}
+        selectedDate={selectedDate}
+        onSelectDate={onSelectDate}
       />
 
       <CalendarCard
         monthDate={secondMonth}
         dateSettings={dateSettings}
         getRemainingSeats={getRemainingSeats}
+        selectedDate={selectedDate}
+        onSelectDate={onSelectDate}
       />
     </section>
   );
