@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
+import AdminReservationTable from "./components/AdminReservationTable.jsx";
 import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats,
@@ -12,6 +13,7 @@ const initialReservations = [
   {
     id: "r1",
     date: "2026-05-30",
+    name: "김민수",
     people: 8,
     status: "결제완료",
     createdAt: "2026-05-21T09:00:00"
@@ -19,8 +21,9 @@ const initialReservations = [
   {
     id: "r2",
     date: "2026-06-06",
+    name: "이서연",
     people: 13,
-    status: "결제완료",
+    status: "예약확정",
     createdAt: "2026-05-21T10:00:00"
   }
 ];
@@ -64,6 +67,21 @@ export default function AppSafe() {
       phone: "",
       people: 1
     });
+  }
+
+  function handleReservationStatusChange(id, nextStatus) {
+    setReservations((prev) =>
+      prev.map((reservation) => {
+        if (reservation.id !== id) {
+          return reservation;
+        }
+
+        return {
+          ...reservation,
+          status: nextStatus
+        };
+      })
+    );
   }
 
   function handleSubmit() {
@@ -191,6 +209,13 @@ export default function AppSafe() {
 
         <section className="mt-10">
           <ReservationList reservations={reservations} />
+        </section>
+
+        <section className="mt-10">
+          <AdminReservationTable
+            reservations={reservations}
+            onChangeStatus={handleReservationStatusChange}
+          />
         </section>
       </main>
     </div>
