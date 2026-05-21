@@ -7,7 +7,7 @@ import {
   getPrice
 } from "./core/reservationSchema.js";
 
-const mockReservations = [
+const initialReservations = [
   {
     id: "r1",
     date: "2026-05-30",
@@ -31,9 +31,13 @@ export default function AppSafe() {
     people: 1
   });
 
+  const [reservations, setReservations] = useState(initialReservations);
+  const [notice, setNotice] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   function remaining(date) {
     return getRemainingSeats({
-      reservations: mockReservations,
+      reservations,
       dateSettings: DEFAULT_DATE_SETTINGS,
       date,
       fallbackCapacity: 15
@@ -49,6 +53,59 @@ export default function AppSafe() {
       ...prev,
       [key]: value
     }));
+  }
+
+  function resetForm() {
+    setReservationForm({
+      name: "",
+      phone: "",
+      people: 1
+    });
+  }
+
+  function handleSubmit() {
+    setNotice("");
+
+    if (!selectedDate) {
+      setNotice("예약 날짜를 선택해주세요.");
+      return;
+    }
+
+    if (!reservationForm.name?.trim()) {
+      setNotice("예약자명을 입력해주세요.");
+      return;
+    }
+
+    if (!reservationForm.phone?.trim()) {
+      setNotice("연락처를 입력해주세요.");
+      return;
+    }
+
+    const remainingSeats = remaining(selectedDate);
+
+    if (reservationForm.people > remainingSeats) {
+      setNotice("잔여 좌석이 부족합니다.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const reservationItem = {
+      id: crypto.randomUUID(),
+      date: selectedDate,
+      name: reservationForm.name.trim(),
+      phone: reservationForm.phone.trim(),
+      people: reservationForm.people,
+      status: "결제대기",
+      createdAt: new Date().toISOString()
+    };
+
+    setReservations((prev) => [...prev, reservationItem]);
+
+    setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
+
+    resetForm();
+    setIsSubmitting(false);
   }
 
   return (
@@ -68,7 +125,7 @@ export default function AppSafe() {
           </div>
 
           <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
-            안정화 구조 진행 중
+            실제 운영 구조 안정화 중
           </div>
         </div>
       </header>
@@ -87,7 +144,7 @@ export default function AppSafe() {
 
           <p className="mt-6 max-w-2xl text-base font-bold leading-7 text-stone-300">
             날짜별 모집현황, 잔여좌석, 예약마감 상태를 한 번에 확인할 수 있는
-            예약 플랫폼 구조로 안정화 중입니다.
+            실제 운영형 예약 플랫폼 구조입니다.
           </p>
         </section>
 
@@ -123,6 +180,9 @@ export default function AppSafe() {
             price={selectedPrice}
             form={reservationForm}
             onChange={handleFormChange}
+            onSubmit={handleSubmit}
+            notice={notice}
+            isSubmitting={isSubmitting}
           />
         </section>
       </main>
