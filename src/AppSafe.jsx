@@ -12,6 +12,10 @@ import {
   loadReservations,
   saveReservations
 } from "./services/reservationStorage.js";
+import {
+  loadAdminSettings,
+  saveAdminSettings
+} from "./services/adminSettingsStorage.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 
@@ -49,6 +53,12 @@ const initialScheduleStatus = {
   "2026-06-06": "open"
 };
 
+const initialAdminSettings = {
+  capacityOverrides: initialCapacityOverrides,
+  priceOverrides: initialPriceOverrides,
+  scheduleStatus: initialScheduleStatus
+};
+
 function buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus) {
   return Object.keys(DEFAULT_DATE_SETTINGS).reduce((result, date) => {
     const base = DEFAULT_DATE_SETTINGS[date];
@@ -66,6 +76,11 @@ function buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus) {
 }
 
 export default function AppSafe() {
+  const savedAdminSettings = useMemo(
+    () => loadAdminSettings(initialAdminSettings),
+    []
+  );
+
   const [selectedDate, setSelectedDate] = useState("2026-05-30");
 
   const [reservationForm, setReservationForm] = useState({
@@ -77,9 +92,15 @@ export default function AppSafe() {
   const [reservations, setReservations] = useState(() =>
     loadReservations(initialReservations)
   );
-  const [capacityOverrides, setCapacityOverrides] = useState(initialCapacityOverrides);
-  const [priceOverrides, setPriceOverrides] = useState(initialPriceOverrides);
-  const [scheduleStatus, setScheduleStatus] = useState(initialScheduleStatus);
+  const [capacityOverrides, setCapacityOverrides] = useState(
+    savedAdminSettings.capacityOverrides
+  );
+  const [priceOverrides, setPriceOverrides] = useState(
+    savedAdminSettings.priceOverrides
+  );
+  const [scheduleStatus, setScheduleStatus] = useState(
+    savedAdminSettings.scheduleStatus
+  );
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAdminAuthed, setIsAdminAuthed] = useState(false);
@@ -89,6 +110,14 @@ export default function AppSafe() {
   useEffect(() => {
     saveReservations(reservations);
   }, [reservations]);
+
+  useEffect(() => {
+    saveAdminSettings({
+      capacityOverrides,
+      priceOverrides,
+      scheduleStatus
+    });
+  }, [capacityOverrides, priceOverrides, scheduleStatus]);
 
   const managedDateSettings = useMemo(
     () => buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus),
