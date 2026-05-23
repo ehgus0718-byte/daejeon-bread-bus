@@ -19,6 +19,7 @@ import {
   INITIAL_ADMIN_SETTINGS,
   INITIAL_RESERVATIONS
 } from "./data/initialData.js";
+import { DEFAULT_RESERVATION_FORM } from "./data/formDefaults.js";
 import {
   loadReservations,
   saveReservations
@@ -38,11 +39,9 @@ export default function AppSafe() {
 
   const [selectedDate, setSelectedDate] = useState("2026-05-30");
 
-  const [reservationForm, setReservationForm] = useState({
-    name: "",
-    phone: "",
-    people: 1
-  });
+  const [reservationForm, setReservationForm] = useState(
+    DEFAULT_RESERVATION_FORM
+  );
 
   const [reservations, setReservations] = useState(() =>
     loadReservations(INITIAL_RESERVATIONS)
@@ -107,11 +106,7 @@ export default function AppSafe() {
   }
 
   function resetForm() {
-    setReservationForm({
-      name: "",
-      phone: "",
-      people: 1
-    });
+    setReservationForm(DEFAULT_RESERVATION_FORM);
   }
 
   function handleAdminLogin() {
