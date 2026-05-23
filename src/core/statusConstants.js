@@ -1,0 +1,29 @@
+export const RESERVATION_STATUS = {
+  PAYMENT_PENDING: "결제대기",
+  PAYMENT_COMPLETED: "결제완료",
+  CONFIRMED: "예약확정",
+  CANCELED: "예약취소"
+};
+
+export const SCHEDULE_STATUS = {
+  OPEN: "open",
+  CLOSED: "closed"
+};
+
+export const RESERVATION_STATUS_OPTIONS = [
+  RESERVATION_STATUS.PAYMENT_PENDING,
+  RESERVATION_STATUS.PAYMENT_COMPLETED,
+  RESERVATION_STATUS.CONFIRMED,
+  RESERVATION_STATUS.CANCELED
+];
+
+export const SCHEDULE_STATUS_OPTIONS = [
+  {
+    value: SCHEDULE_STATUS.OPEN,
+    label: "예약가능"
+  },
+  {
+    value: SCHEDULE_STATUS.CLOSED,
+    label: "예약마감"
+  }
+];
