@@ -4,10 +4,12 @@ import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
+import { createReservation } from "./core/reservationFactory.js";
 import {
   DEFAULT_DATE_SETTINGS,
   getRemainingSeats
 } from "./core/reservationSchema.js";
+import { validateReservationForm } from "./core/reservationValidation.js";
 import {
   INITIAL_ADMIN_SETTINGS,
   INITIAL_RESERVATIONS
@@ -175,45 +177,27 @@ export default function AppSafe() {
   function handleSubmit() {
     setNotice("");
 
-    if (!selectedDate) {
-      setNotice("예약 날짜를 선택해주세요.");
-      return;
-    }
-
-    if (selectedScheduleStatus !== "open") {
-      setNotice("선택한 날짜는 예약마감 상태입니다.");
-      return;
-    }
-
-    if (!reservationForm.name?.trim()) {
-      setNotice("예약자명을 입력해주세요.");
-      return;
-    }
-
-    if (!reservationForm.phone?.trim()) {
-      setNotice("연락처를 입력해주세요.");
-      return;
-    }
-
     const remainingSeats = remaining(selectedDate);
+    const validation = validateReservationForm({
+      selectedDate,
+      scheduleStatus: selectedScheduleStatus,
+      form: reservationForm,
+      remainingSeats
+    });
 
-    if (reservationForm.people > remainingSeats) {
-      setNotice("잔여 좌석이 부족합니다.");
+    if (!validation.valid) {
+      setNotice(validation.message);
       return;
     }
 
     setIsSubmitting(true);
 
-    const reservationItem = {
-      id: crypto.randomUUID(),
-      date: selectedDate,
-      name: reservationForm.name.trim(),
-      phone: reservationForm.phone.trim(),
-      people: reservationForm.people,
-      amount: Number(reservationForm.people || 1) * selectedPrice,
-      status: "결제대기",
-      createdAt: new Date().toISOString()
-    };
+    const reservationItem = createReservation({
+      selectedDate,
+      form: reservationForm,
+      price: selectedPrice,
+      status: "결제대기"
+    });
 
     setReservations((prev) => [...prev, reservationItem]);
 
