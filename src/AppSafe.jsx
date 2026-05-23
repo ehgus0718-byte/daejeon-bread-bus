@@ -4,11 +4,9 @@ import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
+import { buildDateSettings } from "./core/dateSettingsBuilder.js";
 import { createReservation } from "./core/reservationFactory.js";
-import {
-  DEFAULT_DATE_SETTINGS,
-  getRemainingSeats
-} from "./core/reservationSchema.js";
+import { getRemainingSeats } from "./core/reservationSchema.js";
 import { validateReservationForm } from "./core/reservationValidation.js";
 import {
   INITIAL_ADMIN_SETTINGS,
@@ -24,22 +22,6 @@ import {
 } from "./services/adminSettingsStorage.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
-
-function buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus) {
-  return Object.keys(DEFAULT_DATE_SETTINGS).reduce((result, date) => {
-    const base = DEFAULT_DATE_SETTINGS[date];
-
-    return {
-      ...result,
-      [date]: {
-        ...base,
-        capacity: Number(capacityOverrides[date] || base.capacity || 15),
-        price: Number(priceOverrides[date] || base.price || 30000),
-        status: scheduleStatus[date] || base.status || "closed"
-      }
-    };
-  }, {});
-}
 
 export default function AppSafe() {
   const savedAdminSettings = useMemo(
@@ -86,7 +68,12 @@ export default function AppSafe() {
   }, [capacityOverrides, priceOverrides, scheduleStatus]);
 
   const managedDateSettings = useMemo(
-    () => buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus),
+    () =>
+      buildDateSettings({
+        capacityOverrides,
+        priceOverrides,
+        scheduleStatus
+      }),
     [capacityOverrides, priceOverrides, scheduleStatus]
   );
 
