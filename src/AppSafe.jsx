@@ -8,6 +8,7 @@ import { buildDateSettings } from "./core/dateSettingsBuilder.js";
 import { validateAdminPassword } from "./core/adminPasswordValidation.js";
 import { createReservation } from "./core/reservationFactory.js";
 import { getRemainingSeats } from "./core/reservationSchema.js";
+import { updateReservationStatus } from "./core/reservationStatusUpdater.js";
 import { validateReservationForm } from "./core/reservationValidation.js";
 import {
   INITIAL_ADMIN_SETTINGS,
@@ -154,15 +155,10 @@ export default function AppSafe() {
 
   function handleReservationStatusChange(id, nextStatus) {
     setReservations((prev) =>
-      prev.map((reservation) => {
-        if (reservation.id !== id) {
-          return reservation;
-        }
-
-        return {
-          ...reservation,
-          status: nextStatus
-        };
+      updateReservationStatus({
+        reservations: prev,
+        reservationId: id,
+        nextStatus
       })
     );
   }
