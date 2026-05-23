@@ -9,6 +9,10 @@ import {
   getRemainingSeats
 } from "./core/reservationSchema.js";
 import {
+  INITIAL_ADMIN_SETTINGS,
+  INITIAL_RESERVATIONS
+} from "./data/initialData.js";
+import {
   loadReservations,
   saveReservations
 } from "./services/reservationStorage.js";
@@ -18,46 +22,6 @@ import {
 } from "./services/adminSettingsStorage.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
-
-const initialReservations = [
-  {
-    id: "r1",
-    date: "2026-05-30",
-    name: "김민수",
-    people: 8,
-    status: "결제완료",
-    createdAt: "2026-05-21T09:00:00"
-  },
-  {
-    id: "r2",
-    date: "2026-06-06",
-    name: "이서연",
-    people: 13,
-    status: "예약확정",
-    createdAt: "2026-05-21T10:00:00"
-  }
-];
-
-const initialCapacityOverrides = {
-  "2026-05-30": 15,
-  "2026-06-06": 20
-};
-
-const initialPriceOverrides = {
-  "2026-05-30": 30000,
-  "2026-06-06": 35000
-};
-
-const initialScheduleStatus = {
-  "2026-05-30": "open",
-  "2026-06-06": "open"
-};
-
-const initialAdminSettings = {
-  capacityOverrides: initialCapacityOverrides,
-  priceOverrides: initialPriceOverrides,
-  scheduleStatus: initialScheduleStatus
-};
 
 function buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus) {
   return Object.keys(DEFAULT_DATE_SETTINGS).reduce((result, date) => {
@@ -77,7 +41,7 @@ function buildDateSettings(capacityOverrides, priceOverrides, scheduleStatus) {
 
 export default function AppSafe() {
   const savedAdminSettings = useMemo(
-    () => loadAdminSettings(initialAdminSettings),
+    () => loadAdminSettings(INITIAL_ADMIN_SETTINGS),
     []
   );
 
@@ -90,7 +54,7 @@ export default function AppSafe() {
   });
 
   const [reservations, setReservations] = useState(() =>
-    loadReservations(initialReservations)
+    loadReservations(INITIAL_RESERVATIONS)
   );
   const [capacityOverrides, setCapacityOverrides] = useState(
     savedAdminSettings.capacityOverrides
