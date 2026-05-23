@@ -6,6 +6,11 @@ import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
 import { validateAdminPassword } from "./core/adminPasswordValidation.js";
+import {
+  updateCapacityOverride,
+  updatePriceOverride,
+  updateScheduleStatus
+} from "./core/adminSettingsUpdater.js";
 import { createReservation } from "./core/reservationFactory.js";
 import { getRemainingSeats } from "./core/reservationSchema.js";
 import { updateReservationStatus } from "./core/reservationStatusUpdater.js";
@@ -133,24 +138,33 @@ export default function AppSafe() {
   }
 
   function handleCapacityChange(date, nextCapacity) {
-    setCapacityOverrides((prev) => ({
-      ...prev,
-      [date]: Math.max(1, Number(nextCapacity || 1))
-    }));
+    setCapacityOverrides((prev) =>
+      updateCapacityOverride({
+        capacityOverrides: prev,
+        date,
+        nextCapacity
+      })
+    );
   }
 
   function handlePriceChange(date, nextPrice) {
-    setPriceOverrides((prev) => ({
-      ...prev,
-      [date]: Math.max(0, Number(nextPrice || 0))
-    }));
+    setPriceOverrides((prev) =>
+      updatePriceOverride({
+        priceOverrides: prev,
+        date,
+        nextPrice
+      })
+    );
   }
 
   function handleScheduleStatusChange(date, nextStatus) {
-    setScheduleStatus((prev) => ({
-      ...prev,
-      [date]: nextStatus
-    }));
+    setScheduleStatus((prev) =>
+      updateScheduleStatus({
+        scheduleStatus: prev,
+        date,
+        nextStatus
+      })
+    );
   }
 
   function handleReservationStatusChange(id, nextStatus) {
