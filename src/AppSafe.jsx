@@ -21,13 +21,11 @@ import {
 } from "./data/initialData.js";
 import { DEFAULT_RESERVATION_FORM } from "./data/formDefaults.js";
 import {
-  loadReservations,
-  saveReservations
-} from "./services/reservationStorage.js";
-import {
   loadAdminSettings,
-  saveAdminSettings
-} from "./services/adminSettingsStorage.js";
+  loadReservations,
+  saveAdminSettings,
+  saveReservations
+} from "./services/storageIndex.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 
