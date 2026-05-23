@@ -5,6 +5,7 @@ import ReservationList from "./components/ReservationList.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
+import { validateAdminPassword } from "./core/adminPasswordValidation.js";
 import { createReservation } from "./core/reservationFactory.js";
 import { getRemainingSeats } from "./core/reservationSchema.js";
 import { validateReservationForm } from "./core/reservationValidation.js";
@@ -110,8 +111,13 @@ export default function AppSafe() {
   function handleAdminLogin() {
     setAdminError("");
 
-    if (adminPassword !== ADMIN_ACCESS_CODE) {
-      setAdminError("관리자 비밀번호가 올바르지 않습니다.");
+    const validation = validateAdminPassword({
+      password: adminPassword,
+      accessCode: ADMIN_ACCESS_CODE
+    });
+
+    if (!validation.valid) {
+      setAdminError(validation.message);
       return;
     }
 
