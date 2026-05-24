@@ -1,5 +1,6 @@
 import React from "react";
 import AdminReservationNoteEditor from "./AdminReservationNoteEditor.jsx";
+import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
 export default function AdminReservationNotesSection({
   reservations = [],
@@ -13,15 +14,11 @@ export default function AdminReservationNotesSection({
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
       <div className="mb-5">
-        <p className="text-sm font-black text-orange-600">
-          Admin Reservation Notes
-        </p>
-        <h3 className="mt-1 text-3xl font-black text-stone-900">
-          예약별 관리자 메모
-        </h3>
-        <p className="mt-2 text-sm font-bold text-stone-500">
-          예약별 특이사항, 입금 확인, 고객 요청사항을 기록할 수 있습니다.
-        </p>
+        <AdminSectionTitle
+          eyebrow="Admin Reservation Notes"
+          title="예약별 관리자 메모"
+          description="예약별 특이사항, 입금 확인, 고객 요청사항을 기록할 수 있습니다."
+        />
       </div>
 
       <div className="grid gap-4">
