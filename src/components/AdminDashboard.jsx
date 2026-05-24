@@ -5,10 +5,12 @@ import AdminPriceControl from "./AdminPriceControl.jsx";
 import AdminScheduleStatusControl from "./AdminScheduleStatusControl.jsx";
 import AdminSummaryCards from "./AdminSummaryCards.jsx";
 import AdminReservationNotesSection from "./AdminReservationNotesSection.jsx";
+import AdminHealthReport from "./AdminHealthReport.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
 } from "../core/adminDashboardSummary.js";
+import { createAppHealthReport } from "../core/appHealthCheck.js";
 import { buildDateSettings } from "../core/dateSettingsBuilder.js";
 import { useReservationNotes } from "../hooks/useReservationNotes.js";
 
@@ -44,6 +46,17 @@ export default function AdminDashboard({
     return getAdminDashboardSummaryCards(summary);
   }, [capacityOverrides, priceOverrides, reservationsWithNotes, scheduleStatus]);
 
+  const healthReport = useMemo(
+    () =>
+      createAppHealthReport({
+        reservations: reservationsWithNotes,
+        capacityOverrides,
+        priceOverrides,
+        scheduleStatus
+      }),
+    [capacityOverrides, priceOverrides, reservationsWithNotes, scheduleStatus]
+  );
+
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-stone-950 p-5 shadow-xl shadow-orange-100 md:p-8">
       <div className="mb-8 flex flex-col gap-3 text-white md:flex-row md:items-end md:justify-between">
@@ -66,6 +79,8 @@ export default function AdminDashboard({
 
       <div className="grid gap-6">
         <AdminSummaryCards cards={summaryCards} />
+
+        <AdminHealthReport report={healthReport} />
 
         <AdminReservationTable
           reservations={reservationsWithNotes}
