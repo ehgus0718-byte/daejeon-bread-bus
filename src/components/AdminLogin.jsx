@@ -1,4 +1,5 @@
 import React from "react";
+import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
 export default function AdminLogin({
   password = "",
@@ -9,17 +10,11 @@ export default function AdminLogin({
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-white p-6 shadow-sm md:p-8">
       <div className="grid gap-6 lg:grid-cols-[1fr_420px] lg:items-center">
-        <div>
-          <p className="text-sm font-black tracking-[0.25em] text-orange-600">
-            ADMIN ACCESS
-          </p>
-          <h2 className="mt-3 text-4xl font-black text-stone-950">
-            관리자 로그인
-          </h2>
-          <p className="mt-4 max-w-xl text-sm font-bold leading-6 text-stone-500">
-            예약 상태, 날짜별 정원, 가격, 모집 상태 관리는 운영자 로그인 후에만 사용할 수 있습니다.
-          </p>
-        </div>
+        <AdminSectionTitle
+          eyebrow="ADMIN ACCESS"
+          title="관리자 로그인"
+          description="예약 상태, 날짜별 정원, 가격, 모집 상태 관리는 운영자 로그인 후에만 사용할 수 있습니다."
+        />
 
         <div className="rounded-[2rem] bg-stone-50 p-5">
           <label className="flex flex-col gap-2">
