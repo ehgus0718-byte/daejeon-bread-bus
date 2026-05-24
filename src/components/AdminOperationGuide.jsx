@@ -1,4 +1,5 @@
 import React from "react";
+import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
 const GUIDE_ITEMS = [
   {
@@ -23,15 +24,11 @@ export default function AdminOperationGuide() {
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-orange-50 p-6 shadow-sm">
       <div className="mb-5">
-        <p className="text-sm font-black text-orange-600">
-          Operation Guide
-        </p>
-        <h3 className="mt-1 text-3xl font-black text-stone-900">
-          관리자 운영 안내
-        </h3>
-        <p className="mt-2 text-sm font-bold leading-6 text-stone-600">
-          예약 운영 중 자주 사용하는 기능을 한눈에 확인할 수 있도록 정리했습니다.
-        </p>
+        <AdminSectionTitle
+          eyebrow="Operation Guide"
+          title="관리자 운영 안내"
+          description="예약 운영 중 자주 사용하는 기능을 한눈에 확인할 수 있도록 정리했습니다."
+        />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
