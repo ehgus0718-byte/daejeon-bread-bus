@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useMemo } from "react";
 import AdminReservationTable from "./AdminReservationTable.jsx";
 import AdminCapacityControl from "./AdminCapacityControl.jsx";
 import AdminPriceControl from "./AdminPriceControl.jsx";
 import AdminScheduleStatusControl from "./AdminScheduleStatusControl.jsx";
+import AdminSummaryCards from "./AdminSummaryCards.jsx";
+import {
+  createAdminDashboardSummary,
+  getAdminDashboardSummaryCards
+} from "../core/adminDashboardSummary.js";
+import { buildDateSettings } from "../core/dateSettingsBuilder.js";
 
 export default function AdminDashboard({
   reservations = [],
@@ -14,6 +20,22 @@ export default function AdminDashboard({
   onChangePrice,
   onChangeScheduleStatus
 }) {
+  const summaryCards = useMemo(() => {
+    const dateSettings = buildDateSettings({
+      capacityOverrides,
+      priceOverrides,
+      scheduleStatus
+    });
+
+    const summary = createAdminDashboardSummary({
+      reservations,
+      dateSettings,
+      notificationQueue: []
+    });
+
+    return getAdminDashboardSummaryCards(summary);
+  }, [capacityOverrides, priceOverrides, reservations, scheduleStatus]);
+
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-stone-950 p-5 shadow-xl shadow-orange-100 md:p-8">
       <div className="mb-8 flex flex-col gap-3 text-white md:flex-row md:items-end md:justify-between">
@@ -35,6 +57,8 @@ export default function AdminDashboard({
       </div>
 
       <div className="grid gap-6">
+        <AdminSummaryCards cards={summaryCards} />
+
         <AdminReservationTable
           reservations={reservations}
           onChangeStatus={onChangeReservationStatus}
