@@ -1,7 +1,7 @@
 import React from "react";
 import {
   createReservationCsvFilename,
-  reservationsToCsv
+  reservationsToExcelCsv
 } from "../core/reservationCsvExport.js";
 
 function downloadTextFile({ filename, content, mimeType }) {
@@ -28,7 +28,7 @@ export default function AdminCsvDownloadButton({
   label = "예약 CSV 다운로드"
 }) {
   function handleDownload() {
-    const csvContent = reservationsToCsv(reservations);
+    const csvContent = reservationsToExcelCsv(reservations);
     const filename = createReservationCsvFilename();
 
     downloadTextFile({
