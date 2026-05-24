@@ -41,6 +41,11 @@ export function reservationsToCsv(reservations = []) {
   return rows.map((row) => row.join(",")).join("\n");
 }
 
+export function reservationsToExcelCsv(reservations = []) {
+  const utf8Bom = "\uFEFF";
+  return `${utf8Bom}${reservationsToCsv(reservations)}`;
+}
+
 export function createReservationCsvFilename(prefix = "daejeon-bread-bus-reservations") {
   const today = new Date().toISOString().slice(0, 10);
   return `${prefix}-${today}.csv`;
