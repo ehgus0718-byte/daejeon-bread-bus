@@ -1,4 +1,5 @@
 import React from "react";
+import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
 function getStatusLabel(report = {}) {
   if (report.healthy) {
@@ -22,17 +23,11 @@ export default function AdminHealthReport({ report }) {
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-black text-orange-600">
-            Admin Health Report
-          </p>
-          <h3 className="mt-1 text-3xl font-black text-stone-900">
-            운영 상태 점검
-          </h3>
-          <p className="mt-2 text-sm font-bold text-stone-500">
-            예약 데이터와 관리자 설정 구조를 점검합니다.
-          </p>
-        </div>
+        <AdminSectionTitle
+          eyebrow="Admin Health Report"
+          title="운영 상태 점검"
+          description="예약 데이터와 관리자 설정 구조를 점검합니다."
+        />
 
         <div className="rounded-full bg-stone-100 px-4 py-2 text-xs font-black text-stone-700">
           상태: {statusLabel}
