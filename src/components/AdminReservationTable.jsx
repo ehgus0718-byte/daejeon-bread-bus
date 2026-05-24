@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import AdminCsvDownloadButton from "./AdminCsvDownloadButton.jsx";
 import AdminReservationControls from "./AdminReservationControls.jsx";
 import { filterReservations } from "../core/reservationFilters.js";
 import { sortReservations } from "../core/reservationSorters.js";
@@ -51,8 +52,11 @@ export default function AdminReservationTable({
           </h3>
         </div>
 
-        <div className="rounded-full bg-stone-100 px-4 py-2 text-xs font-black text-stone-700">
-          총 {reservations.length}건 / 표시 {visibleReservations.length}건
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-full bg-stone-100 px-4 py-2 text-xs font-black text-stone-700">
+            총 {reservations.length}건 / 표시 {visibleReservations.length}건
+          </div>
+          <AdminCsvDownloadButton reservations={visibleReservations} />
         </div>
       </div>
 
