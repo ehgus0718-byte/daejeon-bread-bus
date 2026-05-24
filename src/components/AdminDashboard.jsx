@@ -4,11 +4,13 @@ import AdminCapacityControl from "./AdminCapacityControl.jsx";
 import AdminPriceControl from "./AdminPriceControl.jsx";
 import AdminScheduleStatusControl from "./AdminScheduleStatusControl.jsx";
 import AdminSummaryCards from "./AdminSummaryCards.jsx";
+import AdminReservationNotesSection from "./AdminReservationNotesSection.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
 } from "../core/adminDashboardSummary.js";
 import { buildDateSettings } from "../core/dateSettingsBuilder.js";
+import { useReservationNotes } from "../hooks/useReservationNotes.js";
 
 export default function AdminDashboard({
   reservations = [],
@@ -20,6 +22,12 @@ export default function AdminDashboard({
   onChangePrice,
   onChangeScheduleStatus
 }) {
+  const {
+    reservationsWithNotes,
+    saveNote,
+    clearNote
+  } = useReservationNotes(reservations);
+
   const summaryCards = useMemo(() => {
     const dateSettings = buildDateSettings({
       capacityOverrides,
@@ -28,13 +36,13 @@ export default function AdminDashboard({
     });
 
     const summary = createAdminDashboardSummary({
-      reservations,
+      reservations: reservationsWithNotes,
       dateSettings,
       notificationQueue: []
     });
 
     return getAdminDashboardSummaryCards(summary);
-  }, [capacityOverrides, priceOverrides, reservations, scheduleStatus]);
+  }, [capacityOverrides, priceOverrides, reservationsWithNotes, scheduleStatus]);
 
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-stone-950 p-5 shadow-xl shadow-orange-100 md:p-8">
@@ -60,8 +68,14 @@ export default function AdminDashboard({
         <AdminSummaryCards cards={summaryCards} />
 
         <AdminReservationTable
-          reservations={reservations}
+          reservations={reservationsWithNotes}
           onChangeStatus={onChangeReservationStatus}
+        />
+
+        <AdminReservationNotesSection
+          reservations={reservationsWithNotes}
+          onSaveNote={saveNote}
+          onClearNote={clearNote}
         />
 
         <AdminCapacityControl
