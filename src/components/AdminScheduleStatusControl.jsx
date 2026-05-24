@@ -1,4 +1,5 @@
 import React from "react";
+import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
 const STATUS_OPTIONS = [
   { value: "open", label: "모집중" },
@@ -9,6 +10,10 @@ function formatDate(dateString) {
   if (!dateString) return "-";
 
   const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
 
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -25,15 +30,12 @@ export default function AdminScheduleStatusControl({
 
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-black text-orange-600">
-            Admin Schedule Status
-          </p>
-          <h3 className="mt-1 text-3xl font-black text-stone-900">
-            날짜별 모집 상태 관리
-          </h3>
-        </div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <AdminSectionTitle
+          eyebrow="Admin Schedule Status"
+          title="날짜별 모집 상태 관리"
+          description="운행 날짜별 모집중/예약마감 상태를 관리합니다."
+        />
 
         <div className="rounded-full bg-stone-100 px-4 py-2 text-xs font-black text-stone-700">
           총 {entries.length}개 날짜 관리중
