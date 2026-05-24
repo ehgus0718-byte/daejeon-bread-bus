@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import AdminCsvDownloadButton from "./AdminCsvDownloadButton.jsx";
 import AdminReservationControls from "./AdminReservationControls.jsx";
+import AdminSectionTitle from "./AdminSectionTitle.jsx";
 import { filterReservations } from "../core/reservationFilters.js";
 import { sortReservations } from "../core/reservationSorters.js";
 import { RESERVATION_STATUS_OPTIONS } from "../core/statusConstants.js";
@@ -43,14 +44,11 @@ export default function AdminReservationTable({
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-black text-orange-600">
-            Admin Reservation Control
-          </p>
-          <h3 className="mt-1 text-3xl font-black text-stone-900">
-            관리자 예약 관리
-          </h3>
-        </div>
+        <AdminSectionTitle
+          eyebrow="Admin Reservation Control"
+          title="관리자 예약 관리"
+          description="예약 검색, 상태 필터, 정렬, CSV 다운로드와 예약 상태 변경을 관리합니다."
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="rounded-full bg-stone-100 px-4 py-2 text-xs font-black text-stone-700">
