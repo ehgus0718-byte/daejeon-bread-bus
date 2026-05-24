@@ -6,6 +6,7 @@ import AdminScheduleStatusControl from "./AdminScheduleStatusControl.jsx";
 import AdminSummaryCards from "./AdminSummaryCards.jsx";
 import AdminReservationNotesSection from "./AdminReservationNotesSection.jsx";
 import AdminHealthReport from "./AdminHealthReport.jsx";
+import AdminOperationGuide from "./AdminOperationGuide.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
@@ -79,6 +80,8 @@ export default function AdminDashboard({
 
       <div className="grid gap-6">
         <AdminSummaryCards cards={summaryCards} />
+
+        <AdminOperationGuide />
 
         <AdminHealthReport report={healthReport} />
 
