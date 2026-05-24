@@ -9,3 +9,10 @@ export {
   saveAdminSettings,
   clearAdminSettings
 } from "./adminSettingsStorage.js";
+
+export {
+  loadReservationNotes,
+  saveReservationNote,
+  clearReservationNote,
+  getReservationNoteFromStorage
+} from "./reservationNoteStorage.js";
