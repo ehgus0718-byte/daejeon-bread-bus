@@ -27,6 +27,8 @@ function formatDateTime(dateString) {
 }
 
 export default function ReservationList({ reservations = [] }) {
+  const safeReservations = Array.isArray(reservations) ? reservations : [];
+
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -37,7 +39,7 @@ export default function ReservationList({ reservations = [] }) {
         />
 
         <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
-          총 {reservations.length}건
+          총 {safeReservations.length}건
         </div>
       </div>
 
@@ -51,12 +53,12 @@ export default function ReservationList({ reservations = [] }) {
         </div>
 
         <div className="divide-y divide-stone-100">
-          {reservations.length === 0 ? (
+          {safeReservations.length === 0 ? (
             <div className="px-5 py-10 text-center text-sm font-bold text-stone-400">
               아직 예약 내역이 없습니다.
             </div>
           ) : (
-            reservations
+            safeReservations
               .slice()
               .reverse()
               .map((reservation) => (
