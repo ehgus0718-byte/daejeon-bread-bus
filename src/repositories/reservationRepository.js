@@ -50,6 +50,14 @@ function normalizeApiReservation(data) {
   return data;
 }
 
+function createMissingReservationIdResult() {
+  return createRepositoryResult({
+    ok: false,
+    data: null,
+    error: new Error("예약 ID가 없습니다.")
+  });
+}
+
 async function listLocalReservations() {
   const reservations = normalizeReservations(loadReservations());
   return createRepositoryResult({ data: reservations });
@@ -79,11 +87,7 @@ async function addLocalReservation(reservation = {}) {
 
 async function updateLocalReservation(reservationId, patch = {}) {
   if (!reservationId) {
-    return createRepositoryResult({
-      ok: false,
-      data: null,
-      error: new Error("예약 ID가 없습니다.")
-    });
+    return createMissingReservationIdResult();
   }
 
   const currentResult = await listLocalReservations();
@@ -96,6 +100,20 @@ async function updateLocalReservation(reservationId, patch = {}) {
           id: reservation.id
         }
       : reservation
+  );
+
+  return replaceLocalReservations(nextReservations);
+}
+
+async function removeLocalReservation(reservationId) {
+  if (!reservationId) {
+    return createMissingReservationIdResult();
+  }
+
+  const currentResult = await listLocalReservations();
+  const currentReservations = normalizeReservations(currentResult.data);
+  const nextReservations = currentReservations.filter(
+    (reservation) => reservation.id !== reservationId
   );
 
   return replaceLocalReservations(nextReservations);
@@ -156,11 +174,7 @@ async function addApiReservation(reservation = {}) {
 
 async function updateApiReservation(reservationId, patch = {}) {
   if (!reservationId) {
-    return createRepositoryResult({
-      ok: false,
-      data: null,
-      error: new Error("예약 ID가 없습니다.")
-    });
+    return createMissingReservationIdResult();
   }
 
   const result = await reservationApiClient.update(reservationId, patch);
@@ -184,6 +198,30 @@ async function updateApiReservation(reservationId, patch = {}) {
   return createRepositoryResult({
     data: updatedReservation ? [updatedReservation] : []
   });
+}
+
+async function removeApiReservation(reservationId) {
+  if (!reservationId) {
+    return createMissingReservationIdResult();
+  }
+
+  const result = await reservationApiClient.delete(reservationId);
+
+  if (!result.ok) {
+    return createRepositoryResult({
+      ok: false,
+      data: null,
+      error: result.error
+    });
+  }
+
+  const listResult = await listApiReservations();
+
+  if (listResult.ok) {
+    return listResult;
+  }
+
+  return createRepositoryResult({ data: [] });
 }
 
 export async function listReservations() {
@@ -242,6 +280,19 @@ export async function updateReservation(reservationId, patch = {}) {
   }
 }
 
+export async function removeReservation(reservationId) {
+  try {
+    if (shouldUseReservationApi()) {
+      return removeApiReservation(reservationId);
+    }
+
+    return removeLocalReservation(reservationId);
+  } catch (error) {
+    console.warn("Failed to remove reservation", error);
+    return createRepositoryResult({ ok: false, data: null, error });
+  }
+}
+
 export async function clearReservationRepository() {
   try {
     if (shouldUseReservationApi()) {
@@ -264,5 +315,7 @@ export const reservationRepository = {
   replace: replaceReservations,
   add: addReservation,
   update: updateReservation,
+  remove: removeReservation,
+  delete: removeReservation,
   clear: clearReservationRepository
 };
