@@ -30,6 +30,10 @@ function createReservationRowKey(reservation = {}, index = 0) {
   return reservation.id || `${reservation.date || "date"}-${reservation.name || "name"}-${index}`;
 }
 
+function getReservationStatusLabel(status = "") {
+  return status || "상태 미정";
+}
+
 export default function ReservationList({ reservations = [] }) {
   const safeReservations = Array.isArray(reservations) ? reservations : [];
 
@@ -75,7 +79,7 @@ export default function ReservationList({ reservations = [] }) {
                   <div>{formatPeopleCount(reservation.people)}</div>
                   <div>
                     <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
-                      {reservation.status}
+                      {getReservationStatusLabel(reservation.status)}
                     </span>
                   </div>
                   <div>{formatDateTime(reservation.createdAt)}</div>
