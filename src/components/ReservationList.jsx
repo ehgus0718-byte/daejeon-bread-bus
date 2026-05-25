@@ -26,6 +26,10 @@ function formatDateTime(dateString) {
   return `${formatDate(dateString)} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
+function createReservationRowKey(reservation = {}, index = 0) {
+  return reservation.id || `${reservation.date || "date"}-${reservation.name || "name"}-${index}`;
+}
+
 export default function ReservationList({ reservations = [] }) {
   const safeReservations = Array.isArray(reservations) ? reservations : [];
 
@@ -61,9 +65,9 @@ export default function ReservationList({ reservations = [] }) {
             safeReservations
               .slice()
               .reverse()
-              .map((reservation) => (
+              .map((reservation, index) => (
                 <div
-                  key={reservation.id}
+                  key={createReservationRowKey(reservation, index)}
                   className="grid grid-cols-5 items-center px-5 py-5 text-sm font-bold text-stone-700"
                 >
                   <div>{formatDate(reservation.date)}</div>
