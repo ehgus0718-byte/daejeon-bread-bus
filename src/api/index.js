@@ -11,3 +11,11 @@ export {
   hasSupabaseConfig,
   supabaseClient
 } from "./supabaseClient.js";
+
+export {
+  createSupabaseReservation,
+  deleteSupabaseReservation,
+  fetchSupabaseReservations,
+  patchSupabaseReservation,
+  supabaseReservationClient
+} from "./supabaseReservationClient.js";
