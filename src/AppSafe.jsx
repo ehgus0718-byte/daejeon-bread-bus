@@ -22,10 +22,9 @@ import {
 import { DEFAULT_RESERVATION_FORM } from "./data/formDefaults.js";
 import {
   loadAdminSettings,
-  loadReservations,
-  saveAdminSettings,
-  saveReservations
+  saveAdminSettings
 } from "./services/storageIndex.js";
+import { reservationRepository } from "./repositories/index.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 
@@ -41,9 +40,7 @@ export default function AppSafe() {
     DEFAULT_RESERVATION_FORM
   );
 
-  const [reservations, setReservations] = useState(() =>
-    loadReservations(INITIAL_RESERVATIONS)
-  );
+  const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
   const [capacityOverrides, setCapacityOverrides] = useState(
     savedAdminSettings.capacityOverrides
   );
@@ -60,8 +57,31 @@ export default function AppSafe() {
   const [adminError, setAdminError] = useState("");
 
   useEffect(() => {
-    saveReservations(reservations);
-  }, [reservations]);
+    let isMounted = true;
+
+    async function loadStoredReservations() {
+      const result = await reservationRepository.list();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!result.ok) {
+        setNotice("예약 데이터를 불러오지 못했습니다. 기본 예약 데이터로 표시합니다.");
+        return;
+      }
+
+      if (Array.isArray(result.data) && result.data.length > 0) {
+        setReservations(result.data);
+      }
+    }
+
+    loadStoredReservations();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     saveAdminSettings({
@@ -160,17 +180,25 @@ export default function AppSafe() {
     );
   }
 
-  function handleReservationStatusChange(id, nextStatus) {
-    setReservations((prev) =>
-      updateReservationStatus({
-        reservations: prev,
-        reservationId: id,
-        nextStatus
-      })
-    );
+  async function handleReservationStatusChange(id, nextStatus) {
+    setNotice("");
+
+    const nextReservations = updateReservationStatus({
+      reservations,
+      reservationId: id,
+      nextStatus
+    });
+
+    setReservations(nextReservations);
+
+    const result = await reservationRepository.replace(nextReservations);
+
+    if (!result.ok) {
+      setNotice("예약 상태 저장에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+    }
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     setNotice("");
 
     const remainingSeats = remaining(selectedDate);
@@ -195,7 +223,15 @@ export default function AppSafe() {
       status: "결제대기"
     });
 
-    setReservations((prev) => [...prev, reservationItem]);
+    const result = await reservationRepository.add(reservationItem);
+
+    if (!result.ok) {
+      setNotice("예약 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    setReservations(result.data);
 
     setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
 
