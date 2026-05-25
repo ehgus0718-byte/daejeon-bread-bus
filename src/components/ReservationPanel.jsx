@@ -3,6 +3,21 @@ import SectionTitle from "./SectionTitle.jsx";
 
 const PEOPLE_OPTIONS = [1, 2, 3, 4];
 
+function toSafeNumber(value, fallbackValue = 0) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallbackValue;
+}
+
+function formatWon(value) {
+  const amount = Math.max(0, toSafeNumber(value, 0));
+  return `${amount.toLocaleString()}원`;
+}
+
+function formatSeats(value) {
+  const seats = Math.max(0, toSafeNumber(value, 0));
+  return `${seats.toLocaleString()}석`;
+}
+
 export default function ReservationPanel({
   selectedDate,
   remainingSeats = 0,
@@ -12,7 +27,9 @@ export default function ReservationPanel({
   onSubmit,
   notice
 }) {
-  const totalAmount = Number(form.people || 1) * Number(price || 0);
+  const selectedPeople = Math.max(1, toSafeNumber(form.people, 1));
+  const safePrice = Math.max(0, toSafeNumber(price, 0));
+  const totalAmount = selectedPeople * safePrice;
 
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
@@ -37,13 +54,13 @@ export default function ReservationPanel({
         <div className="rounded-3xl bg-stone-50 p-5">
           <p className="text-xs font-black text-stone-500">잔여 좌석</p>
           <p className="mt-2 text-2xl font-black text-stone-900">
-            {remainingSeats}석
+            {formatSeats(remainingSeats)}
           </p>
         </div>
         <div className="rounded-3xl bg-stone-50 p-5">
           <p className="text-xs font-black text-stone-500">총 결제 예정금액</p>
           <p className="mt-2 text-2xl font-black text-orange-600">
-            {totalAmount.toLocaleString()}원
+            {formatWon(totalAmount)}
           </p>
         </div>
       </div>
@@ -75,7 +92,7 @@ export default function ReservationPanel({
         <label className="flex flex-col gap-2">
           <span className="text-sm font-black text-stone-700">예약 인원</span>
           <select
-            value={form.people || 1}
+            value={selectedPeople}
             onChange={(e) => onChange?.("people", Number(e.target.value))}
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           >
