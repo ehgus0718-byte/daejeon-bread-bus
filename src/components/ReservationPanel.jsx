@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency, formatSeatCount } from "../core/formatters.js";
 import SectionTitle from "./SectionTitle.jsx";
 
 const PEOPLE_OPTIONS = [1, 2, 3, 4];
@@ -6,16 +7,6 @@ const PEOPLE_OPTIONS = [1, 2, 3, 4];
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : fallbackValue;
-}
-
-function formatWon(value) {
-  const amount = Math.max(0, toSafeNumber(value, 0));
-  return `${amount.toLocaleString()}원`;
-}
-
-function formatSeats(value) {
-  const seats = Math.max(0, toSafeNumber(value, 0));
-  return `${seats.toLocaleString()}석`;
 }
 
 export default function ReservationPanel({
@@ -54,13 +45,13 @@ export default function ReservationPanel({
         <div className="rounded-3xl bg-stone-50 p-5">
           <p className="text-xs font-black text-stone-500">잔여 좌석</p>
           <p className="mt-2 text-2xl font-black text-stone-900">
-            {formatSeats(remainingSeats)}
+            {formatSeatCount(remainingSeats)}
           </p>
         </div>
         <div className="rounded-3xl bg-stone-50 p-5">
           <p className="text-xs font-black text-stone-500">총 결제 예정금액</p>
           <p className="mt-2 text-2xl font-black text-orange-600">
-            {formatWon(totalAmount)}
+            {formatCurrency(totalAmount)}
           </p>
         </div>
       </div>
