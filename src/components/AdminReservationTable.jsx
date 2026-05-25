@@ -4,6 +4,7 @@ import AdminReservationControls from "./AdminReservationControls.jsx";
 import AdminSectionTitle from "./AdminSectionTitle.jsx";
 import { filterReservations } from "../core/reservationFilters.js";
 import { sortReservations } from "../core/reservationSorters.js";
+import { formatPeopleCount } from "../core/formatters.js";
 import { RESERVATION_STATUS_OPTIONS } from "../core/statusConstants.js";
 
 const STATUS_OPTIONS = [
@@ -100,7 +101,7 @@ export default function AdminReservationTable({
               >
                 <div>{formatDate(reservation.date)}</div>
                 <div>{reservation.name || "-"}</div>
-                <div>{reservation.people}명</div>
+                <div>{formatPeopleCount(reservation.people)}</div>
                 <div>
                   <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
                     {getReservationStatusLabel(reservation.status)}
