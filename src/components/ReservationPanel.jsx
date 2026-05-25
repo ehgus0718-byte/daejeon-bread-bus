@@ -9,6 +9,11 @@ function toSafeNumber(value, fallbackValue = 0) {
   return Number.isFinite(numberValue) ? numberValue : fallbackValue;
 }
 
+function normalizePeopleCount(value) {
+  const people = toSafeNumber(value, 1);
+  return PEOPLE_OPTIONS.includes(people) ? people : PEOPLE_OPTIONS[0];
+}
+
 export default function ReservationPanel({
   selectedDate,
   remainingSeats = 0,
@@ -18,7 +23,7 @@ export default function ReservationPanel({
   onSubmit,
   notice
 }) {
-  const selectedPeople = Math.max(1, toSafeNumber(form.people, 1));
+  const selectedPeople = normalizePeopleCount(form.people);
   const safePrice = Math.max(0, toSafeNumber(price, 0));
   const totalAmount = selectedPeople * safePrice;
 
