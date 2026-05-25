@@ -5,6 +5,10 @@ function formatDate(dateString) {
 
   const date = new Date(dateString);
 
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
 
@@ -12,6 +16,10 @@ function formatDateTime(dateString) {
   if (!dateString) return "-";
 
   const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
 
   return `${formatDate(dateString)} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
