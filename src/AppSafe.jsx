@@ -192,18 +192,24 @@ export default function AppSafe() {
 
     setReservations(nextReservations);
 
-    const result = await reservationRepository.update(id, {
-      status: nextStatus
-    });
+    try {
+      const result = await reservationRepository.update(id, {
+        status: nextStatus
+      });
 
-    if (!result.ok) {
+      if (!result.ok) {
+        setReservations(previousReservations);
+        setNotice("예약 상태 저장에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+        return;
+      }
+
+      if (Array.isArray(result.data)) {
+        setReservations(result.data);
+      }
+    } catch (error) {
+      console.warn("Reservation status update failed", error);
       setReservations(previousReservations);
       setNotice("예약 상태 저장에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
-      return;
-    }
-
-    if (Array.isArray(result.data)) {
-      setReservations(result.data);
     }
   }
 
