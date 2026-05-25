@@ -13,6 +13,30 @@ function createApiResult({ ok = true, data = null, error = null, status = 200 } 
   };
 }
 
+function normalizeApiBaseUrl(baseUrl) {
+  return String(baseUrl || "").trim().replace(/\/+$/, "");
+}
+
+function normalizeApiPath(path) {
+  const safePath = String(path || "").trim();
+
+  if (!safePath) {
+    return "";
+  }
+
+  return safePath.startsWith("/") ? safePath : `/${safePath}`;
+}
+
+function buildReservationApiUrl(path) {
+  const baseUrl = normalizeApiBaseUrl(getApiBaseUrl());
+
+  if (!baseUrl) {
+    return "";
+  }
+
+  return `${baseUrl}${normalizeApiPath(path)}`;
+}
+
 async function parseJsonResponse(response) {
   const text = await response.text();
 
@@ -29,9 +53,9 @@ async function parseJsonResponse(response) {
 }
 
 async function requestReservationApi(path, options = {}) {
-  const baseUrl = getApiBaseUrl();
+  const requestUrl = buildReservationApiUrl(path);
 
-  if (!baseUrl) {
+  if (!requestUrl) {
     return createApiResult({
       ok: false,
       status: 0,
@@ -40,7 +64,7 @@ async function requestReservationApi(path, options = {}) {
   }
 
   try {
-    const response = await fetch(`${baseUrl}${path}`, {
+    const response = await fetch(requestUrl, {
       headers: {
         "Content-Type": "application/json",
         ...(options.headers || {})
