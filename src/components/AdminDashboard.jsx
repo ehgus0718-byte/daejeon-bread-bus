@@ -21,6 +21,7 @@ export default function AdminDashboard({
   priceOverrides = {},
   scheduleStatus = {},
   onChangeReservationStatus,
+  onRemoveReservation,
   onChangeCapacity,
   onChangePrice,
   onChangeScheduleStatus
@@ -88,6 +89,7 @@ export default function AdminDashboard({
         <AdminReservationTable
           reservations={reservationsWithNotes}
           onChangeStatus={onChangeReservationStatus}
+          onRemoveReservation={onRemoveReservation}
         />
 
         <AdminReservationNotesSection
