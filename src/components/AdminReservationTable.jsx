@@ -39,12 +39,15 @@ function getReservationStatusLabel(status = "") {
 
 export default function AdminReservationTable({
   reservations = [],
-  onChangeStatus
+  onChangeStatus,
+  onRemoveReservation
 }) {
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [sortKey, setSortKey] = useState("newest");
   const safeReservations = Array.isArray(reservations) ? reservations : [];
+  const canRemoveReservation = typeof onRemoveReservation === "function";
+  const tableColumnClassName = canRemoveReservation ? "grid-cols-6" : "grid-cols-5";
 
   const visibleReservations = useMemo(() => {
     const filteredReservations = filterReservations({
@@ -85,12 +88,13 @@ export default function AdminReservationTable({
       </div>
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-stone-100">
-        <div className="grid grid-cols-5 bg-stone-50 px-5 py-4 text-xs font-black text-stone-500">
+        <div className={`grid ${tableColumnClassName} bg-stone-50 px-5 py-4 text-xs font-black text-stone-500`}>
           <div>예약 날짜</div>
           <div>예약자</div>
           <div>인원</div>
           <div>현재 상태</div>
           <div>상태 변경</div>
+          {canRemoveReservation ? <div>삭제</div> : null}
         </div>
 
         <div className="divide-y divide-stone-100">
@@ -105,7 +109,7 @@ export default function AdminReservationTable({
               return (
                 <div
                   key={createReservationRowKey(reservation, index)}
-                  className="grid grid-cols-5 items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700"
+                  className={`grid ${tableColumnClassName} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700`}
                 >
                   <div>{formatDate(reservation.date)}</div>
                   <div>{reservation.name || "-"}</div>
@@ -133,6 +137,17 @@ export default function AdminReservationTable({
                       ))}
                     </select>
                   </div>
+                  {canRemoveReservation ? (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveReservation(reservation.id)}
+                        className="w-full rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               );
             })
