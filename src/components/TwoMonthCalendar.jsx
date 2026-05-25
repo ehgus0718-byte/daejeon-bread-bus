@@ -1,4 +1,10 @@
 import React from "react";
+import { formatSeatCount } from "../core/formatters.js";
+
+function toSafeNumber(value, fallbackValue = 0) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallbackValue;
+}
 
 function buildMonth(year, month) {
   const firstDay = new Date(year, month, 1);
@@ -30,8 +36,9 @@ function CalendarCard({
   selectedDate,
   onSelectDate
 }) {
-  const year = monthDate.getFullYear();
-  const month = monthDate.getMonth();
+  const safeMonthDate = Number.isNaN(monthDate?.getTime?.()) ? new Date() : monthDate;
+  const year = safeMonthDate.getFullYear();
+  const month = safeMonthDate.getMonth();
   const days = buildMonth(year, month);
 
   return (
@@ -59,7 +66,7 @@ function CalendarCard({
 
           const key = formatKey(date);
           const setting = dateSettings[key];
-          const remaining = getRemainingSeats?.(key) ?? 0;
+          const remaining = Math.max(0, toSafeNumber(getRemainingSeats?.(key), 0));
           const isOpen = setting?.status === "open";
           const isSelected = selectedDate === key;
 
@@ -94,7 +101,7 @@ function CalendarCard({
                             : "bg-stone-900 text-white"
                       }`}
                     >
-                      {remaining > 0 ? `${remaining}석 남음` : "예약마감"}
+                      {remaining > 0 ? `${formatSeatCount(remaining)} 남음` : "예약마감"}
                     </div>
                   </div>
                 ) : (
@@ -116,8 +123,9 @@ export default function TwoMonthCalendar({
   selectedDate,
   onSelectDate
 }) {
-  const firstMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-  const secondMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+  const safeCurrentDate = Number.isNaN(currentDate?.getTime?.()) ? new Date() : currentDate;
+  const firstMonth = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), 1);
+  const secondMonth = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth() + 1, 1);
 
   return (
     <section className="grid gap-6 lg:grid-cols-2">
