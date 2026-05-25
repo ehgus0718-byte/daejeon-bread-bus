@@ -213,6 +213,47 @@ export default function AppSafe() {
     }
   }
 
+  async function handleRemoveReservation(id) {
+    setNotice("");
+
+    if (!id) {
+      setNotice("삭제할 예약을 찾지 못했습니다.");
+      return;
+    }
+
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("선택한 예약을 삭제하시겠습니까?")
+    ) {
+      return;
+    }
+
+    const previousReservations = reservations;
+    const nextReservations = reservations.filter(
+      (reservation) => reservation.id !== id
+    );
+
+    setReservations(nextReservations);
+
+    try {
+      const result = await reservationRepository.remove(id);
+
+      if (!result.ok) {
+        setReservations(previousReservations);
+        setNotice("예약 삭제에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+        return;
+      }
+
+      if (Array.isArray(result.data)) {
+        setReservations(result.data);
+      }
+    } catch (error) {
+      console.warn("Reservation remove failed", error);
+      setReservations(previousReservations);
+      setNotice("예약 삭제에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+    }
+  }
+
   async function handleSubmit() {
     setNotice("");
 
@@ -358,6 +399,7 @@ export default function AppSafe() {
             priceOverrides={priceOverrides}
             scheduleStatus={scheduleStatus}
             onChangeReservationStatus={handleReservationStatusChange}
+            onRemoveReservation={handleRemoveReservation}
             onChangeCapacity={handleCapacityChange}
             onChangePrice={handlePriceChange}
             onChangeScheduleStatus={handleScheduleStatusChange}
