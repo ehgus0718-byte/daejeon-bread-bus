@@ -225,27 +225,30 @@ export default function AppSafe() {
 
     setIsSubmitting(true);
 
-    const reservationItem = createReservation({
-      selectedDate,
-      form: reservationForm,
-      price: selectedPrice,
-      status: "결제대기"
-    });
+    try {
+      const reservationItem = createReservation({
+        selectedDate,
+        form: reservationForm,
+        price: selectedPrice,
+        status: "결제대기"
+      });
 
-    const result = await reservationRepository.add(reservationItem);
+      const result = await reservationRepository.add(reservationItem);
 
-    if (!result.ok) {
+      if (!result.ok) {
+        setNotice("예약 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      setReservations(result.data);
+      setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
+      resetForm();
+    } catch (error) {
+      console.warn("Reservation submit failed", error);
       setNotice("예약 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setReservations(result.data);
-
-    setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
-
-    resetForm();
-    setIsSubmitting(false);
   }
 
   return (
