@@ -1,4 +1,5 @@
 import React from "react";
+import SectionTitle from "./SectionTitle.jsx";
 
 const PEOPLE_OPTIONS = [1, 2, 3, 4];
 
@@ -15,13 +16,12 @@ export default function ReservationPanel({
 
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-black text-orange-600">Reservation</p>
-          <h3 className="mt-1 text-3xl font-black text-stone-900">
-            예약 정보 입력
-          </h3>
-        </div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <SectionTitle
+          eyebrow="Reservation"
+          title="예약 정보 입력"
+          description="선택한 날짜의 잔여 좌석과 결제 예정금액을 확인하고 예약 정보를 입력합니다."
+        />
         <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
           실시간 모집현황 반영
         </div>
