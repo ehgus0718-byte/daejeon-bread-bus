@@ -7,8 +7,14 @@ function getConfiguredMode() {
   return import.meta?.env?.VITE_RESERVATION_REPOSITORY_MODE || REPOSITORY_MODE.LOCAL;
 }
 
+function normalizeRepositoryMode(mode) {
+  return String(mode || "")
+    .trim()
+    .toLowerCase();
+}
+
 export function getReservationRepositoryMode() {
-  const configuredMode = getConfiguredMode();
+  const configuredMode = normalizeRepositoryMode(getConfiguredMode());
 
   if (configuredMode === REPOSITORY_MODE.API) {
     return REPOSITORY_MODE.API;
