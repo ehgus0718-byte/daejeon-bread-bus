@@ -1,4 +1,5 @@
 import React from "react";
+import SectionTitle from "./SectionTitle.jsx";
 
 function formatDate(dateString) {
   if (!dateString) return "-";
@@ -27,15 +28,12 @@ function formatDateTime(dateString) {
 export default function ReservationList({ reservations = [] }) {
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-black text-orange-600">
-            Reservation List
-          </p>
-          <h3 className="mt-1 text-3xl font-black text-stone-900">
-            예약 현황
-          </h3>
-        </div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <SectionTitle
+          eyebrow="Reservation List"
+          title="예약 현황"
+          description="접수된 예약 내역과 예약 상태를 확인할 수 있습니다."
+        />
 
         <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
           총 {reservations.length}건
