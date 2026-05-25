@@ -23,6 +23,14 @@ function formatDate(dateString) {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function createReservationRowKey(reservation = {}, index = 0) {
+  return reservation.id || `${reservation.date || "date"}-${reservation.name || "name"}-${index}`;
+}
+
+function getReservationStatusLabel(status = "") {
+  return status || "상태 미정";
+}
+
 export default function AdminReservationTable({
   reservations = [],
   onChangeStatus
@@ -30,16 +38,17 @@ export default function AdminReservationTable({
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [sortKey, setSortKey] = useState("newest");
+  const safeReservations = Array.isArray(reservations) ? reservations : [];
 
   const visibleReservations = useMemo(() => {
     const filteredReservations = filterReservations({
-      reservations,
+      reservations: safeReservations,
       status,
       keyword
     });
 
     return sortReservations(filteredReservations, sortKey);
-  }, [keyword, reservations, sortKey, status]);
+  }, [keyword, safeReservations, sortKey, status]);
 
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
@@ -52,7 +61,7 @@ export default function AdminReservationTable({
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="rounded-full bg-stone-100 px-4 py-2 text-xs font-black text-stone-700">
-            총 {reservations.length}건 / 표시 {visibleReservations.length}건
+            총 {safeReservations.length}건 / 표시 {visibleReservations.length}건
           </div>
           <AdminCsvDownloadButton reservations={visibleReservations} />
         </div>
@@ -84,9 +93,9 @@ export default function AdminReservationTable({
               조건에 맞는 예약이 없습니다.
             </div>
           ) : (
-            visibleReservations.map((reservation) => (
+            visibleReservations.map((reservation, index) => (
               <div
-                key={reservation.id}
+                key={createReservationRowKey(reservation, index)}
                 className="grid grid-cols-5 items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700"
               >
                 <div>{formatDate(reservation.date)}</div>
@@ -94,12 +103,12 @@ export default function AdminReservationTable({
                 <div>{reservation.people}명</div>
                 <div>
                   <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
-                    {reservation.status}
+                    {getReservationStatusLabel(reservation.status)}
                   </span>
                 </div>
                 <div>
                   <select
-                    value={reservation.status}
+                    value={reservation.status || ""}
                     onChange={(event) =>
                       onChangeStatus?.(
                         reservation.id,
