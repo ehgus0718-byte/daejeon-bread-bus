@@ -247,6 +247,8 @@ export default function AppSafe() {
       if (Array.isArray(result.data)) {
         setReservations(result.data);
       }
+
+      setNotice("예약이 삭제되었습니다.");
     } catch (error) {
       console.warn("Reservation remove failed", error);
       setReservations(previousReservations);
