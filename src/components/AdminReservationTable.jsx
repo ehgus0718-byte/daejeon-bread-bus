@@ -11,6 +11,7 @@ const STATUS_OPTIONS = [
   ...RESERVATION_STATUS_OPTIONS,
   "탑승완료"
 ];
+const DEFAULT_STATUS = STATUS_OPTIONS[0] || "예약접수";
 
 function formatDate(dateString) {
   if (!dateString) return "-";
@@ -26,6 +27,10 @@ function formatDate(dateString) {
 
 function createReservationRowKey(reservation = {}, index = 0) {
   return reservation.id || `${reservation.date || "date"}-${reservation.name || "name"}-${index}`;
+}
+
+function getReservationStatusValue(status = "") {
+  return STATUS_OPTIONS.includes(status) ? status : DEFAULT_STATUS;
 }
 
 function getReservationStatusLabel(status = "") {
@@ -94,39 +99,43 @@ export default function AdminReservationTable({
               조건에 맞는 예약이 없습니다.
             </div>
           ) : (
-            visibleReservations.map((reservation, index) => (
-              <div
-                key={createReservationRowKey(reservation, index)}
-                className="grid grid-cols-5 items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700"
-              >
-                <div>{formatDate(reservation.date)}</div>
-                <div>{reservation.name || "-"}</div>
-                <div>{formatPeopleCount(reservation.people)}</div>
-                <div>
-                  <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
-                    {getReservationStatusLabel(reservation.status)}
-                  </span>
+            visibleReservations.map((reservation, index) => {
+              const statusValue = getReservationStatusValue(reservation.status);
+
+              return (
+                <div
+                  key={createReservationRowKey(reservation, index)}
+                  className="grid grid-cols-5 items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700"
+                >
+                  <div>{formatDate(reservation.date)}</div>
+                  <div>{reservation.name || "-"}</div>
+                  <div>{formatPeopleCount(reservation.people)}</div>
+                  <div>
+                    <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
+                      {getReservationStatusLabel(reservation.status)}
+                    </span>
+                  </div>
+                  <div>
+                    <select
+                      value={statusValue}
+                      onChange={(event) =>
+                        onChangeStatus?.(
+                          reservation.id,
+                          event.target.value
+                        )
+                      }
+                      className="w-full rounded-2xl border border-stone-200 px-3 py-3 text-sm font-black outline-none transition focus:border-orange-400"
+                    >
+                      {STATUS_OPTIONS.map((statusOption) => (
+                        <option key={statusOption} value={statusOption}>
+                          {statusOption}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <select
-                    value={reservation.status || ""}
-                    onChange={(event) =>
-                      onChangeStatus?.(
-                        reservation.id,
-                        event.target.value
-                      )
-                    }
-                    className="w-full rounded-2xl border border-stone-200 px-3 py-3 text-sm font-black outline-none transition focus:border-orange-400"
-                  >
-                    {STATUS_OPTIONS.map((statusOption) => (
-                      <option key={statusOption} value={statusOption}>
-                        {statusOption}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
