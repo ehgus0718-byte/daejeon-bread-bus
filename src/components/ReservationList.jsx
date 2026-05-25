@@ -1,4 +1,5 @@
 import React from "react";
+import { formatPeopleCount } from "../core/formatters.js";
 import SectionTitle from "./SectionTitle.jsx";
 
 function formatDate(dateString) {
@@ -65,7 +66,7 @@ export default function ReservationList({ reservations = [] }) {
                 >
                   <div>{formatDate(reservation.date)}</div>
                   <div>{reservation.name || "-"}</div>
-                  <div>{reservation.people}명</div>
+                  <div>{formatPeopleCount(reservation.people)}</div>
                   <div>
                     <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
                       {reservation.status}
