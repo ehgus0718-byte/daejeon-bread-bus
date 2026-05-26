@@ -92,6 +92,7 @@ export default function ReservationPanel({
             value={form.name || ""}
             onChange={(e) => onChange?.("name", e.target.value)}
             placeholder="예약자명을 입력해주세요"
+            autoComplete="name"
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           />
         </label>
@@ -99,6 +100,8 @@ export default function ReservationPanel({
           <span className="text-sm font-black text-stone-700">연락처</span>
           <input
             type="tel"
+            inputMode="tel"
+            autoComplete="tel"
             value={form.phone || ""}
             onChange={(e) => onChange?.("phone", e.target.value)}
             placeholder="010-0000-0000"
