@@ -7,6 +7,7 @@ import AdminSummaryCards from "./AdminSummaryCards.jsx";
 import AdminReservationNotesSection from "./AdminReservationNotesSection.jsx";
 import AdminHealthReport from "./AdminHealthReport.jsx";
 import AdminOperationGuide from "./AdminOperationGuide.jsx";
+import AdminDateSettingsForm from "./AdminDateSettingsForm.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
@@ -103,6 +104,15 @@ export default function AdminDashboard({
           reservations={reservationsWithNotes}
           onSaveNote={saveNote}
           onClearNote={clearNote}
+        />
+
+        <AdminDateSettingsForm
+          capacityOverrides={capacityOverrides}
+          priceOverrides={priceOverrides}
+          scheduleStatus={scheduleStatus}
+          onChangeCapacity={onChangeCapacity}
+          onChangePrice={onChangePrice}
+          onChangeScheduleStatus={onChangeScheduleStatus}
         />
 
         <AdminCapacityControl
