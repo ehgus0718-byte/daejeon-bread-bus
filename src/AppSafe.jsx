@@ -52,9 +52,7 @@ function updateReservationAdminNote({ reservations = [], reservationId, note = "
   const safeNote = toSafeAdminNote(note);
 
   return reservations.map((reservation) => {
-    if (reservation.id !== reservationId) {
-      return reservation;
-    }
+    if (reservation.id !== reservationId) return reservation;
 
     return {
       ...reservation,
@@ -70,6 +68,12 @@ function normalizeAdminSettings(settings = {}) {
     priceOverrides: settings.priceOverrides || {},
     scheduleStatus: settings.scheduleStatus || {}
   };
+}
+
+function removeDateKey(settings = {}, date) {
+  const nextSettings = { ...settings };
+  delete nextSettings[date];
+  return nextSettings;
 }
 
 export default function AppSafe() {
@@ -173,9 +177,7 @@ export default function AppSafe() {
 
     saveAdminSettings(nextSettings);
 
-    if (!USES_REMOTE_RESERVATION_STORAGE || !isAdminSettingsReady) {
-      return;
-    }
+    if (!USES_REMOTE_RESERVATION_STORAGE || !isAdminSettingsReady) return;
 
     let isCancelled = false;
 
@@ -267,6 +269,18 @@ export default function AppSafe() {
     setScheduleStatus((prev) =>
       updateScheduleStatus({ scheduleStatus: prev, date, nextStatus })
     );
+  }
+
+  function handleRemoveDateSettings(date) {
+    if (!date) {
+      setNotice("삭제할 날짜를 찾지 못했습니다.");
+      return;
+    }
+
+    setCapacityOverrides((prev) => removeDateKey(prev, date));
+    setPriceOverrides((prev) => removeDateKey(prev, date));
+    setScheduleStatus((prev) => removeDateKey(prev, date));
+    setNotice("선택한 날짜 설정이 삭제되었습니다.");
   }
 
   async function handleReservationStatusChange(id, nextStatus) {
@@ -509,6 +523,7 @@ export default function AppSafe() {
             onChangeCapacity={handleCapacityChange}
             onChangePrice={handlePriceChange}
             onChangeScheduleStatus={handleScheduleStatusChange}
+            onRemoveDateSettings={handleRemoveDateSettings}
             onSaveReservationNote={handleSaveReservationNote}
             onClearReservationNote={handleClearReservationNote}
           />
