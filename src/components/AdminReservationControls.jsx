@@ -35,14 +35,17 @@ export default function AdminReservationControls({
   return (
     <div className="grid gap-3 rounded-3xl border border-orange-100 bg-white p-4 shadow-sm md:grid-cols-3">
       <label className="grid gap-2 text-sm font-black text-stone-700">
-        예약 검색
+        통합 검색
         <input
           type="search"
           value={keyword}
           onChange={(event) => onChangeKeyword?.(event.target.value)}
-          placeholder="예약자명, 연락처, 날짜 검색"
+          placeholder="예약자명, 연락처, 날짜, 상태 검색"
           className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
         />
+        <span className="text-xs font-bold text-stone-400">
+          예: 홍길동, 010, 2026-05-30, 결제완료
+        </span>
       </label>
 
       <label className="grid gap-2 text-sm font-black text-stone-700">
