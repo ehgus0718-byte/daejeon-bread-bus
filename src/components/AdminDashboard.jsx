@@ -24,13 +24,20 @@ export default function AdminDashboard({
   onRemoveReservation,
   onChangeCapacity,
   onChangePrice,
-  onChangeScheduleStatus
+  onChangeScheduleStatus,
+  onSaveReservationNote,
+  onClearReservationNote
 }) {
-  const {
-    reservationsWithNotes,
-    saveNote,
-    clearNote
-  } = useReservationNotes(reservations);
+  const localNotes = useReservationNotes(reservations);
+  const usesExternalNoteStorage =
+    typeof onSaveReservationNote === "function" ||
+    typeof onClearReservationNote === "function";
+
+  const reservationsWithNotes = usesExternalNoteStorage
+    ? reservations
+    : localNotes.reservationsWithNotes;
+  const saveNote = onSaveReservationNote || localNotes.saveNote;
+  const clearNote = onClearReservationNote || localNotes.clearNote;
 
   const summaryCards = useMemo(() => {
     const dateSettings = buildDateSettings({
