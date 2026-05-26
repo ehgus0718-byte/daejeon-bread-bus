@@ -105,7 +105,7 @@ export default function ReservationPanel({
             onClick={onSubmit}
             className="w-full rounded-2xl bg-stone-950 px-5 py-4 text-sm font-black text-white transition hover:translate-y-[-1px]"
           >
-            예약 및 결제 진행
+            예약 접수하기
           </button>
         </div>
       </div>
