@@ -5,6 +5,8 @@ import {
 } from "./supabaseClient.js";
 
 const DEFAULT_RESERVATIONS_TABLE = "reservations";
+const RESERVATION_SELECT_COLUMNS =
+  "id,reservation_date,name,phone,people,amount,status,admin_note";
 
 function getReservationsTableName() {
   return (
@@ -14,12 +16,7 @@ function getReservationsTableName() {
 }
 
 function createSupabaseResult({ ok = true, data = null, error = null, status = 200 } = {}) {
-  return {
-    ok,
-    data,
-    error,
-    status
-  };
+  return { ok, data, error, status };
 }
 
 function createMissingConfigResult() {
@@ -35,10 +32,6 @@ function createMissingConfigResult() {
   });
 }
 
-function getReservationId(reservation = {}) {
-  return reservation.id || reservation.reservationId || null;
-}
-
 function getReservationDate(reservation = {}) {
   return (
     reservation.date ||
@@ -50,18 +43,18 @@ function getReservationDate(reservation = {}) {
 }
 
 function normalizeReservationPayload(row) {
-  if (!row) {
-    return null;
-  }
-
-  const payload =
-    row.payload && typeof row.payload === "object" ? row.payload : row;
+  if (!row) return null;
 
   return {
-    ...payload,
-    id: payload.id || row.id,
-    status: payload.status || row.status,
-    date: payload.date || row.reservation_date || payload.selectedDate
+    id: row.id,
+    date: row.reservation_date,
+    name: row.name || "",
+    phone: row.phone || "",
+    people: Number(row.people || 1),
+    amount: Number(row.amount || 0),
+    status: row.status || "결제대기",
+    adminNote: row.admin_note || "",
+    createdAt: row.created_at || ""
   };
 }
 
@@ -72,21 +65,57 @@ function normalizeReservationList(rows = []) {
 }
 
 function buildReservationRow(reservation = {}) {
-  const id = getReservationId(reservation);
-  const status = reservation.status || "결제대기";
-  const reservationDate = getReservationDate(reservation);
-
   return {
-    ...(id ? { id } : {}),
-    reservation_date: reservationDate,
-    status,
-    payload: {
-      ...reservation,
-      ...(id ? { id } : {}),
-      status,
-      ...(reservationDate ? { date: reservationDate } : {})
-    }
+    reservation_date: getReservationDate(reservation),
+    name: reservation.name || "",
+    phone: reservation.phone || "",
+    people: Number(reservation.people || 1),
+    amount: Number(reservation.amount || 0),
+    status: reservation.status || "결제대기",
+    admin_note: reservation.adminNote || reservation.admin_note || ""
   };
+}
+
+function buildReservationPatch(patch = {}) {
+  const nextPatch = {};
+
+  if (Object.prototype.hasOwnProperty.call(patch, "date")) {
+    nextPatch.reservation_date = patch.date;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "reservation_date")) {
+    nextPatch.reservation_date = patch.reservation_date;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "name")) {
+    nextPatch.name = patch.name || "";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "phone")) {
+    nextPatch.phone = patch.phone || "";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "people")) {
+    nextPatch.people = Number(patch.people || 1);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "amount")) {
+    nextPatch.amount = Number(patch.amount || 0);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "status")) {
+    nextPatch.status = patch.status || "결제대기";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "adminNote")) {
+    nextPatch.admin_note = patch.adminNote || "";
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "admin_note")) {
+    nextPatch.admin_note = patch.admin_note || "";
+  }
+
+  return nextPatch;
 }
 
 function ensureSupabaseClient() {
@@ -99,66 +128,40 @@ function ensureSupabaseClient() {
 
 export async function fetchSupabaseReservations() {
   const configError = ensureSupabaseClient();
-
-  if (configError) {
-    return configError;
-  }
+  if (configError) return configError;
 
   const { data, error, status } = await supabaseClient
     .from(getReservationsTableName())
-    .select("id,reservation_date,status,payload,created_at,updated_at")
-    .order("created_at", { ascending: false });
+    .select(RESERVATION_SELECT_COLUMNS)
+    .order("reservation_date", { ascending: false });
 
   if (error) {
-    return createSupabaseResult({
-      ok: false,
-      data: [],
-      error,
-      status
-    });
+    return createSupabaseResult({ ok: false, data: [], error, status });
   }
 
-  return createSupabaseResult({
-    data: normalizeReservationList(data),
-    status
-  });
+  return createSupabaseResult({ data: normalizeReservationList(data), status });
 }
 
 export async function createSupabaseReservation(reservation = {}) {
   const configError = ensureSupabaseClient();
+  if (configError) return configError;
 
-  if (configError) {
-    return configError;
-  }
-
-  const row = buildReservationRow(reservation);
   const { data, error, status } = await supabaseClient
     .from(getReservationsTableName())
-    .insert(row)
-    .select("id,reservation_date,status,payload,created_at,updated_at")
+    .insert(buildReservationRow(reservation))
+    .select(RESERVATION_SELECT_COLUMNS)
     .single();
 
   if (error) {
-    return createSupabaseResult({
-      ok: false,
-      data: null,
-      error,
-      status
-    });
+    return createSupabaseResult({ ok: false, data: null, error, status });
   }
 
-  return createSupabaseResult({
-    data: normalizeReservationPayload(data),
-    status
-  });
+  return createSupabaseResult({ data: normalizeReservationPayload(data), status });
 }
 
 export async function patchSupabaseReservation(reservationId, patch = {}) {
   const configError = ensureSupabaseClient();
-
-  if (configError) {
-    return configError;
-  }
+  if (configError) return configError;
 
   if (!reservationId) {
     return createSupabaseResult({
@@ -169,58 +172,29 @@ export async function patchSupabaseReservation(reservationId, patch = {}) {
     });
   }
 
-  const { data: currentRow, error: currentError, status: currentStatus } =
-    await supabaseClient
-      .from(getReservationsTableName())
-      .select("id,reservation_date,status,payload,created_at,updated_at")
-      .eq("id", reservationId)
-      .single();
+  const nextPatch = buildReservationPatch(patch);
 
-  if (currentError) {
-    return createSupabaseResult({
-      ok: false,
-      data: null,
-      error: currentError,
-      status: currentStatus
-    });
+  if (Object.keys(nextPatch).length === 0) {
+    return createSupabaseResult({ data: null, status: 200 });
   }
-
-  const currentReservation = normalizeReservationPayload(currentRow) || {};
-  const nextReservation = {
-    ...currentReservation,
-    ...patch,
-    id: reservationId
-  };
-  const nextRow = buildReservationRow(nextReservation);
 
   const { data, error, status } = await supabaseClient
     .from(getReservationsTableName())
-    .update(nextRow)
+    .update(nextPatch)
     .eq("id", reservationId)
-    .select("id,reservation_date,status,payload,created_at,updated_at")
+    .select(RESERVATION_SELECT_COLUMNS)
     .single();
 
   if (error) {
-    return createSupabaseResult({
-      ok: false,
-      data: null,
-      error,
-      status
-    });
+    return createSupabaseResult({ ok: false, data: null, error, status });
   }
 
-  return createSupabaseResult({
-    data: normalizeReservationPayload(data),
-    status
-  });
+  return createSupabaseResult({ data: normalizeReservationPayload(data), status });
 }
 
 export async function deleteSupabaseReservation(reservationId) {
   const configError = ensureSupabaseClient();
-
-  if (configError) {
-    return configError;
-  }
+  if (configError) return configError;
 
   if (!reservationId) {
     return createSupabaseResult({
@@ -237,18 +211,10 @@ export async function deleteSupabaseReservation(reservationId) {
     .eq("id", reservationId);
 
   if (error) {
-    return createSupabaseResult({
-      ok: false,
-      data: null,
-      error,
-      status
-    });
+    return createSupabaseResult({ ok: false, data: null, error, status });
   }
 
-  return createSupabaseResult({
-    data: null,
-    status
-  });
+  return createSupabaseResult({ data: null, status });
 }
 
 export const supabaseReservationClient = {
