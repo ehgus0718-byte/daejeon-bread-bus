@@ -11,9 +11,9 @@ function getTodayInputValue() {
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
-function toNumber(value, fallback) {
+function toValidNumber(value) {
   const nextValue = Number(value);
-  return Number.isFinite(nextValue) ? nextValue : fallback;
+  return Number.isFinite(nextValue) ? nextValue : null;
 }
 
 function hasDateSetting(settings) {
@@ -80,11 +80,21 @@ export default function AdminDateSettingsForm({
       return;
     }
 
-    const nextCapacity = toNumber(capacity, 15);
-    const nextPrice = toNumber(price, 30000);
+    const nextCapacity = toValidNumber(capacity);
+    const nextPrice = toValidNumber(price);
+
+    if (nextCapacity === null || !Number.isInteger(nextCapacity)) {
+      setMessage("정원은 정수로 입력해주세요.");
+      return;
+    }
 
     if (nextCapacity < 1) {
       setMessage("정원은 1명 이상으로 입력해주세요.");
+      return;
+    }
+
+    if (nextPrice === null) {
+      setMessage("가격은 숫자로 입력해주세요.");
       return;
     }
 
@@ -152,6 +162,7 @@ export default function AdminDateSettingsForm({
           <input
             type="number"
             min="1"
+            step="1"
             value={capacity}
             onChange={(event) => setCapacity(event.target.value)}
             className="rounded-2xl border border-stone-200 px-3 py-3 text-sm font-black text-stone-800 outline-none transition focus:border-orange-400"
