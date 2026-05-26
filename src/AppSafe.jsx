@@ -50,11 +50,9 @@ export default function AppSafe() {
   );
 
   const [selectedDate, setSelectedDate] = useState("2026-05-30");
-
   const [reservationForm, setReservationForm] = useState(
     DEFAULT_RESERVATION_FORM
   );
-
   const [reservations, setReservations] = useState(getInitialReservations);
   const [capacityOverrides, setCapacityOverrides] = useState(
     savedAdminSettings.capacityOverrides
@@ -184,8 +182,8 @@ export default function AppSafe() {
     setPriceOverrides((prev) =>
       updatePriceOverride({
         priceOverrides: prev,
-        date,
-        nextPrice
+        nextPrice,
+        date
       })
     );
   }
@@ -336,21 +334,15 @@ export default function AppSafe() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
-              저장 모드: {RESERVATION_REPOSITORY_MODE}
-            </div>
-
-            {isAdminAuthed ? (
-              <button
-                type="button"
-                onClick={handleAdminLogout}
-                className="rounded-full bg-stone-950 px-4 py-2 text-xs font-black text-white"
-              >
-                관리자 로그아웃
-              </button>
-            ) : null}
-          </div>
+          {isAdminAuthed ? (
+            <button
+              type="button"
+              onClick={handleAdminLogout}
+              className="rounded-full bg-stone-950 px-4 py-2 text-xs font-black text-white"
+            >
+              관리자 로그아웃
+            </button>
+          ) : null}
         </div>
       </header>
 
