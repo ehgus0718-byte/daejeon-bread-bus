@@ -61,6 +61,16 @@ export default function ReservationPanel({
         </div>
       </div>
 
+      <div className="mt-5 rounded-3xl border border-orange-100 bg-orange-50/70 p-5 text-sm font-bold leading-6 text-stone-700">
+        <p className="font-black text-orange-700">결제 안내</p>
+        <p className="mt-2">
+          예약 접수 후 관리자가 예약 내용을 확인하고 연락처로 결제 또는 입금 안내를 드립니다.
+        </p>
+        <p className="mt-1 text-xs font-black text-stone-500">
+          관리자 확인 전까지 예약 상태는 결제대기로 저장됩니다.
+        </p>
+      </div>
+
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-2">
           <span className="text-sm font-black text-stone-700">예약자명</span>
