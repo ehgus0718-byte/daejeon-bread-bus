@@ -37,6 +37,10 @@ function getReservationStatusLabel(status = "") {
   return status || "상태 미정";
 }
 
+function getReservationPhoneLabel(phone = "") {
+  return String(phone || "").trim() || "연락처 없음";
+}
+
 export default function AdminReservationTable({
   reservations = [],
   onChangeStatus,
@@ -65,7 +69,7 @@ export default function AdminReservationTable({
         <AdminSectionTitle
           eyebrow="Admin Reservation Control"
           title="관리자 예약 관리"
-          description="예약 검색, 상태 필터, 정렬, CSV 다운로드와 예약 상태 변경을 관리합니다."
+          description="예약자 이름, 연락처, 예약 날짜, 상태를 통합 검색하고 예약 상태를 관리합니다."
         />
 
         <div className="flex flex-wrap items-center gap-2">
@@ -90,7 +94,7 @@ export default function AdminReservationTable({
       <div className="mt-6 overflow-hidden rounded-3xl border border-stone-100">
         <div className={`grid ${tableColumnClassName} bg-stone-50 px-5 py-4 text-xs font-black text-stone-500`}>
           <div>예약 날짜</div>
-          <div>예약자</div>
+          <div>예약자 / 연락처</div>
           <div>인원</div>
           <div>현재 상태</div>
           <div>상태 변경</div>
@@ -105,6 +109,7 @@ export default function AdminReservationTable({
           ) : (
             visibleReservations.map((reservation, index) => {
               const statusValue = getReservationStatusValue(reservation.status);
+              const phoneLabel = getReservationPhoneLabel(reservation.phone);
 
               return (
                 <div
@@ -112,7 +117,15 @@ export default function AdminReservationTable({
                   className={`grid ${tableColumnClassName} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700`}
                 >
                   <div>{formatDate(reservation.date)}</div>
-                  <div>{reservation.name || "-"}</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-base font-black text-stone-900">
+                      {reservation.name || "-"}
+                    </div>
+                    <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-700">
+                      <span className="mr-1 text-stone-400">☎</span>
+                      <span className="truncate">{phoneLabel}</span>
+                    </div>
+                  </div>
                   <div>{formatPeopleCount(reservation.people)}</div>
                   <div>
                     <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
