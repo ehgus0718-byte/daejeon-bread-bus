@@ -5,7 +5,7 @@ const REPOSITORY_MODE = {
 };
 
 function getConfiguredMode() {
-  return import.meta?.env?.VITE_RESERVATION_REPOSITORY_MODE || REPOSITORY_MODE.LOCAL;
+  return import.meta.env.VITE_RESERVATION_REPOSITORY_MODE || REPOSITORY_MODE.LOCAL;
 }
 
 function normalizeRepositoryMode(mode) {
