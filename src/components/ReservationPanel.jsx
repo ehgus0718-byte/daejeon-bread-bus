@@ -32,9 +32,13 @@ export default function ReservationPanel({
   isSubmitting = false
 }) {
   const selectedPeople = normalizePeopleCount(form.people);
+  const safeRemainingSeats = Math.max(0, toSafeNumber(remainingSeats, 0));
   const safePrice = Math.max(0, toSafeNumber(price, 0));
   const totalAmount = selectedPeople * safePrice;
   const displayNotice = normalizeNoticeText(notice);
+  const hasAvailableSeats = safeRemainingSeats > 0;
+  const hasValidPeopleSelection = selectedPeople <= safeRemainingSeats;
+  const canSubmit = hasAvailableSeats && hasValidPeopleSelection && !isSubmitting;
 
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
@@ -59,7 +63,7 @@ export default function ReservationPanel({
         <div className="rounded-3xl bg-stone-50 p-5">
           <p className="text-xs font-black text-stone-500">잔여 좌석</p>
           <p className="mt-2 text-2xl font-black text-stone-900">
-            {formatSeatCount(remainingSeats)}
+            {formatSeatCount(safeRemainingSeats)}
           </p>
         </div>
         <div className="rounded-3xl bg-stone-50 p-5">
@@ -112,20 +116,29 @@ export default function ReservationPanel({
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           >
             {PEOPLE_OPTIONS.map((people) => (
-              <option key={people} value={people}>
-                {people}명
+              <option key={people} value={people} disabled={people > safeRemainingSeats}>
+                {people}명{people > safeRemainingSeats ? " - 잔여 좌석 부족" : ""}
               </option>
             ))}
           </select>
+          {!hasValidPeopleSelection ? (
+            <span className="text-xs font-black text-red-500">
+              선택한 인원이 잔여 좌석보다 많습니다. 예약 인원을 다시 선택해주세요.
+            </span>
+          ) : null}
         </label>
         <div className="flex items-end">
           <button
             type="button"
-            onClick={onSubmit}
-            disabled={isSubmitting}
+            onClick={canSubmit ? onSubmit : undefined}
+            disabled={!canSubmit}
             className="w-full rounded-2xl bg-stone-950 px-5 py-4 text-sm font-black text-white transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:bg-stone-300 disabled:hover:translate-y-0"
           >
-            {isSubmitting ? "예약 접수 중..." : "예약 접수하기"}
+            {isSubmitting
+              ? "예약 접수 중..."
+              : hasAvailableSeats
+                ? "예약 접수하기"
+                : "잔여 좌석 없음"}
           </button>
         </div>
       </div>
