@@ -24,6 +24,7 @@ import {
   loadAdminSettings,
   saveAdminSettings
 } from "./services/storageIndex.js";
+import { loadSiteSettings, saveSiteSettings } from "./api/siteSettingsClient.js";
 import { reservationRepository } from "./repositories/index.js";
 import {
   getReservationRepositoryMode,
@@ -63,6 +64,14 @@ function updateReservationAdminNote({ reservations = [], reservationId, note = "
   });
 }
 
+function normalizeAdminSettings(settings = {}) {
+  return {
+    capacityOverrides: settings.capacityOverrides || {},
+    priceOverrides: settings.priceOverrides || {},
+    scheduleStatus: settings.scheduleStatus || {}
+  };
+}
+
 export default function AppSafe() {
   const savedAdminSettings = useMemo(
     () => loadAdminSettings(INITIAL_ADMIN_SETTINGS),
@@ -88,6 +97,9 @@ export default function AppSafe() {
   const [isAdminAuthed, setIsAdminAuthed] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
+  const [isAdminSettingsReady, setIsAdminSettingsReady] = useState(
+    !USES_REMOTE_RESERVATION_STORAGE
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -95,15 +107,11 @@ export default function AppSafe() {
     async function loadStoredReservations() {
       const result = await reservationRepository.list();
 
-      if (!isMounted) {
-        return;
-      }
+      if (!isMounted) return;
 
       if (!result.ok) {
         setNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
-        if (USES_REMOTE_RESERVATION_STORAGE) {
-          setReservations([]);
-        }
+        if (USES_REMOTE_RESERVATION_STORAGE) setReservations([]);
         return;
       }
 
@@ -122,12 +130,70 @@ export default function AppSafe() {
   }, []);
 
   useEffect(() => {
-    saveAdminSettings({
+    let isMounted = true;
+
+    async function loadRemoteAdminSettings() {
+      if (!USES_REMOTE_RESERVATION_STORAGE) {
+        setIsAdminSettingsReady(true);
+        return;
+      }
+
+      const result = await loadSiteSettings();
+
+      if (!isMounted) return;
+
+      if (!result.ok) {
+        console.warn("Remote admin settings load failed", result.error);
+        setNotice(`관리자 날짜 설정은 임시 저장소로 표시됩니다. ${getErrorMessage(result.error)}`);
+        setIsAdminSettingsReady(true);
+        return;
+      }
+
+      const nextSettings = normalizeAdminSettings(result.data);
+      setCapacityOverrides(nextSettings.capacityOverrides);
+      setPriceOverrides(nextSettings.priceOverrides);
+      setScheduleStatus(nextSettings.scheduleStatus);
+      saveAdminSettings(nextSettings);
+      setIsAdminSettingsReady(true);
+    }
+
+    loadRemoteAdminSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const nextSettings = {
       capacityOverrides,
       priceOverrides,
       scheduleStatus
-    });
-  }, [capacityOverrides, priceOverrides, scheduleStatus]);
+    };
+
+    saveAdminSettings(nextSettings);
+
+    if (!USES_REMOTE_RESERVATION_STORAGE || !isAdminSettingsReady) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function saveRemoteSettings() {
+      const result = await saveSiteSettings(nextSettings);
+
+      if (isCancelled || result.ok) return;
+
+      console.warn("Remote admin settings save failed", result.error);
+      setNotice(`관리자 날짜 설정 원격 저장에 실패했습니다. ${getErrorMessage(result.error)}`);
+    }
+
+    saveRemoteSettings();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [capacityOverrides, priceOverrides, scheduleStatus, isAdminSettingsReady]);
 
   const managedDateSettings = useMemo(
     () =>
@@ -155,10 +221,7 @@ export default function AppSafe() {
   const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "closed";
 
   function handleFormChange(key, value) {
-    setReservationForm((prev) => ({
-      ...prev,
-      [key]: value
-    }));
+    setReservationForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function resetForm() {
@@ -190,31 +253,19 @@ export default function AppSafe() {
 
   function handleCapacityChange(date, nextCapacity) {
     setCapacityOverrides((prev) =>
-      updateCapacityOverride({
-        capacityOverrides: prev,
-        date,
-        nextCapacity
-      })
+      updateCapacityOverride({ capacityOverrides: prev, date, nextCapacity })
     );
   }
 
   function handlePriceChange(date, nextPrice) {
     setPriceOverrides((prev) =>
-      updatePriceOverride({
-        priceOverrides: prev,
-        nextPrice,
-        date
-      })
+      updatePriceOverride({ priceOverrides: prev, nextPrice, date })
     );
   }
 
   function handleScheduleStatusChange(date, nextStatus) {
     setScheduleStatus((prev) =>
-      updateScheduleStatus({
-        scheduleStatus: prev,
-        date,
-        nextStatus
-      })
+      updateScheduleStatus({ scheduleStatus: prev, date, nextStatus })
     );
   }
 
@@ -231,9 +282,7 @@ export default function AppSafe() {
     setReservations(nextReservations);
 
     try {
-      const result = await reservationRepository.update(id, {
-        status: nextStatus
-      });
+      const result = await reservationRepository.update(id, { status: nextStatus });
 
       if (!result.ok) {
         setReservations(previousReservations);
@@ -241,9 +290,7 @@ export default function AppSafe() {
         return;
       }
 
-      if (Array.isArray(result.data)) {
-        setReservations(result.data);
-      }
+      if (Array.isArray(result.data)) setReservations(result.data);
     } catch (error) {
       console.warn("Reservation status update failed", error);
       setReservations(previousReservations);
@@ -270,9 +317,7 @@ export default function AppSafe() {
     setReservations(nextReservations);
 
     try {
-      const result = await reservationRepository.update(id, {
-        adminNote: safeNote
-      });
+      const result = await reservationRepository.update(id, { adminNote: safeNote });
 
       if (!result.ok) {
         setReservations(previousReservations);
@@ -280,9 +325,7 @@ export default function AppSafe() {
         return false;
       }
 
-      if (Array.isArray(result.data)) {
-        setReservations(result.data);
-      }
+      if (Array.isArray(result.data)) setReservations(result.data);
 
       setNotice("관리자 메모가 저장되었습니다.");
       return true;
@@ -306,17 +349,12 @@ export default function AppSafe() {
       return;
     }
 
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("선택한 예약을 삭제하시겠습니까?")
-    ) {
+    if (typeof window !== "undefined" && !window.confirm("선택한 예약을 삭제하시겠습니까?")) {
       return;
     }
 
     const previousReservations = reservations;
-    const nextReservations = reservations.filter(
-      (reservation) => reservation.id !== id
-    );
+    const nextReservations = reservations.filter((reservation) => reservation.id !== id);
 
     setReservations(nextReservations);
 
@@ -329,9 +367,7 @@ export default function AppSafe() {
         return;
       }
 
-      if (Array.isArray(result.data)) {
-        setReservations(result.data);
-      }
+      if (Array.isArray(result.data)) setReservations(result.data);
 
       setNotice("예약이 삭제되었습니다.");
     } catch (error) {
@@ -395,9 +431,7 @@ export default function AppSafe() {
             </div>
             <div>
               <h1 className="text-xl font-black">대전빵셔틀 빵버스</h1>
-              <p className="text-xs font-bold text-stone-500">
-                2026 Reservation Platform
-              </p>
+              <p className="text-xs font-bold text-stone-500">2026 Reservation Platform</p>
             </div>
           </div>
 
@@ -415,16 +449,12 @@ export default function AppSafe() {
 
       <main className="mx-auto max-w-7xl px-5 py-12">
         <section className="rounded-[2.5rem] bg-stone-950 p-8 text-white shadow-2xl shadow-orange-100 md:p-12">
-          <p className="text-sm font-black tracking-[0.3em] text-orange-300">
-            DAEJEON BREAD BUS
-          </p>
-
+          <p className="text-sm font-black tracking-[0.3em] text-orange-300">DAEJEON BREAD BUS</p>
           <h2 className="mt-4 text-4xl font-black leading-tight md:text-6xl">
             달력으로 선택하고
             <br />
             대전 빵버스를 예약하세요.
           </h2>
-
           <p className="mt-6 max-w-2xl text-base font-bold leading-7 text-stone-300">
             날짜별 모집현황, 잔여좌석, 예약마감 상태를 한 번에 확인할 수 있는
             실제 운영형 예약 플랫폼 구조입니다.
@@ -434,14 +464,9 @@ export default function AppSafe() {
         <section className="mt-10">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-black text-orange-600">
-                Reservation Calendar
-              </p>
-              <h3 className="text-3xl font-black">
-                2개월 예약 달력
-              </h3>
+              <p className="text-sm font-black text-orange-600">Reservation Calendar</p>
+              <h3 className="text-3xl font-black">2개월 예약 달력</h3>
             </div>
-
             <div className="rounded-full bg-white px-4 py-3 text-sm font-black shadow-sm">
               관리자에서 날짜별 정원·가격·상태 수정 가능
             </div>
