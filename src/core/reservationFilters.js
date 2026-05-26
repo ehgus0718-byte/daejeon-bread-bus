@@ -2,6 +2,10 @@ function toSearchText(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function toDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 export function filterReservationsByDate(reservations = [], date = "") {
   if (!date) {
     return reservations;
@@ -20,6 +24,7 @@ export function filterReservationsByStatus(reservations = [], status = "") {
 
 export function searchReservations(reservations = [], keyword = "") {
   const normalizedKeyword = toSearchText(keyword);
+  const digitKeyword = toDigits(keyword);
 
   if (!normalizedKeyword) {
     return reservations;
@@ -33,9 +38,19 @@ export function searchReservations(reservations = [], keyword = "") {
       reservation.status
     ];
 
-    return searchableValues.some((value) =>
+    const hasTextMatch = searchableValues.some((value) =>
       toSearchText(value).includes(normalizedKeyword)
     );
+
+    const hasPhoneNumberMatch = digitKeyword
+      ? toDigits(reservation.phone).includes(digitKeyword)
+      : false;
+
+    const hasDateNumberMatch = digitKeyword
+      ? toDigits(reservation.date).includes(digitKeyword)
+      : false;
+
+    return hasTextMatch || hasPhoneNumberMatch || hasDateNumberMatch;
   });
 }
 
