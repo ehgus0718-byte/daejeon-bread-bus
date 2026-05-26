@@ -25,13 +25,13 @@ function downloadTextFile({ filename, content, mimeType }) {
 
 export default function AdminCsvDownloadButton({
   reservations = [],
-  label = "예약 CSV 다운로드"
+  label = "현재 목록 CSV 다운로드"
 }) {
   const safeReservations = Array.isArray(reservations) ? reservations : [];
   const disabled = safeReservations.length === 0;
   const helperText = disabled
     ? "다운로드할 예약 내역이 없습니다."
-    : `${safeReservations.length}건의 예약 내역을 CSV로 다운로드합니다.`;
+    : `현재 화면에 표시된 ${safeReservations.length}건의 예약 내역을 CSV로 다운로드합니다.`;
 
   function handleDownload() {
     if (disabled) {
@@ -39,7 +39,7 @@ export default function AdminCsvDownloadButton({
     }
 
     const csvContent = reservationsToExcelCsv(safeReservations);
-    const filename = createReservationCsvFilename();
+    const filename = createReservationCsvFilename("daejeon-bread-bus-filtered-reservations");
 
     downloadTextFile({
       filename,
