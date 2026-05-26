@@ -16,6 +16,8 @@ export const RESERVATION_CSV_HEADERS = [
   "인원",
   "금액",
   "상태",
+  "관리자메모",
+  "메모수정일",
   "생성일"
 ];
 
@@ -28,6 +30,8 @@ export function reservationToCsvRow(reservation = {}) {
     reservation.people,
     reservation.amount,
     reservation.status,
+    reservation.adminNote,
+    reservation.noteUpdatedAt,
     reservation.createdAt
   ].map(escapeCsvValue);
 }
