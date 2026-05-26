@@ -3,6 +3,9 @@ import { formatCurrency, formatSeatCount } from "../core/formatters.js";
 import SectionTitle from "./SectionTitle.jsx";
 
 const PEOPLE_OPTIONS = [1, 2, 3, 4];
+const LEGACY_PAYMENT_NOTICE = "예약이 저장되었습니다. 결제를 진행해주세요.";
+const RESERVATION_RECEIVED_NOTICE =
+  "예약이 접수되었습니다. 관리자가 확인 후 연락처로 결제 또는 입금 안내를 드립니다.";
 
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
@@ -12,6 +15,10 @@ function toSafeNumber(value, fallbackValue = 0) {
 function normalizePeopleCount(value) {
   const people = toSafeNumber(value, 1);
   return PEOPLE_OPTIONS.includes(people) ? people : PEOPLE_OPTIONS[0];
+}
+
+function normalizeNoticeText(value = "") {
+  return value === LEGACY_PAYMENT_NOTICE ? RESERVATION_RECEIVED_NOTICE : value;
 }
 
 export default function ReservationPanel({
@@ -26,6 +33,7 @@ export default function ReservationPanel({
   const selectedPeople = normalizePeopleCount(form.people);
   const safePrice = Math.max(0, toSafeNumber(price, 0));
   const totalAmount = selectedPeople * safePrice;
+  const displayNotice = normalizeNoticeText(notice);
 
   return (
     <section className="rounded-[2rem] border border-orange-100 bg-white p-6 shadow-sm">
@@ -120,9 +128,9 @@ export default function ReservationPanel({
         </div>
       </div>
 
-      {notice ? (
+      {displayNotice ? (
         <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700">
-          {notice}
+          {displayNotice}
         </div>
       ) : null}
     </section>
