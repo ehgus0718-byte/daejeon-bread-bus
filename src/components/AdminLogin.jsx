@@ -26,6 +26,11 @@ export default function AdminLogin({
     onSubmit?.();
   }
 
+  function handleResetAttempts() {
+    setAttemptCount(0);
+    onChangePassword?.("");
+  }
+
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-white p-6 shadow-sm md:p-8">
       <div className="grid gap-6 lg:grid-cols-[1fr_420px] lg:items-center">
@@ -65,13 +70,22 @@ export default function AdminLogin({
             {isLocked ? "로그인 시도 제한" : "관리자 접속"}
           </button>
 
-          <div className="mt-3 text-xs font-black text-stone-400">
-            로그인 가능 횟수: {remainingAttempts}회
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-black text-stone-400">
+            <span>로그인 가능 횟수: {remainingAttempts}회</span>
+            {isLocked ? (
+              <button
+                type="button"
+                onClick={handleResetAttempts}
+                className="rounded-full border border-stone-200 bg-white px-3 py-2 text-xs font-black text-stone-600 transition hover:bg-stone-100"
+              >
+                다시 입력하기
+              </button>
+            ) : null}
           </div>
 
           {isLocked ? (
             <div className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-4 text-sm font-black text-red-600">
-              관리자 로그인 시도 횟수를 초과했습니다. 비밀번호 입력값을 비우고 다시 시도해주세요.
+              관리자 로그인 시도 횟수를 초과했습니다. 다시 입력하기 버튼을 눌러 비밀번호를 새로 입력해주세요.
             </div>
           ) : null}
 
