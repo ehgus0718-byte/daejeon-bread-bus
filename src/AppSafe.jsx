@@ -43,6 +43,26 @@ function getInitialReservations() {
   return USES_REMOTE_RESERVATION_STORAGE ? [] : INITIAL_RESERVATIONS;
 }
 
+function toSafeAdminNote(note = "") {
+  return String(note || "").trim();
+}
+
+function updateReservationAdminNote({ reservations = [], reservationId, note = "" }) {
+  const safeNote = toSafeAdminNote(note);
+
+  return reservations.map((reservation) => {
+    if (reservation.id !== reservationId) {
+      return reservation;
+    }
+
+    return {
+      ...reservation,
+      adminNote: safeNote,
+      noteUpdatedAt: new Date().toISOString()
+    };
+  });
+}
+
 export default function AppSafe() {
   const savedAdminSettings = useMemo(
     () => loadAdminSettings(INITIAL_ADMIN_SETTINGS),
@@ -231,6 +251,53 @@ export default function AppSafe() {
     }
   }
 
+  async function handleSaveReservationNote(id, note = "") {
+    setNotice("");
+
+    if (!id) {
+      setNotice("메모를 저장할 예약을 찾지 못했습니다.");
+      return false;
+    }
+
+    const safeNote = toSafeAdminNote(note);
+    const previousReservations = reservations;
+    const nextReservations = updateReservationAdminNote({
+      reservations,
+      reservationId: id,
+      note: safeNote
+    });
+
+    setReservations(nextReservations);
+
+    try {
+      const result = await reservationRepository.update(id, {
+        adminNote: safeNote
+      });
+
+      if (!result.ok) {
+        setReservations(previousReservations);
+        setNotice(`관리자 메모 저장에 실패했습니다. ${getErrorMessage(result.error)}`);
+        return false;
+      }
+
+      if (Array.isArray(result.data)) {
+        setReservations(result.data);
+      }
+
+      setNotice("관리자 메모가 저장되었습니다.");
+      return true;
+    } catch (error) {
+      console.warn("Reservation note save failed", error);
+      setReservations(previousReservations);
+      setNotice(`관리자 메모 저장에 실패했습니다. ${getErrorMessage(error)}`);
+      return false;
+    }
+  }
+
+  async function handleClearReservationNote(id) {
+    return handleSaveReservationNote(id, "");
+  }
+
   async function handleRemoveReservation(id) {
     setNotice("");
 
@@ -417,6 +484,8 @@ export default function AppSafe() {
             onChangeCapacity={handleCapacityChange}
             onChangePrice={handlePriceChange}
             onChangeScheduleStatus={handleScheduleStatusChange}
+            onSaveReservationNote={handleSaveReservationNote}
+            onClearReservationNote={handleClearReservationNote}
           />
         ) : (
           <AdminLogin
