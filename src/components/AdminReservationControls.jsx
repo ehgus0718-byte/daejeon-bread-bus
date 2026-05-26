@@ -48,11 +48,11 @@ export default function AdminReservationControls({
           type="search"
           value={keyword}
           onChange={(event) => onChangeKeyword?.(event.target.value)}
-          placeholder="예약자명, 연락처, 날짜, 상태 검색"
+          placeholder="이름, 연락처, 날짜, 상태, 메모 검색"
           className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
         />
         <span className="text-xs font-bold text-stone-400">
-          검색어, 상태, 정렬 조건을 조합해서 확인할 수 있습니다.
+          예약자 정보와 관리자 메모까지 함께 검색할 수 있습니다.
         </span>
       </label>
 
