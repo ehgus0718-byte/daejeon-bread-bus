@@ -25,6 +25,10 @@ function formatDate(dateString) {
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function formatCurrency(value) {
+  return `${new Intl.NumberFormat("ko-KR").format(Number(value || 0))}원`;
+}
+
 function createReservationRowKey(reservation = {}, index = 0) {
   return reservation.id || `${reservation.date || "date"}-${reservation.name || "name"}-${index}`;
 }
@@ -39,6 +43,42 @@ function getReservationStatusLabel(status = "") {
 
 function getReservationPhoneLabel(phone = "") {
   return String(phone || "").trim() || "연락처 없음";
+}
+
+function createVisibleReservationSummary(reservations = []) {
+  return reservations.reduce(
+    (summary, reservation) => {
+      const people = Number(reservation.people || 0);
+      const amount = Number(reservation.amount || 0);
+      const status = String(reservation.status || "");
+
+      return {
+        count: summary.count + 1,
+        people: summary.people + (Number.isFinite(people) ? people : 0),
+        amount: summary.amount + (Number.isFinite(amount) ? amount : 0),
+        paid: summary.paid + (status === "결제완료" ? 1 : 0),
+        waiting: summary.waiting + (status === "결제대기" ? 1 : 0),
+        cancelled: summary.cancelled + (status === "취소" ? 1 : 0)
+      };
+    },
+    {
+      count: 0,
+      people: 0,
+      amount: 0,
+      paid: 0,
+      waiting: 0,
+      cancelled: 0
+    }
+  );
+}
+
+function SummaryItem({ label, value }) {
+  return (
+    <div className="rounded-3xl border border-orange-100 bg-orange-50/60 px-4 py-3">
+      <div className="text-xs font-black text-orange-600">{label}</div>
+      <div className="mt-1 text-lg font-black text-stone-900">{value}</div>
+    </div>
+  );
 }
 
 export default function AdminReservationTable({
@@ -62,6 +102,11 @@ export default function AdminReservationTable({
 
     return sortReservations(filteredReservations, sortKey);
   }, [keyword, safeReservations, sortKey, status]);
+
+  const visibleSummary = useMemo(
+    () => createVisibleReservationSummary(visibleReservations),
+    [visibleReservations]
+  );
 
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
@@ -89,6 +134,15 @@ export default function AdminReservationTable({
           onChangeStatus={setStatus}
           onChangeSortKey={setSortKey}
         />
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <SummaryItem label="검색 결과" value={`${visibleSummary.count}건`} />
+        <SummaryItem label="총 인원" value={formatPeopleCount(visibleSummary.people)} />
+        <SummaryItem label="총 금액" value={formatCurrency(visibleSummary.amount)} />
+        <SummaryItem label="결제완료" value={`${visibleSummary.paid}건`} />
+        <SummaryItem label="결제대기" value={`${visibleSummary.waiting}건`} />
+        <SummaryItem label="취소" value={`${visibleSummary.cancelled}건`} />
       </div>
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-stone-100">
