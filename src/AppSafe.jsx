@@ -25,8 +25,23 @@ import {
   saveAdminSettings
 } from "./services/storageIndex.js";
 import { reservationRepository } from "./repositories/index.js";
+import {
+  getReservationRepositoryMode,
+  REPOSITORY_MODE
+} from "./repositories/reservationRepositoryMode.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
+const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
+const USES_REMOTE_RESERVATION_STORAGE =
+  RESERVATION_REPOSITORY_MODE !== REPOSITORY_MODE.LOCAL;
+
+function getErrorMessage(error) {
+  return error?.message || String(error || "알 수 없는 오류");
+}
+
+function getInitialReservations() {
+  return USES_REMOTE_RESERVATION_STORAGE ? [] : INITIAL_RESERVATIONS;
+}
 
 export default function AppSafe() {
   const savedAdminSettings = useMemo(
@@ -40,7 +55,7 @@ export default function AppSafe() {
     DEFAULT_RESERVATION_FORM
   );
 
-  const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
+  const [reservations, setReservations] = useState(getInitialReservations);
   const [capacityOverrides, setCapacityOverrides] = useState(
     savedAdminSettings.capacityOverrides
   );
@@ -67,12 +82,17 @@ export default function AppSafe() {
       }
 
       if (!result.ok) {
-        setNotice("예약 데이터를 불러오지 못했습니다. 기본 예약 데이터로 표시합니다.");
+        setNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
+        if (USES_REMOTE_RESERVATION_STORAGE) {
+          setReservations([]);
+        }
         return;
       }
 
-      if (Array.isArray(result.data) && result.data.length > 0) {
-        setReservations(result.data);
+      if (Array.isArray(result.data)) {
+        if (USES_REMOTE_RESERVATION_STORAGE || result.data.length > 0) {
+          setReservations(result.data);
+        }
       }
     }
 
@@ -199,7 +219,7 @@ export default function AppSafe() {
 
       if (!result.ok) {
         setReservations(previousReservations);
-        setNotice("예약 상태 저장에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+        setNotice(`예약 상태 저장에 실패했습니다. ${getErrorMessage(result.error)}`);
         return;
       }
 
@@ -209,7 +229,7 @@ export default function AppSafe() {
     } catch (error) {
       console.warn("Reservation status update failed", error);
       setReservations(previousReservations);
-      setNotice("예약 상태 저장에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+      setNotice(`예약 상태 저장에 실패했습니다. ${getErrorMessage(error)}`);
     }
   }
 
@@ -240,7 +260,7 @@ export default function AppSafe() {
 
       if (!result.ok) {
         setReservations(previousReservations);
-        setNotice("예약 삭제에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+        setNotice(`예약 삭제에 실패했습니다. ${getErrorMessage(result.error)}`);
         return;
       }
 
@@ -252,7 +272,7 @@ export default function AppSafe() {
     } catch (error) {
       console.warn("Reservation remove failed", error);
       setReservations(previousReservations);
-      setNotice("예약 삭제에 실패했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.");
+      setNotice(`예약 삭제에 실패했습니다. ${getErrorMessage(error)}`);
     }
   }
 
@@ -285,16 +305,16 @@ export default function AppSafe() {
       const result = await reservationRepository.add(reservationItem);
 
       if (!result.ok) {
-        setNotice("예약 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(result.error)}`);
         return;
       }
 
-      setReservations(result.data);
+      setReservations(Array.isArray(result.data) ? result.data : []);
       setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
       resetForm();
     } catch (error) {
       console.warn("Reservation submit failed", error);
-      setNotice("예약 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(error)}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -318,7 +338,7 @@ export default function AppSafe() {
 
           <div className="flex items-center gap-2">
             <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
-              실제 운영 구조 안정화 중
+              저장 모드: {RESERVATION_REPOSITORY_MODE}
             </div>
 
             {isAdminAuthed ? (
