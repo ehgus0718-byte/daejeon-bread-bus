@@ -1,52 +1,36 @@
-import { reservationApiClient } from "../api/index.js";
+import {
+  reservationApiClient,
+  supabaseReservationClient
+} from "../api/index.js";
 import {
   clearReservations,
   loadReservations,
   saveReservations
 } from "../services/storageIndex.js";
-import { shouldUseReservationApi } from "./reservationRepositoryMode.js";
+import {
+  shouldUseReservationApi,
+  shouldUseSupabaseReservations
+} from "./reservationRepositoryMode.js";
 
 function createRepositoryResult({ ok = true, data = null, error = null } = {}) {
-  return {
-    ok,
-    data,
-    error
-  };
+  return { ok, data, error };
 }
 
 function normalizeReservations(reservations = []) {
   return Array.isArray(reservations) ? reservations : [];
 }
 
-function normalizeApiReservations(data) {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.reservations)) {
-    return data.reservations;
-  }
-
-  if (Array.isArray(data?.data)) {
-    return data.data;
-  }
-
+function normalizeRemoteReservations(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.reservations)) return data.reservations;
+  if (Array.isArray(data?.data)) return data.data;
   return [];
 }
 
-function normalizeApiReservation(data) {
-  if (!data) {
-    return null;
-  }
-
-  if (data.reservation) {
-    return data.reservation;
-  }
-
-  if (data.data && !Array.isArray(data.data)) {
-    return data.data;
-  }
-
+function normalizeRemoteReservation(data) {
+  if (!data) return null;
+  if (data.reservation) return data.reservation;
+  if (data.data && !Array.isArray(data.data)) return data.data;
   return data;
 }
 
@@ -58,9 +42,18 @@ function createMissingReservationIdResult() {
   });
 }
 
+function getRemoteClient() {
+  if (shouldUseSupabaseReservations()) return supabaseReservationClient;
+  if (shouldUseReservationApi()) return reservationApiClient;
+  return null;
+}
+
+function getRemoteModeName() {
+  return shouldUseSupabaseReservations() ? "Supabase" : "API";
+}
+
 async function listLocalReservations() {
-  const reservations = normalizeReservations(loadReservations());
-  return createRepositoryResult({ data: reservations });
+  return createRepositoryResult({ data: normalizeReservations(loadReservations()) });
 }
 
 async function replaceLocalReservations(reservations = []) {
@@ -80,25 +73,19 @@ async function replaceLocalReservations(reservations = []) {
 
 async function addLocalReservation(reservation = {}) {
   const currentResult = await listLocalReservations();
-  const currentReservations = normalizeReservations(currentResult.data);
-  const nextReservations = [reservation, ...currentReservations];
-  return replaceLocalReservations(nextReservations);
+  return replaceLocalReservations([
+    reservation,
+    ...normalizeReservations(currentResult.data)
+  ]);
 }
 
 async function updateLocalReservation(reservationId, patch = {}) {
-  if (!reservationId) {
-    return createMissingReservationIdResult();
-  }
+  if (!reservationId) return createMissingReservationIdResult();
 
   const currentResult = await listLocalReservations();
-  const currentReservations = normalizeReservations(currentResult.data);
-  const nextReservations = currentReservations.map((reservation) =>
+  const nextReservations = normalizeReservations(currentResult.data).map((reservation) =>
     reservation.id === reservationId
-      ? {
-          ...reservation,
-          ...patch,
-          id: reservation.id
-        }
+      ? { ...reservation, ...patch, id: reservation.id }
       : reservation
   );
 
@@ -106,13 +93,10 @@ async function updateLocalReservation(reservationId, patch = {}) {
 }
 
 async function removeLocalReservation(reservationId) {
-  if (!reservationId) {
-    return createMissingReservationIdResult();
-  }
+  if (!reservationId) return createMissingReservationIdResult();
 
   const currentResult = await listLocalReservations();
-  const currentReservations = normalizeReservations(currentResult.data);
-  const nextReservations = currentReservations.filter(
+  const nextReservations = normalizeReservations(currentResult.data).filter(
     (reservation) => reservation.id !== reservationId
   );
 
@@ -133,103 +117,65 @@ async function clearLocalReservations() {
   return createRepositoryResult({ data: [] });
 }
 
-async function listApiReservations() {
-  const result = await reservationApiClient.list();
+async function listRemoteReservations(client) {
+  const result = await client.list();
 
   if (!result.ok) {
-    return createRepositoryResult({
-      ok: false,
-      data: [],
-      error: result.error
-    });
+    return createRepositoryResult({ ok: false, data: [], error: result.error });
   }
 
-  return createRepositoryResult({
-    data: normalizeApiReservations(result.data)
-  });
+  return createRepositoryResult({ data: normalizeRemoteReservations(result.data) });
 }
 
-async function addApiReservation(reservation = {}) {
-  const result = await reservationApiClient.create(reservation);
+async function addRemoteReservation(client, reservation = {}) {
+  const result = await client.create(reservation);
 
   if (!result.ok) {
-    return createRepositoryResult({
-      ok: false,
-      data: null,
-      error: result.error
-    });
+    return createRepositoryResult({ ok: false, data: null, error: result.error });
   }
 
-  const createdReservation = normalizeApiReservation(result.data);
-  const listResult = await listApiReservations();
+  const listResult = await listRemoteReservations(client);
+  if (listResult.ok && listResult.data.length > 0) return listResult;
 
-  if (listResult.ok && listResult.data.length > 0) {
-    return listResult;
-  }
-
-  return createRepositoryResult({
-    data: createdReservation ? [createdReservation] : []
-  });
+  const createdReservation = normalizeRemoteReservation(result.data);
+  return createRepositoryResult({ data: createdReservation ? [createdReservation] : [] });
 }
 
-async function updateApiReservation(reservationId, patch = {}) {
-  if (!reservationId) {
-    return createMissingReservationIdResult();
-  }
+async function updateRemoteReservation(client, reservationId, patch = {}) {
+  if (!reservationId) return createMissingReservationIdResult();
 
-  const result = await reservationApiClient.update(reservationId, patch);
+  const result = await client.update(reservationId, patch);
 
   if (!result.ok) {
-    return createRepositoryResult({
-      ok: false,
-      data: null,
-      error: result.error
-    });
+    return createRepositoryResult({ ok: false, data: null, error: result.error });
   }
 
-  const listResult = await listApiReservations();
+  const listResult = await listRemoteReservations(client);
+  if (listResult.ok) return listResult;
 
-  if (listResult.ok) {
-    return listResult;
-  }
-
-  const updatedReservation = normalizeApiReservation(result.data);
-
-  return createRepositoryResult({
-    data: updatedReservation ? [updatedReservation] : []
-  });
+  const updatedReservation = normalizeRemoteReservation(result.data);
+  return createRepositoryResult({ data: updatedReservation ? [updatedReservation] : [] });
 }
 
-async function removeApiReservation(reservationId) {
-  if (!reservationId) {
-    return createMissingReservationIdResult();
-  }
+async function removeRemoteReservation(client, reservationId) {
+  if (!reservationId) return createMissingReservationIdResult();
 
-  const result = await reservationApiClient.delete(reservationId);
+  const result = await client.delete(reservationId);
 
   if (!result.ok) {
-    return createRepositoryResult({
-      ok: false,
-      data: null,
-      error: result.error
-    });
+    return createRepositoryResult({ ok: false, data: null, error: result.error });
   }
 
-  const listResult = await listApiReservations();
-
-  if (listResult.ok) {
-    return listResult;
-  }
+  const listResult = await listRemoteReservations(client);
+  if (listResult.ok) return listResult;
 
   return createRepositoryResult({ data: [] });
 }
 
 export async function listReservations() {
   try {
-    if (shouldUseReservationApi()) {
-      return listApiReservations();
-    }
-
+    const remoteClient = getRemoteClient();
+    if (remoteClient) return listRemoteReservations(remoteClient);
     return listLocalReservations();
   } catch (error) {
     console.warn("Failed to list reservations", error);
@@ -239,11 +185,11 @@ export async function listReservations() {
 
 export async function replaceReservations(reservations = []) {
   try {
-    if (shouldUseReservationApi()) {
+    if (getRemoteClient()) {
       return createRepositoryResult({
         ok: false,
         data: normalizeReservations(reservations),
-        error: new Error("API 모드에서는 예약 전체 교체를 지원하지 않습니다.")
+        error: new Error(`${getRemoteModeName()} 모드에서는 예약 전체 교체를 지원하지 않습니다.`)
       });
     }
 
@@ -256,10 +202,8 @@ export async function replaceReservations(reservations = []) {
 
 export async function addReservation(reservation = {}) {
   try {
-    if (shouldUseReservationApi()) {
-      return addApiReservation(reservation);
-    }
-
+    const remoteClient = getRemoteClient();
+    if (remoteClient) return addRemoteReservation(remoteClient, reservation);
     return addLocalReservation(reservation);
   } catch (error) {
     console.warn("Failed to add reservation", error);
@@ -269,10 +213,8 @@ export async function addReservation(reservation = {}) {
 
 export async function updateReservation(reservationId, patch = {}) {
   try {
-    if (shouldUseReservationApi()) {
-      return updateApiReservation(reservationId, patch);
-    }
-
+    const remoteClient = getRemoteClient();
+    if (remoteClient) return updateRemoteReservation(remoteClient, reservationId, patch);
     return updateLocalReservation(reservationId, patch);
   } catch (error) {
     console.warn("Failed to update reservation", error);
@@ -282,10 +224,8 @@ export async function updateReservation(reservationId, patch = {}) {
 
 export async function removeReservation(reservationId) {
   try {
-    if (shouldUseReservationApi()) {
-      return removeApiReservation(reservationId);
-    }
-
+    const remoteClient = getRemoteClient();
+    if (remoteClient) return removeRemoteReservation(remoteClient, reservationId);
     return removeLocalReservation(reservationId);
   } catch (error) {
     console.warn("Failed to remove reservation", error);
@@ -295,11 +235,11 @@ export async function removeReservation(reservationId) {
 
 export async function clearReservationRepository() {
   try {
-    if (shouldUseReservationApi()) {
+    if (getRemoteClient()) {
       return createRepositoryResult({
         ok: false,
         data: [],
-        error: new Error("API 모드에서는 예약 전체 초기화를 지원하지 않습니다.")
+        error: new Error(`${getRemoteModeName()} 모드에서는 예약 전체 초기화를 지원하지 않습니다.`)
       });
     }
 
