@@ -1,9 +1,17 @@
+function createFallbackUuid() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    const nextValue = char === "x" ? value : (value & 0x3) | 0x8;
+    return nextValue.toString(16);
+  });
+}
+
 function createReservationId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
 
-  return `reservation-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return createFallbackUuid();
 }
 
 export function createReservation({
