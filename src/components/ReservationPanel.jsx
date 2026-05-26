@@ -28,7 +28,8 @@ export default function ReservationPanel({
   form = {},
   onChange,
   onSubmit,
-  notice
+  notice,
+  isSubmitting = false
 }) {
   const selectedPeople = normalizePeopleCount(form.people);
   const safePrice = Math.max(0, toSafeNumber(price, 0));
@@ -121,9 +122,10 @@ export default function ReservationPanel({
           <button
             type="button"
             onClick={onSubmit}
-            className="w-full rounded-2xl bg-stone-950 px-5 py-4 text-sm font-black text-white transition hover:translate-y-[-1px]"
+            disabled={isSubmitting}
+            className="w-full rounded-2xl bg-stone-950 px-5 py-4 text-sm font-black text-white transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:bg-stone-300 disabled:hover:translate-y-0"
           >
-            예약 접수하기
+            {isSubmitting ? "예약 접수 중..." : "예약 접수하기"}
           </button>
         </div>
       </div>
