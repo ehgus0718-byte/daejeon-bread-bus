@@ -32,9 +32,17 @@ export default function AdminReservationControls({
   onChangeStatus,
   onChangeSortKey
 }) {
+  const hasActiveFilter = Boolean(keyword || status || sortKey !== "newest");
+
+  function handleReset() {
+    onChangeKeyword?.("");
+    onChangeStatus?.("");
+    onChangeSortKey?.("newest");
+  }
+
   return (
-    <div className="grid gap-3 rounded-3xl border border-orange-100 bg-white p-4 shadow-sm md:grid-cols-3">
-      <label className="grid gap-2 text-sm font-black text-stone-700">
+    <div className="grid gap-3 rounded-3xl border border-orange-100 bg-white p-4 shadow-sm md:grid-cols-4">
+      <label className="grid gap-2 text-sm font-black text-stone-700 md:col-span-2">
         통합 검색
         <input
           type="search"
@@ -44,7 +52,7 @@ export default function AdminReservationControls({
           className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
         />
         <span className="text-xs font-bold text-stone-400">
-          예: 홍길동, 010, 2026-05-30, 결제완료
+          검색어, 상태, 정렬 조건을 조합해서 확인할 수 있습니다.
         </span>
       </label>
 
@@ -64,20 +72,31 @@ export default function AdminReservationControls({
         </select>
       </label>
 
-      <label className="grid gap-2 text-sm font-black text-stone-700">
-        정렬
-        <select
-          value={sortKey}
-          onChange={(event) => onChangeSortKey?.(event.target.value)}
-          className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
+      <div className="grid gap-2">
+        <label className="grid gap-2 text-sm font-black text-stone-700">
+          정렬
+          <select
+            value={sortKey}
+            onChange={(event) => onChangeSortKey?.(event.target.value)}
+            className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
+          >
+            {RESERVATION_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          onClick={handleReset}
+          disabled={!hasActiveFilter}
+          className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-black text-stone-700 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {RESERVATION_SORT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+          검색 초기화
+        </button>
+      </div>
     </div>
   );
 }
