@@ -26,6 +26,7 @@ export default function AdminDashboard({
   onChangeCapacity,
   onChangePrice,
   onChangeScheduleStatus,
+  onRemoveDateSettings,
   onSaveReservationNote,
   onClearReservationNote
 }) {
@@ -113,6 +114,7 @@ export default function AdminDashboard({
           onChangeCapacity={onChangeCapacity}
           onChangePrice={onChangePrice}
           onChangeScheduleStatus={onChangeScheduleStatus}
+          onRemoveDateSettings={onRemoveDateSettings}
         />
 
         <AdminCapacityControl
