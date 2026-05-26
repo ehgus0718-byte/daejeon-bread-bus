@@ -32,6 +32,10 @@ function createMissingConfigResult() {
   });
 }
 
+function getReservationId(reservation = {}) {
+  return reservation.id || reservation.reservationId || null;
+}
+
 function getReservationDate(reservation = {}) {
   return (
     reservation.date ||
@@ -65,7 +69,10 @@ function normalizeReservationList(rows = []) {
 }
 
 function buildReservationRow(reservation = {}) {
+  const reservationId = getReservationId(reservation);
+
   return {
+    ...(reservationId ? { id: reservationId } : {}),
     reservation_date: getReservationDate(reservation),
     name: reservation.name || "",
     phone: reservation.phone || "",
