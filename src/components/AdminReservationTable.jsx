@@ -45,6 +45,11 @@ function getReservationPhoneLabel(phone = "") {
   return String(phone || "").trim() || "연락처 없음";
 }
 
+function getReservationPhoneHref(phone = "") {
+  const digits = String(phone || "").replace(/\D/g, "");
+  return digits ? `tel:${digits}` : "";
+}
+
 function createVisibleReservationSummary(reservations = []) {
   return reservations.reduce(
     (summary, reservation) => {
@@ -164,6 +169,7 @@ export default function AdminReservationTable({
             visibleReservations.map((reservation, index) => {
               const statusValue = getReservationStatusValue(reservation.status);
               const phoneLabel = getReservationPhoneLabel(reservation.phone);
+              const phoneHref = getReservationPhoneHref(reservation.phone);
 
               return (
                 <div
@@ -175,10 +181,20 @@ export default function AdminReservationTable({
                     <div className="truncate text-base font-black text-stone-900">
                       {reservation.name || "-"}
                     </div>
-                    <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-700">
-                      <span className="mr-1 text-stone-400">☎</span>
-                      <span className="truncate">{phoneLabel}</span>
-                    </div>
+                    {phoneHref ? (
+                      <a
+                        href={phoneHref}
+                        className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-700 transition hover:bg-orange-100 hover:text-orange-700"
+                      >
+                        <span className="mr-1 text-stone-400">☎</span>
+                        <span className="truncate">{phoneLabel}</span>
+                      </a>
+                    ) : (
+                      <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-500">
+                        <span className="mr-1 text-stone-400">☎</span>
+                        <span className="truncate">{phoneLabel}</span>
+                      </div>
+                    )}
                   </div>
                   <div>{formatPeopleCount(reservation.people)}</div>
                   <div>
