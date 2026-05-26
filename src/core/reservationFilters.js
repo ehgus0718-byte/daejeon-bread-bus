@@ -35,7 +35,9 @@ export function searchReservations(reservations = [], keyword = "") {
       reservation.name,
       reservation.phone,
       reservation.date,
-      reservation.status
+      reservation.status,
+      reservation.adminNote,
+      reservation.noteUpdatedAt
     ];
 
     const hasTextMatch = searchableValues.some((value) =>
