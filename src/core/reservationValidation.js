@@ -1,3 +1,12 @@
+function getPhoneDigits(value = "") {
+  return String(value || "").replace(/[^0-9]/g, "");
+}
+
+function isValidPhoneNumber(value = "") {
+  const digits = getPhoneDigits(value);
+  return digits.startsWith("0") && digits.length >= 10 && digits.length <= 11;
+}
+
 export function validateReservationForm({
   selectedDate,
   scheduleStatus,
@@ -29,6 +38,13 @@ export function validateReservationForm({
     return {
       valid: false,
       message: "연락처를 입력해주세요."
+    };
+  }
+
+  if (!isValidPhoneNumber(form.phone)) {
+    return {
+      valid: false,
+      message: "연락처는 0으로 시작하는 10~11자리 번호로 입력해주세요."
     };
   }
 
