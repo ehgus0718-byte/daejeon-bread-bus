@@ -17,6 +17,66 @@ import { createAppHealthReport } from "../core/appHealthCheck.js";
 import { buildDateSettings } from "../core/dateSettingsBuilder.js";
 import { useReservationNotes } from "../hooks/useReservationNotes.js";
 
+function AdminDailyChecklist({ reservations = [], scheduleDetails = {}, scheduleStatus = {} }) {
+  const hasOpenSchedule = Object.values(scheduleStatus || {}).some((status) => status === "open");
+  const hasScheduleDetail = Object.values(scheduleDetails || {}).some((detail) => String(detail || "").trim());
+  const hasWaitingReservation = reservations.some((reservation) => reservation.status === "결제대기");
+
+  const checklist = [
+    {
+      label: "예약 목록 새로고침",
+      done: reservations.length > 0,
+      help: "운영 시작 전 최근 예약을 확인하세요."
+    },
+    {
+      label: "모집중 날짜 확인",
+      done: hasOpenSchedule,
+      help: "고객에게 열려 있는 날짜가 있는지 확인하세요."
+    },
+    {
+      label: "여행 일정 등록 확인",
+      done: hasScheduleDetail,
+      help: "고객 구매 전환을 위해 일정 내용을 등록하세요."
+    },
+    {
+      label: "결제대기 예약 확인",
+      done: !hasWaitingReservation,
+      help: "결제대기 예약은 입금/결제 확인 후 상태를 변경하세요."
+    }
+  ];
+
+  return (
+    <section className="rounded-[2rem] border border-orange-200 bg-orange-50 p-6">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-black tracking-[0.2em] text-orange-600">DAILY CHECKLIST</p>
+          <h3 className="mt-1 text-2xl font-black text-stone-950">운영 전 체크리스트</h3>
+          <p className="mt-2 text-sm font-bold leading-6 text-stone-600">
+            예약 운영 전 꼭 확인하면 좋은 항목입니다.
+          </p>
+        </div>
+        <div className="rounded-full bg-white px-4 py-2 text-xs font-black text-orange-700">
+          {checklist.filter((item) => item.done).length}/{checklist.length} 완료
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {checklist.map((item) => (
+          <div key={item.label} className="rounded-3xl bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${item.done ? "bg-orange-500 text-white" : "bg-stone-100 text-stone-400"}`}>
+                {item.done ? "✓" : "!"}
+              </span>
+              <div className="text-sm font-black text-stone-900">{item.label}</div>
+            </div>
+            <p className="mt-3 text-xs font-bold leading-5 text-stone-500">{item.help}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function AdminDashboard({
   reservations = [],
   capacityOverrides = {},
@@ -27,6 +87,8 @@ export default function AdminDashboard({
   isRefreshingReservations = false,
   isQuickReservationView = false,
   quickReservationLimit = 100,
+  recentChangedReservationId = "",
+  operationNotice = "",
   onRefreshReservations,
   onClearQuickReservations,
   onChangeReservationStatus,
@@ -156,12 +218,20 @@ export default function AdminDashboard({
       <div className="grid gap-6">
         <AdminSummaryCards cards={summaryCards} />
 
+        <AdminDailyChecklist
+          reservations={reservationsWithNotes}
+          scheduleDetails={scheduleDetails}
+          scheduleStatus={scheduleStatus}
+        />
+
         <AdminOperationGuide />
 
         <AdminHealthReport report={healthReport} />
 
         <AdminReservationTable
           reservations={reservationsWithNotes}
+          recentChangedReservationId={recentChangedReservationId}
+          operationNotice={operationNotice}
           onChangeStatus={onChangeReservationStatus}
           onRemoveReservation={onRemoveReservation}
         />
