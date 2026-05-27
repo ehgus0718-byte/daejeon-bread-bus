@@ -148,6 +148,7 @@ export default function AppSafe() {
   );
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshingReservations, setIsRefreshingReservations] = useState(false);
   const [isAdminAuthed, setIsAdminAuthed] = useState(getInitialAdminAuthState);
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
@@ -358,6 +359,32 @@ export default function AppSafe() {
     setScheduleStatus((prev) => removeDateKey(prev, date));
     setScheduleDetails((prev) => removeDateKey(prev, date));
     setNotice("선택한 날짜 설정이 삭제되었습니다.");
+  }
+
+  async function handleRefreshReservations() {
+    if (isRefreshingReservations) return;
+
+    setNotice("");
+    setIsRefreshingReservations(true);
+
+    try {
+      const result = await reservationRepository.list();
+
+      if (!result.ok) {
+        setNotice(`예약 목록 새로고침에 실패했습니다. ${getErrorMessage(result.error)}`);
+        return;
+      }
+
+      if (Array.isArray(result.data)) {
+        setReservations(result.data);
+        setNotice("예약 목록을 새로 불러왔습니다.");
+      }
+    } catch (error) {
+      console.warn("Reservation refresh failed", error);
+      setNotice(`예약 목록 새로고침에 실패했습니다. ${getErrorMessage(error)}`);
+    } finally {
+      setIsRefreshingReservations(false);
+    }
   }
 
   async function handleReservationStatusChange(id, nextStatus) {
@@ -603,6 +630,8 @@ export default function AppSafe() {
             scheduleStatus={scheduleStatus}
             scheduleDetails={scheduleDetails}
             selectedDate={selectedDate}
+            isRefreshingReservations={isRefreshingReservations}
+            onRefreshReservations={handleRefreshReservations}
             onChangeReservationStatus={handleReservationStatusChange}
             onRemoveReservation={handleRemoveReservation}
             onChangeCapacity={handleCapacityChange}
