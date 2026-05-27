@@ -34,6 +34,7 @@ import {
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 const ADMIN_SESSION_KEY = "daejeon-bread-bus-admin-authed";
+const ADMIN_QUICK_REFRESH_LIMIT = 100;
 const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
 const USES_REMOTE_RESERVATION_STORAGE =
   RESERVATION_REPOSITORY_MODE !== REPOSITORY_MODE.LOCAL;
@@ -134,6 +135,7 @@ export default function AppSafe() {
     DEFAULT_RESERVATION_FORM
   );
   const [reservations, setReservations] = useState(getInitialReservations);
+  const [adminReservations, setAdminReservations] = useState(null);
   const [capacityOverrides, setCapacityOverrides] = useState(
     savedAdminSettings.capacityOverrides
   );
@@ -173,6 +175,7 @@ export default function AppSafe() {
       if (Array.isArray(result.data)) {
         if (USES_REMOTE_RESERVATION_STORAGE || result.data.length > 0) {
           setReservations(result.data);
+          setAdminReservations(null);
         }
       }
     }
@@ -260,6 +263,12 @@ export default function AppSafe() {
       }),
     [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails]
   );
+
+  const visibleAdminReservations = adminReservations || reservations;
+
+  function clearQuickAdminReservations() {
+    setAdminReservations(null);
+  }
 
   function remaining(date) {
     return getRemainingSeats({
@@ -368,7 +377,7 @@ export default function AppSafe() {
     setIsRefreshingReservations(true);
 
     try {
-      const result = await reservationRepository.list();
+      const result = await reservationRepository.list({ limit: ADMIN_QUICK_REFRESH_LIMIT });
 
       if (!result.ok) {
         setNotice(`예약 목록 새로고침에 실패했습니다. ${getErrorMessage(result.error)}`);
@@ -376,8 +385,8 @@ export default function AppSafe() {
       }
 
       if (Array.isArray(result.data)) {
-        setReservations(result.data);
-        setNotice("예약 목록을 새로 불러왔습니다.");
+        setAdminReservations(result.data);
+        setNotice(`최근 예약 ${result.data.length}건을 빠르게 불러왔습니다.`);
       }
     } catch (error) {
       console.warn("Reservation refresh failed", error);
@@ -389,6 +398,7 @@ export default function AppSafe() {
 
   async function handleReservationStatusChange(id, nextStatus) {
     setNotice("");
+    clearQuickAdminReservations();
 
     const previousReservations = reservations;
     const nextReservations = updateReservationStatus({
@@ -418,6 +428,7 @@ export default function AppSafe() {
 
   async function handleSaveReservationNote(id, note = "") {
     setNotice("");
+    clearQuickAdminReservations();
 
     if (!id) {
       setNotice("메모를 저장할 예약을 찾지 못했습니다.");
@@ -461,6 +472,7 @@ export default function AppSafe() {
 
   async function handleRemoveReservation(id) {
     setNotice("");
+    clearQuickAdminReservations();
 
     if (!id) {
       setNotice("삭제할 예약을 찾지 못했습니다.");
@@ -497,6 +509,7 @@ export default function AppSafe() {
 
   async function handleSubmit() {
     setNotice("");
+    clearQuickAdminReservations();
 
     const remainingSeats = remaining(selectedDate);
     const validation = validateReservationForm({
@@ -624,7 +637,7 @@ export default function AppSafe() {
 
         {isAdminAuthed ? (
           <AdminDashboard
-            reservations={reservations}
+            reservations={visibleAdminReservations}
             capacityOverrides={capacityOverrides}
             priceOverrides={priceOverrides}
             scheduleStatus={scheduleStatus}
