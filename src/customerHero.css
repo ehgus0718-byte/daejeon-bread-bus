@@ -22,8 +22,17 @@ body[data-admin-page="false"] main>section:first-child p{
 max-width:620px!important;
 line-height:1.9!important;
 color:#44403c!important;
-font-size:1.02rem!important;
+font-size:0!important;
 word-break:keep-all!important;
+}
+
+body[data-admin-page="false"] main>section:first-child p::before{
+content:"노가이드·노팁으로 부담 없이, 달력에서 원하는 날짜를 고르고\A 대전의 인기 빵집 코스를 편하게 예약해보세요."!important;
+white-space:pre-line!important;
+font-size:1.04rem!important;
+line-height:1.9!important;
+display:block!important;
+color:#44403c!important;
 }
 
 body[data-admin-page="false"] main>section:first-child p:first-child{
@@ -31,6 +40,16 @@ max-width:none!important;
 color:#c2410c!important;
 line-height:1.4!important;
 margin-bottom:10px!important;
+font-size:0!important;
+}
+
+body[data-admin-page="false"] main>section:first-child p:first-child::before{
+content:"DAEJEON BREAD BUS"!important;
+white-space:normal!important;
+font-size:.875rem!important;
+letter-spacing:.18em!important;
+line-height:1.4!important;
+color:#c2410c!important;
 }
 
 body[data-admin-page="false"] main>section:first-child::before{
@@ -75,5 +94,8 @@ margin:28px auto 0!important;
 right:auto!important;
 top:auto!important;
 opacity:1!important;
+}
+body[data-admin-page="false"] main>section:first-child p::before{
+font-size:1rem!important;
 }
 }
