@@ -24,6 +24,9 @@ export const RESERVATION_SORT_OPTIONS = [
   }
 ];
 
+const CONTROL_CLASS =
+  "h-[54px] w-full rounded-2xl border border-stone-200 bg-white px-4 text-sm font-bold text-stone-800 outline-none transition focus:border-orange-400";
+
 export default function AdminReservationControls({
   keyword = "",
   status = "",
@@ -41,7 +44,7 @@ export default function AdminReservationControls({
   }
 
   return (
-    <div className="grid gap-3 rounded-3xl border border-orange-100 bg-white p-4 shadow-sm md:grid-cols-4">
+    <div className="grid gap-3 rounded-3xl border border-orange-100 bg-white p-4 shadow-sm md:grid-cols-4 md:items-start">
       <label className="grid gap-2 text-sm font-black text-stone-700 md:col-span-2">
         통합 검색
         <input
@@ -49,7 +52,7 @@ export default function AdminReservationControls({
           value={keyword}
           onChange={(event) => onChangeKeyword?.(event.target.value)}
           placeholder="이름, 연락처, 날짜, 상태, 메모 검색"
-          className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
+          className={CONTROL_CLASS}
         />
         <span className="text-xs font-bold text-stone-400">
           예약자 정보와 관리자 메모까지 함께 검색할 수 있습니다.
@@ -61,7 +64,7 @@ export default function AdminReservationControls({
         <select
           value={status}
           onChange={(event) => onChangeStatus?.(event.target.value)}
-          className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
+          className={CONTROL_CLASS}
         >
           <option value="">전체 상태</option>
           {RESERVATION_STATUS_OPTIONS.map((option) => (
@@ -78,7 +81,7 @@ export default function AdminReservationControls({
           <select
             value={sortKey}
             onChange={(event) => onChangeSortKey?.(event.target.value)}
-            className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-bold outline-none focus:border-orange-400"
+            className={CONTROL_CLASS}
           >
             {RESERVATION_SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -92,7 +95,7 @@ export default function AdminReservationControls({
           type="button"
           onClick={handleReset}
           disabled={!hasActiveFilter}
-          className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm font-black text-stone-700 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-[54px] rounded-2xl border border-stone-200 bg-stone-50 px-4 text-sm font-black text-stone-700 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
         >
           검색 초기화
         </button>
