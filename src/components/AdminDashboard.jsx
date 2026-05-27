@@ -21,6 +21,8 @@ export default function AdminDashboard({
   capacityOverrides = {},
   priceOverrides = {},
   scheduleStatus = {},
+  isRefreshingReservations = false,
+  onRefreshReservations,
   onChangeReservationStatus,
   onRemoveReservation,
   onChangeCapacity,
@@ -70,7 +72,7 @@ export default function AdminDashboard({
 
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-stone-950 p-5 shadow-xl shadow-orange-100 md:p-8">
-      <div className="mb-8 flex flex-col gap-3 text-white md:flex-row md:items-end md:justify-between">
+      <div className="mb-8 flex flex-col gap-4 text-white md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-black tracking-[0.25em] text-orange-300">
             ADMIN CENTER
@@ -83,8 +85,18 @@ export default function AdminDashboard({
           </p>
         </div>
 
-        <div className="rounded-full bg-white/10 px-4 py-3 text-xs font-black text-orange-100">
-          운영자 전용 관리 영역
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onRefreshReservations}
+            disabled={isRefreshingReservations || typeof onRefreshReservations !== "function"}
+            className="rounded-full bg-orange-500 px-4 py-3 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/60"
+          >
+            {isRefreshingReservations ? "예약 목록 불러오는 중..." : "예약 목록 새로고침"}
+          </button>
+          <div className="rounded-full bg-white/10 px-4 py-3 text-xs font-black text-orange-100">
+            운영자 전용 관리 영역
+          </div>
         </div>
       </div>
 
