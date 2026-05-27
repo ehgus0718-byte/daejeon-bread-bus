@@ -82,6 +82,32 @@ function toSafeAdminNote(note = "") {
   return String(note || "").trim();
 }
 
+function getReservationId(reservation = {}) {
+  return reservation?.id || reservation?.reservationId || null;
+}
+
+function normalizeReservationArray(reservations = []) {
+  return Array.isArray(reservations) ? reservations.filter(Boolean) : [];
+}
+
+function mergeReservationsById(currentReservations = [], incomingReservations = []) {
+  const currentList = normalizeReservationArray(currentReservations);
+  const incomingList = normalizeReservationArray(incomingReservations);
+
+  if (incomingList.length === 0) return currentList;
+
+  const incomingIds = new Set(
+    incomingList.map(getReservationId).filter(Boolean)
+  );
+
+  const remainingCurrent = currentList.filter((reservation) => {
+    const reservationId = getReservationId(reservation);
+    return !reservationId || !incomingIds.has(reservationId);
+  });
+
+  return [...incomingList, ...remainingCurrent];
+}
+
 function updateReservationAdminNote({ reservations = [], reservationId, note = "" }) {
   const safeNote = toSafeAdminNote(note);
 
@@ -424,7 +450,11 @@ export default function AppSafe() {
         return;
       }
 
-      if (Array.isArray(result.data)) setReservations(result.data);
+      if (Array.isArray(result.data) && result.data.length > 0) {
+        setReservations((currentReservations) =>
+          mergeReservationsById(currentReservations, result.data)
+        );
+      }
     } catch (error) {
       console.warn("Reservation status update failed", error);
       setReservations(previousReservations);
@@ -460,7 +490,11 @@ export default function AppSafe() {
         return false;
       }
 
-      if (Array.isArray(result.data)) setReservations(result.data);
+      if (Array.isArray(result.data) && result.data.length > 0) {
+        setReservations((currentReservations) =>
+          mergeReservationsById(currentReservations, result.data)
+        );
+      }
 
       setNotice("관리자 메모가 저장되었습니다.");
       return true;
@@ -502,8 +536,6 @@ export default function AppSafe() {
         setNotice(`예약 삭제에 실패했습니다. ${getErrorMessage(result.error)}`);
         return;
       }
-
-      if (Array.isArray(result.data)) setReservations(result.data);
 
       setNotice("예약이 삭제되었습니다.");
     } catch (error) {
@@ -547,7 +579,16 @@ export default function AppSafe() {
         return;
       }
 
-      setReservations(Array.isArray(result.data) ? result.data : []);
+      if (Array.isArray(result.data) && result.data.length > 0) {
+        setReservations((currentReservations) =>
+          mergeReservationsById(currentReservations, result.data)
+        );
+      } else {
+        setReservations((currentReservations) =>
+          mergeReservationsById(currentReservations, [reservationItem])
+        );
+      }
+
       setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
       resetForm();
     } catch (error) {
