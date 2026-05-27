@@ -40,16 +40,21 @@ export default function AdminDashboard({
   const reservationsWithNotes = usesExternalNoteStorage
     ? reservations
     : localNotes.reservationsWithNotes;
+
   const saveNote = onSaveReservationNote || localNotes.saveNote;
   const clearNote = onClearReservationNote || localNotes.clearNote;
 
-  const summaryCards = useMemo(() => {
-    const dateSettings = buildDateSettings({
-      capacityOverrides,
-      priceOverrides,
-      scheduleStatus
-    });
+  const dateSettings = useMemo(
+    () =>
+      buildDateSettings({
+        capacityOverrides,
+        priceOverrides,
+        scheduleStatus
+      }),
+    [capacityOverrides, priceOverrides, scheduleStatus]
+  );
 
+  const summaryCards = useMemo(() => {
     const summary = createAdminDashboardSummary({
       reservations: reservationsWithNotes,
       dateSettings,
@@ -57,7 +62,7 @@ export default function AdminDashboard({
     });
 
     return getAdminDashboardSummaryCards(summary);
-  }, [capacityOverrides, priceOverrides, reservationsWithNotes, scheduleStatus]);
+  }, [dateSettings, reservationsWithNotes]);
 
   const healthReport = useMemo(
     () =>
@@ -73,11 +78,6 @@ export default function AdminDashboard({
   function handleRefreshClick() {
     if (typeof onRefreshReservations === "function") {
       onRefreshReservations();
-      return;
-    }
-
-    if (typeof window !== "undefined") {
-      window.location.reload();
     }
   }
 
@@ -105,6 +105,7 @@ export default function AdminDashboard({
           >
             {isRefreshingReservations ? "예약 목록 불러오는 중..." : "예약 목록 새로고침"}
           </button>
+
           <div className="rounded-full bg-white/10 px-4 py-3 text-xs font-black text-orange-100">
             운영자 전용 관리 영역
           </div>
