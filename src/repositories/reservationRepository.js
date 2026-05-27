@@ -188,9 +188,6 @@ async function removeRemoteReservation(client, reservationId) {
     return createRepositoryResult({ ok: false, data: null, error: result.error });
   }
 
-  const listResult = await listRemoteReservations(client);
-  if (listResult.ok) return listResult;
-
   return createRepositoryResult({ data: [] });
 }
 
