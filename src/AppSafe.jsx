@@ -692,18 +692,18 @@ export default function AppSafe() {
             </div>
           </div>
 
+          <CustomerScheduleSection
+            selectedDate={selectedDate}
+            scheduleDetail={selectedScheduleDetail}
+            scheduleStatus={selectedScheduleStatus}
+          />
+
           <TwoMonthCalendar
             currentDate={new Date(2026, 4, 1)}
             dateSettings={managedDateSettings}
             getRemainingSeats={remaining}
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
-          />
-
-          <CustomerScheduleSection
-            selectedDate={selectedDate}
-            scheduleDetail={selectedScheduleDetail}
-            scheduleStatus={selectedScheduleStatus}
           />
         </section>
 
