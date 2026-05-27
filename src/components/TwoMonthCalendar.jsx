@@ -29,6 +29,10 @@ function formatKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function hasScheduleDetail(setting = {}) {
+  return Boolean(String(setting?.detail || "").trim());
+}
+
 function CalendarCard({
   monthDate,
   dateSettings = {},
@@ -69,6 +73,7 @@ function CalendarCard({
           const remaining = Math.max(0, toSafeNumber(getRemainingSeats?.(key), 0));
           const isOpen = setting?.status === "open";
           const isSelected = selectedDate === key;
+          const hasDetail = hasScheduleDetail(setting);
 
           return (
             <button
@@ -87,11 +92,37 @@ function CalendarCard({
                     : "border-stone-100 bg-stone-50"
               }`}
             >
-              <div className="flex h-full flex-col justify-between">
-                <div className="text-lg font-black">{date.getDate()}</div>
+              <div className="flex h-full flex-col justify-between gap-1">
+                <div className="flex items-start justify-between gap-1">
+                  <div className="text-lg font-black">{date.getDate()}</div>
+
+                  {hasDetail ? (
+                    <div
+                      className={`rounded-full px-2 py-1 text-[10px] font-black ${
+                        isSelected
+                          ? "bg-white text-orange-700"
+                          : "bg-orange-500 text-white"
+                      }`}
+                    >
+                      일정
+                    </div>
+                  ) : null}
+                </div>
 
                 {setting ? (
-                  <div>
+                  <div className="grid gap-1">
+                    {hasDetail ? (
+                      <div
+                        className={`truncate rounded-full px-2 py-1 text-[10px] font-black ${
+                          isSelected
+                            ? "bg-white/90 text-stone-900"
+                            : "bg-white text-stone-700"
+                        }`}
+                      >
+                        여행 일정 보기
+                      </div>
+                    ) : null}
+
                     <div
                       className={`rounded-full px-2 py-1 text-[10px] font-black ${
                         isSelected
