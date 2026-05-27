@@ -32,6 +32,7 @@ import {
 } from "./repositories/reservationRepositoryMode.js";
 
 const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
+const ADMIN_SESSION_KEY = "daejeon-bread-bus-admin-authed";
 const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
 const USES_REMOTE_RESERVATION_STORAGE =
   RESERVATION_REPOSITORY_MODE !== REPOSITORY_MODE.LOCAL;
@@ -42,6 +43,37 @@ function getErrorMessage(error) {
 
 function getInitialReservations() {
   return USES_REMOTE_RESERVATION_STORAGE ? [] : INITIAL_RESERVATIONS;
+}
+
+function getInitialAdminAuthState() {
+  if (typeof window === "undefined") return false;
+
+  try {
+    return window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+  } catch (error) {
+    console.warn("Admin session read failed", error);
+    return false;
+  }
+}
+
+function saveAdminSession() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+  } catch (error) {
+    console.warn("Admin session save failed", error);
+  }
+}
+
+function clearAdminSession() {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  } catch (error) {
+    console.warn("Admin session clear failed", error);
+  }
 }
 
 function toSafeAdminNote(note = "") {
@@ -98,7 +130,7 @@ export default function AppSafe() {
   );
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAdminAuthed, setIsAdminAuthed] = useState(false);
+  const [isAdminAuthed, setIsAdminAuthed] = useState(getInitialAdminAuthState);
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [isAdminSettingsReady, setIsAdminSettingsReady] = useState(
@@ -243,11 +275,13 @@ export default function AppSafe() {
       return;
     }
 
+    saveAdminSession();
     setIsAdminAuthed(true);
     setAdminPassword("");
   }
 
   function handleAdminLogout() {
+    clearAdminSession();
     setIsAdminAuthed(false);
     setAdminPassword("");
     setAdminError("");
