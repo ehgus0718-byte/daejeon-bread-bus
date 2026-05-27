@@ -90,9 +90,9 @@ function SummaryItem({ label, value }) {
 
 function ReservationRow({
   reservation,
-  index,
   tableColumnClassName,
   canRemoveReservation,
+  isRecentlyChanged,
   onChangeStatus,
   onRemoveReservation
 }) {
@@ -102,9 +102,18 @@ function ReservationRow({
 
   return (
     <div
-      className={`grid ${tableColumnClassName} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700`}
+      className={`grid ${tableColumnClassName} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700 transition ${
+        isRecentlyChanged ? "bg-orange-50/80 ring-2 ring-inset ring-orange-200" : "bg-white"
+      }`}
     >
-      <div>{formatDate(reservation.date)}</div>
+      <div>
+        <div>{formatDate(reservation.date)}</div>
+        {isRecentlyChanged ? (
+          <div className="mt-2 inline-flex rounded-full bg-orange-500 px-3 py-1 text-[11px] font-black text-white">
+            방금 반영됨
+          </div>
+        ) : null}
+      </div>
 
       <div className="min-w-0">
         <div className="truncate text-base font-black text-stone-900">
@@ -166,6 +175,8 @@ function ReservationRow({
 
 export default function AdminReservationTable({
   reservations = [],
+  recentChangedReservationId = "",
+  operationNotice = "",
   onChangeStatus,
   onRemoveReservation
 }) {
@@ -239,6 +250,12 @@ export default function AdminReservationTable({
         </div>
       </div>
 
+      {operationNotice ? (
+        <div className="mt-5 rounded-3xl border border-orange-100 bg-orange-50 px-5 py-4 text-sm font-black text-orange-700">
+          {operationNotice}
+        </div>
+      ) : null}
+
       <div className="mt-5">
         <AdminReservationControls
           keyword={keyword}
@@ -283,9 +300,9 @@ export default function AdminReservationTable({
               <ReservationRow
                 key={createReservationRowKey(reservation, index)}
                 reservation={reservation}
-                index={index}
                 tableColumnClassName={tableColumnClassName}
                 canRemoveReservation={canRemoveReservation}
+                isRecentlyChanged={reservation.id === recentChangedReservationId}
                 onChangeStatus={onChangeStatus}
                 onRemoveReservation={onRemoveReservation}
               />
