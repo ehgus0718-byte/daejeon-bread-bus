@@ -144,6 +144,33 @@ export default function ReservationPanel({
         </p>
       </div>
 
+      <div className="mt-4 grid gap-3 rounded-3xl border border-stone-100 bg-stone-50 p-5 text-sm font-bold leading-6 text-stone-700 md:grid-cols-2">
+        <div className="rounded-2xl bg-white p-4">
+          <p className="font-black text-stone-950">예약 전 확인</p>
+          <p className="mt-2 text-xs font-bold text-stone-500">
+            출발 시간, 집결 장소, 세부 일정은 예약 확인 연락 시 함께 안내됩니다.
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white p-4">
+          <p className="font-black text-stone-950">인원 기준</p>
+          <p className="mt-2 text-xs font-bold text-stone-500">
+            아동과 유아 기준은 현장 운영 기준에 따라 확인될 수 있습니다.
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white p-4">
+          <p className="font-black text-stone-950">취소/변경 문의</p>
+          <p className="mt-2 text-xs font-bold text-stone-500">
+            예약 변경이나 취소는 관리자 확인 후 안내됩니다.
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white p-4">
+          <p className="font-black text-stone-950">좌석 안내</p>
+          <p className="mt-2 text-xs font-bold text-stone-500">
+            잔여 좌석을 초과한 예약은 접수되지 않습니다.
+          </p>
+        </div>
+      </div>
+
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <label className="flex flex-col gap-2">
           <span className="text-sm font-black text-stone-700">예약자명</span>
