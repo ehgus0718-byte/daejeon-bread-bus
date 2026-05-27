@@ -5,6 +5,8 @@ import SectionTitle from "./SectionTitle.jsx";
 const LEGACY_PAYMENT_NOTICE = "예약이 저장되었습니다. 결제를 진행해주세요.";
 const RESERVATION_RECEIVED_NOTICE =
   "예약이 접수되었습니다. 관리자가 연락처 확인 후 결제 계좌를 안내드리며, 입금 확인 후 예약이 확정됩니다.";
+const ENABLE_SMS_VERIFICATION_PREVIEW =
+  import.meta.env.VITE_ENABLE_SMS_VERIFICATION_PREVIEW === "true";
 
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
@@ -18,6 +20,47 @@ function toCount(value, fallbackValue = 0) {
 
 function normalizeNoticeText(value = "") {
   return value === LEGACY_PAYMENT_NOTICE ? RESERVATION_RECEIVED_NOTICE : value;
+}
+
+function SmsVerificationPreview({ phone = "" }) {
+  return (
+    <div className="md:col-span-2 rounded-3xl border border-orange-100 bg-orange-50/60 p-5">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-black text-orange-700">휴대폰 인증 준비 영역</p>
+          <p className="mt-1 text-xs font-bold leading-5 text-stone-500">
+            SOLAPI 연동 후 인증번호 발송과 확인 기능이 활성화됩니다. 현재는 실제 문자 발송 전 안전 준비 상태입니다.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled
+          className="rounded-2xl bg-stone-300 px-5 py-3 text-xs font-black text-white disabled:cursor-not-allowed"
+        >
+          인증번호 받기 준비중
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+        <input
+          type="text"
+          inputMode="numeric"
+          disabled
+          value=""
+          placeholder={phone ? "인증번호 6자리" : "연락처 입력 후 인증번호 발송"}
+          className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none disabled:text-stone-400"
+          readOnly
+        />
+        <button
+          type="button"
+          disabled
+          className="rounded-2xl bg-stone-300 px-5 py-3 text-xs font-black text-white disabled:cursor-not-allowed"
+        >
+          인증 확인 준비중
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function PassengerCounter({
@@ -195,6 +238,10 @@ export default function ReservationPanel({
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           />
         </label>
+
+        {ENABLE_SMS_VERIFICATION_PREVIEW ? (
+          <SmsVerificationPreview phone={form.phone} />
+        ) : null}
       </div>
 
       <div className="mt-6 rounded-3xl border border-stone-200 bg-stone-50 p-5">
