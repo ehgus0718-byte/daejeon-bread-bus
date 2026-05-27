@@ -180,6 +180,12 @@ export default function TwoMonthCalendar({
         selectedDate={selectedDate}
         onSelectDate={onSelectDate}
       />
+
+      <div className="bb-calendar-legend" aria-label="달력 상태 안내">
+        <span className="bb-legend-item bb-legend-open">예약가능</span>
+        <span className="bb-legend-item bb-legend-low">마감임박</span>
+        <span className="bb-legend-item bb-legend-closed">마감/일정없음</span>
+      </div>
     </section>
   );
 }
