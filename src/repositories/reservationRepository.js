@@ -152,17 +152,6 @@ async function addRemoteReservation(client, reservation = {}) {
   }
 
   const createdReservation = normalizeRemoteReservation(result.data) || reservation;
-  const listResult = await listRemoteReservations(client);
-
-  if (listResult.ok) {
-    return createRepositoryResult({
-      data: mergeCreatedReservation({
-        reservations: listResult.data,
-        createdReservation
-      })
-    });
-  }
-
   return createRepositoryResult({ data: createdReservation ? [createdReservation] : [] });
 }
 
