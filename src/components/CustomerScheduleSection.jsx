@@ -8,7 +8,7 @@ const FALLBACK_TIMELINE = [
 ];
 
 function formatDisplayDate(date) {
-  if (!date) return "";
+  if (!date) return "날짜 선택 전";
 
   const parsed = new Date(date);
 
@@ -42,16 +42,11 @@ export default function CustomerScheduleSection({
   scheduleStatus = "closed"
 }) {
   const hasSchedule = Boolean(String(scheduleDetail || "").trim());
-
-  if (!hasSchedule) {
-    return null;
-  }
-
   const scheduleLines = getScheduleLines(scheduleDetail);
-  const displayLines = scheduleLines.length > 0 ? scheduleLines : FALLBACK_TIMELINE;
+  const displayLines = hasSchedule && scheduleLines.length > 0 ? scheduleLines : FALLBACK_TIMELINE;
 
   return (
-    <section className="mt-8 overflow-hidden rounded-[2rem] border border-orange-100 bg-white shadow-sm">
+    <section className="mb-8 overflow-hidden rounded-[2rem] border border-orange-100 bg-white shadow-sm">
       <div className="bg-gradient-to-br from-stone-950 to-stone-800 p-6 text-white md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -60,11 +55,11 @@ export default function CustomerScheduleSection({
             </p>
 
             <h3 className="mt-2 text-3xl font-black">
-              선택한 날짜의 빵버스 일정
+              대전 빵버스 여행 일정
             </h3>
 
             <p className="mt-2 text-sm font-bold leading-6 text-stone-300">
-              달력으로 선택하고 대전 빵버스를 예약하세요. 일정 확인 후 예약을 진행할 수 있습니다.
+              예약 달력에서 날짜를 선택하면 해당 날짜의 여행 일정과 예약 가능 여부를 함께 확인할 수 있습니다.
             </p>
           </div>
 
@@ -74,11 +69,17 @@ export default function CustomerScheduleSection({
             </div>
 
             <div className="rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-white">
-              {scheduleStatus === "open" ? "현재 예약 가능" : "예약 마감 일정"}
+              {scheduleStatus === "open" ? "현재 예약 가능" : "예약 마감 또는 준비중"}
             </div>
           </div>
         </div>
       </div>
+
+      {!hasSchedule ? (
+        <div className="border-b border-orange-100 bg-orange-50 px-6 py-4 text-sm font-black text-orange-700 md:px-7">
+          아직 선택한 날짜에 등록된 상세 일정이 없습니다. 달력에서 일정 뱃지가 있는 날짜를 선택하거나, 관리자에서 날짜별 여행 일정을 등록해주세요.
+        </div>
+      ) : null}
 
       <div className="grid gap-5 p-6 md:grid-cols-[1.2fr_0.8fr] md:p-7">
         <div className="rounded-[1.5rem] border border-stone-100 bg-stone-50 p-5">
@@ -88,7 +89,7 @@ export default function CustomerScheduleSection({
                 ROUTE PLAN
               </p>
               <h4 className="mt-1 text-xl font-black text-stone-950">
-                오늘의 여행 흐름
+                {hasSchedule ? "선택 날짜의 여행 흐름" : "일정 예시"}
               </h4>
             </div>
 
@@ -101,7 +102,7 @@ export default function CustomerScheduleSection({
             {displayLines.map((line, index) => (
               <div
                 key={`${line}-${index}`}
-                className="flex gap-3 rounded-2xl bg-white p-4 shadow-sm"
+                className={`flex gap-3 rounded-2xl bg-white p-4 shadow-sm ${!hasSchedule ? "opacity-80" : ""}`}
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-black text-white">
                   {String(index + 1).padStart(2, "0")}
