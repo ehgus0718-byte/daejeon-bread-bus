@@ -2,7 +2,7 @@ import { hasSupabaseConfig, supabaseClient } from "./supabaseClient.js";
 
 const TABLE_NAME = ["admin", "settings"].join("_");
 const ROW_ID = "default";
-const COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,updated_at";
+const COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,updated_at";
 
 function ok(data = null, status = 200) {
   return { ok: true, data, error: null, status };
@@ -25,6 +25,7 @@ function fromRow(row = {}) {
     capacityOverrides: record(row.capacity_overrides),
     priceOverrides: record(row.price_overrides),
     scheduleStatus: record(row.schedule_status),
+    scheduleDetails: record(row.schedule_details),
     updatedAt: row.updated_at || ""
   };
 }
@@ -34,7 +35,8 @@ function toRow(settings = {}) {
     id: ROW_ID,
     capacity_overrides: record(settings.capacityOverrides),
     price_overrides: record(settings.priceOverrides),
-    schedule_status: record(settings.scheduleStatus)
+    schedule_status: record(settings.scheduleStatus),
+    schedule_details: record(settings.scheduleDetails)
   };
 }
 
