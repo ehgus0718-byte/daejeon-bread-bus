@@ -134,8 +134,8 @@ async function clearLocalReservations() {
   return createRepositoryResult({ data: [] });
 }
 
-async function listRemoteReservations(client) {
-  const result = await client.list();
+async function listRemoteReservations(client, options = {}) {
+  const result = await client.list(options);
 
   if (!result.ok) {
     return createRepositoryResult({ ok: false, data: [], error: result.error });
@@ -197,10 +197,10 @@ async function removeRemoteReservation(client, reservationId) {
   return createRepositoryResult({ data: [] });
 }
 
-export async function listReservations() {
+export async function listReservations(options = {}) {
   try {
     const remoteClient = getRemoteClient();
-    if (remoteClient) return listRemoteReservations(remoteClient);
+    if (remoteClient) return listRemoteReservations(remoteClient, options);
     return listLocalReservations();
   } catch (error) {
     console.warn("Failed to list reservations", error);
