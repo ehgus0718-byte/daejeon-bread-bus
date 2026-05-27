@@ -58,6 +58,42 @@ function getFirstSavedScheduleDetail(scheduleDetails = {}) {
   };
 }
 
+function ensureHeroDecorations(heroSection) {
+  if (!heroSection || heroSection.dataset.breadHeroDecorated === "true") return;
+
+  heroSection.dataset.breadHeroDecorated = "true";
+  heroSection.classList.add("bread-hero-enhanced");
+
+  const glow = document.createElement("div");
+  glow.className = "bread-hero-glow";
+  glow.setAttribute("aria-hidden", "true");
+
+  const breadPlate = document.createElement("div");
+  breadPlate.className = "bread-hero-plate";
+  breadPlate.setAttribute("aria-hidden", "true");
+
+  const breadOne = document.createElement("span");
+  breadOne.className = "bread-piece bread-piece-one";
+
+  const breadTwo = document.createElement("span");
+  breadTwo.className = "bread-piece bread-piece-two";
+
+  const breadThree = document.createElement("span");
+  breadThree.className = "bread-piece bread-piece-three";
+
+  const steamOne = document.createElement("span");
+  steamOne.className = "bread-steam bread-steam-one";
+
+  const steamTwo = document.createElement("span");
+  steamTwo.className = "bread-steam bread-steam-two";
+
+  const steamThree = document.createElement("span");
+  steamThree.className = "bread-steam bread-steam-three";
+
+  breadPlate.append(breadOne, breadTwo, breadThree, steamOne, steamTwo, steamThree);
+  heroSection.append(glow, breadPlate);
+}
+
 function updateLandingCopy() {
   if (typeof document === "undefined") return;
 
@@ -72,6 +108,8 @@ function updateLandingCopy() {
 
     if (text.includes("달력으로 선택하고") && text.includes("대전 빵버스를 예약하세요")) {
       element.innerHTML = PROMO_TITLE.replace("\n", "<br />");
+      const heroSection = element.closest("section");
+      ensureHeroDecorations(heroSection);
     }
   });
 
@@ -146,7 +184,104 @@ export default function CustomerScheduleSection({
 
   return (
     <section className="mb-8 overflow-hidden rounded-[2rem] border border-orange-100 bg-white shadow-sm">
-      <style>{`main section.mt-10 > div.mb-5 > div.rounded-full.bg-white { display: none !important; }`}</style>
+      <style>{`
+        main section.mt-10 > div.mb-5 > div.rounded-full.bg-white { display: none !important; }
+        .bread-hero-enhanced {
+          position: relative;
+          overflow: hidden;
+          isolation: isolate;
+          background:
+            radial-gradient(circle at 82% 34%, rgba(255, 145, 54, 0.34), transparent 0 24%, transparent 25%),
+            radial-gradient(circle at 91% 70%, rgba(255, 199, 118, 0.18), transparent 0 22%, transparent 23%),
+            linear-gradient(135deg, #050505 0%, #0b0a08 52%, #1b1107 100%) !important;
+        }
+        .bread-hero-enhanced > *:not(.bread-hero-glow):not(.bread-hero-plate) {
+          position: relative;
+          z-index: 2;
+        }
+        .bread-hero-glow {
+          position: absolute;
+          inset: auto -8% -48% auto;
+          width: min(520px, 46vw);
+          height: min(520px, 46vw);
+          border-radius: 9999px;
+          background: radial-gradient(circle, rgba(255, 132, 42, 0.42), rgba(255, 190, 92, 0.18) 34%, transparent 68%);
+          filter: blur(8px);
+          opacity: 0.78;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .bread-hero-plate {
+          position: absolute;
+          right: clamp(28px, 7vw, 110px);
+          bottom: clamp(28px, 5vw, 76px);
+          width: clamp(190px, 24vw, 340px);
+          height: clamp(118px, 15vw, 210px);
+          border-radius: 46% 54% 50% 50% / 58% 58% 42% 42%;
+          background:
+            radial-gradient(circle at 50% 70%, rgba(255, 244, 219, 0.14), transparent 0 42%, transparent 43%),
+            linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+          border: 1px solid rgba(255,255,255,0.10);
+          box-shadow: inset 0 1px 24px rgba(255,255,255,0.10), 0 26px 55px rgba(0,0,0,0.28);
+          transform: rotate(-3deg);
+          pointer-events: none;
+          z-index: 1;
+          opacity: 0.98;
+        }
+        .bread-piece {
+          position: absolute;
+          display: block;
+          background:
+            radial-gradient(circle at 35% 28%, rgba(255, 241, 190, 0.9), transparent 0 12%, transparent 13%),
+            radial-gradient(circle at 58% 36%, rgba(255, 231, 160, 0.75), transparent 0 11%, transparent 12%),
+            linear-gradient(145deg, #f8b24f 0%, #d57720 55%, #91440f 100%);
+          box-shadow: inset -14px -16px 24px rgba(100, 38, 5, 0.22), inset 8px 8px 14px rgba(255,255,255,0.20), 0 18px 30px rgba(0,0,0,0.24);
+        }
+        .bread-piece-one {
+          width: 44%;
+          height: 54%;
+          left: 14%;
+          bottom: 20%;
+          border-radius: 62% 38% 56% 44% / 62% 46% 54% 38%;
+          transform: rotate(-13deg);
+        }
+        .bread-piece-two {
+          width: 50%;
+          height: 48%;
+          right: 10%;
+          bottom: 28%;
+          border-radius: 42% 58% 45% 55% / 52% 70% 30% 48%;
+          transform: rotate(13deg);
+        }
+        .bread-piece-three {
+          width: 34%;
+          height: 34%;
+          left: 38%;
+          bottom: 10%;
+          border-radius: 9999px 9999px 54% 54%;
+          transform: rotate(2deg);
+          background:
+            linear-gradient(90deg, rgba(104, 48, 10, 0.16) 0 8%, transparent 8% 20%, rgba(104,48,10,0.12) 20% 28%, transparent 28% 43%, rgba(104,48,10,0.12) 43% 51%, transparent 51%),
+            linear-gradient(145deg, #ffd37b 0%, #e8912c 58%, #9b4a13 100%);
+        }
+        .bread-steam {
+          position: absolute;
+          display: block;
+          width: 12px;
+          height: 52px;
+          border-left: 2px solid rgba(255, 229, 181, 0.28);
+          border-radius: 9999px;
+          filter: blur(0.2px);
+          opacity: 0.75;
+        }
+        .bread-steam-one { left: 31%; top: -18%; transform: rotate(18deg); }
+        .bread-steam-two { left: 52%; top: -24%; transform: rotate(-8deg); height: 62px; opacity: 0.62; }
+        .bread-steam-three { right: 27%; top: -12%; transform: rotate(12deg); height: 44px; opacity: 0.52; }
+        @media (max-width: 900px) {
+          .bread-hero-plate, .bread-hero-glow { opacity: 0.34; }
+          .bread-hero-plate { right: -56px; bottom: 22px; transform: scale(0.82) rotate(-7deg); }
+        }
+      `}</style>
 
       <div className="bg-gradient-to-br from-stone-950 to-stone-800 p-6 text-white md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
