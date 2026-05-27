@@ -26,14 +26,14 @@ content:none!important;
 display:none!important;
 }
 
-body[data-admin-page="false"] main>section:nth-of-type(2) h2,
-body[data-admin-page="false"] main>section:nth-of-type(2) h3{
+body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h2,
+body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h3{
 font-size:0!important;
 line-height:1.15!important;
 }
 
-body[data-admin-page="false"] main>section:nth-of-type(2) h2::before,
-body[data-admin-page="false"] main>section:nth-of-type(2) h3::before{
+body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h2::before,
+body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h3::before{
 content:"원하는 날짜로 빵셔틀 예약"!important;
 display:block!important;
 font-size:clamp(2.2rem,4vw,3.5rem)!important;
@@ -109,8 +109,8 @@ body[data-admin-page="false"] main>section:first-child::before{right:34px!import
 @media (max-width:900px){
 body[data-admin-page="false"] main>section:first-child{padding:38px 24px!important;}
 body[data-admin-page="false"] main>section:first-child>*{max-width:100%!important;}
-body[data-admin-page="false"] main>section:nth-of-type(2) h2::before,
-body[data-admin-page="false"] main>section:nth-of-type(2) h3::before{font-size:clamp(2.1rem,9vw,3rem)!important;}
+body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h2::before,
+body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h3::before{font-size:clamp(2.1rem,9vw,3rem)!important;}
 body[data-admin-page="false"] main>section:first-child::before{
 position:relative!important;
 display:block!important;
