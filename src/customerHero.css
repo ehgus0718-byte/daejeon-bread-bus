@@ -1,8 +1,79 @@
-body[data-admin-page="false"] main>section:first-child>*{max-width:55%!important}
-body[data-admin-page="false"] main>section:first-child h2{max-width:620px!important;line-height:1.12!important;color:#111827!important;text-shadow:none!important}
-body[data-admin-page="false"] main>section:first-child p{max-width:620px!important;line-height:1.8!important;color:#57534e!important}
-body[data-admin-page="false"] main>section:first-child p:first-child{max-width:none!important;color:#ea580c!important;line-height:1.4!important}
-body[data-admin-page="false"] main>section:first-child::before{top:34px!important;right:clamp(34px,7vw,110px)!important;bottom:auto!important;width:min(345px,28vw)!important;height:214px!important;border-radius:34px!important;transform:rotate(2deg)!important;background:url("https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&w=900&q=90") center/cover no-repeat!important}
-body[data-admin-page="false"] main>section:first-child::after{content:""!important;right:clamp(178px,18vw,286px)!important;bottom:34px!important;width:min(285px,22vw)!important;height:178px!important;border-radius:30px!important;background:url("https://images.unsplash.com/photo-1517433367423-c7e5b0f35086?auto=format&fit=crop&w=800&q=88") center/cover no-repeat!important;box-shadow:0 24px 54px rgba(124,45,18,.18),0 0 0 1px rgba(255,255,255,.80) inset!important;border:1px solid rgba(251,146,60,.18)!important;transform:rotate(-4deg)!important;pointer-events:none!important}
-@media (max-width:1100px){body[data-admin-page="false"] main>section:first-child>*{max-width:60%!important}body[data-admin-page="false"] main>section:first-child::before{width:300px!important;height:195px!important;right:34px!important}body[data-admin-page="false"] main>section:first-child::after{width:245px!important;height:160px!important;right:205px!important}}
-@media (max-width:900px){body[data-admin-page="false"] main>section:first-child>*{max-width:100%!important}body[data-admin-page="false"] main>section:first-child::before{opacity:.24!important;right:-70px!important;top:26px!important;width:260px!important;height:190px!important}body[data-admin-page="false"] main>section:first-child::after{display:none!important}}
+body[data-admin-page="false"] main>section:first-child{
+position:relative!important;
+overflow:hidden!important;
+background:#fffdf8!important;
+}
+
+body[data-admin-page="false"] main>section:first-child>*{
+max-width:48%!important;
+position:relative!important;
+z-index:2!important;
+}
+
+body[data-admin-page="false"] main>section:first-child h2{
+max-width:560px!important;
+line-height:1.18!important;
+color:#1c1917!important;
+text-shadow:none!important;
+margin-top:18px!important;
+}
+
+body[data-admin-page="false"] main>section:first-child p{
+max-width:620px!important;
+line-height:1.9!important;
+color:#44403c!important;
+font-size:1.02rem!important;
+word-break:keep-all!important;
+}
+
+body[data-admin-page="false"] main>section:first-child p:first-child{
+max-width:none!important;
+color:#c2410c!important;
+line-height:1.4!important;
+margin-bottom:10px!important;
+}
+
+body[data-admin-page="false"] main>section:first-child::before{
+content:""!important;
+position:absolute!important;
+top:34px!important;
+right:clamp(24px,5vw,90px)!important;
+width:min(560px,44vw)!important;
+height:min(720px,78vh)!important;
+border-radius:34px!important;
+background:url("https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1400&q=90") center/cover no-repeat!important;
+box-shadow:0 28px 70px rgba(120,53,15,.18)!important;
+border:1px solid rgba(255,255,255,.9)!important;
+}
+
+body[data-admin-page="false"] main>section:first-child::after{
+display:none!important;
+}
+
+@media (max-width:1100px){
+body[data-admin-page="false"] main>section:first-child>*{
+max-width:52%!important;
+}
+body[data-admin-page="false"] main>section:first-child::before{
+width:420px!important;
+height:540px!important;
+right:18px!important;
+}
+}
+
+@media (max-width:900px){
+body[data-admin-page="false"] main>section:first-child>*{
+max-width:100%!important;
+}
+body[data-admin-page="false"] main>section:first-child::before{
+position:relative!important;
+display:block!important;
+width:100%!important;
+max-width:420px!important;
+height:360px!important;
+margin:28px auto 0!important;
+right:auto!important;
+top:auto!important;
+opacity:1!important;
+}
+}
