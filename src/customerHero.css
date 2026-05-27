@@ -83,10 +83,8 @@ body[data-admin-page="false"] main>section:first-child::before{right:34px!import
 @media (max-width:900px){
 body[data-admin-page="false"] main>section:first-child{padding:38px 24px!important;}
 body[data-admin-page="false"] main>section:first-child>*{max-width:100%!important;}
-body[data-admin-page="false"] main>section:first-child::before{
-position:relative!important;display:block!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:100%!important;height:260px!important;margin:28px auto 0!important;}
+body[data-admin-page="false"] main>section:first-child::before{position:relative!important;display:block!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:100%!important;height:260px!important;margin:28px auto 0!important;}
 body[data-admin-page="false"] main>section:first-child p::before{font-size:1rem!important;}
-
 .bb-calendar-card{padding:14px!important;border-radius:24px!important;}
 .bb-calendar-badge{display:none!important;}
 .bb-calendar-weekdays{gap:4px!important;font-size:11px!important;}
@@ -106,5 +104,6 @@ body[data-admin-page="false"] main>section:first-child p::before{font-size:1rem!
 .bb-calendar-day[data-open="false"]::after{background:#a8a29e!important;opacity:.65!important;}
 .bb-calendar-day[data-selected="true"]{background:#f97316!important;border:2px solid #7c2d12!important;color:#fff!important;box-shadow:0 8px 20px rgba(249,115,22,.22)!important;}
 .bb-calendar-day[data-selected="true"]::after{background:#fff!important;width:9px!important;height:9px!important;}
-.bb-calendar-section::after{content:"● 예약가능   ● 마감임박   ● 마감/일정없음"!important;display:block!important;font-size:12px!important;font-weight:900!important;color:#57534e!important;line-height:1.6!important;white-space:pre-wrap!important;}
+.bb-calendar-section::after{content:"예약가능   마감임박   마감/일정없음"!important;display:block!important;font-size:12px!important;font-weight:900!important;line-height:1.7!important;white-space:pre-wrap!important;background:linear-gradient(90deg,#f97316 0 20%,#ef4444 20% 43%,#78716c 43% 100%)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;margin-top:8px!important;}
+body[data-admin-page="false"] main>section:nth-of-type(4){display:none!important;}
 }
