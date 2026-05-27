@@ -19,6 +19,16 @@ line-height:1.16!important;
 color:#1c1917!important;
 text-shadow:none!important;
 margin-top:18px!important;
+font-size:0!important;
+}
+
+body[data-admin-page="false"] main>section:first-child h2::before{
+content:"원하는 날짜로 빵셔틀 예약"!important;
+display:block!important;
+font-size:clamp(2.4rem,4.2vw,4.5rem)!important;
+line-height:1.16!important;
+color:#1c1917!important;
+letter-spacing:-.045em!important;
 }
 
 body[data-admin-page="false"] main>section:first-child p{
@@ -88,6 +98,7 @@ body[data-admin-page="false"] main>section:first-child::before{right:34px!import
 @media (max-width:900px){
 body[data-admin-page="false"] main>section:first-child{padding:38px 24px!important;}
 body[data-admin-page="false"] main>section:first-child>*{max-width:100%!important;}
+body[data-admin-page="false"] main>section:first-child h2::before{font-size:clamp(2.2rem,10vw,3.2rem)!important;}
 body[data-admin-page="false"] main>section:first-child::before{
 position:relative!important;
 display:block!important;
