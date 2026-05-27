@@ -11,6 +11,8 @@ const FALLBACK_TIMELINE = [
 const PROMO_TITLE = "빵 따라 떠나는\n대전 로컬 미식여행";
 const PROMO_DESCRIPTION =
   "노가이드·노팁으로 부담 없이, 달력에서 원하는 날짜를 고르고 대전의 인기 빵집 코스를 편하게 예약해보세요.";
+const CALENDAR_EYEBROW = "BREAD BUS BOOKING";
+const CALENDAR_TITLE = "원하는 날짜로 떠나는 빵버스 예약";
 
 function formatDisplayDate(date) {
   if (!date) return "날짜 선택 전";
@@ -81,6 +83,18 @@ function updateLandingCopy() {
       text.includes("실제 운영형 예약 플랫폼")
     ) {
       element.textContent = PROMO_DESCRIPTION;
+    }
+
+    if (text === "Reservation Calendar") {
+      element.textContent = CALENDAR_EYEBROW;
+    }
+  });
+
+  document.querySelectorAll("h3").forEach((element) => {
+    const text = String(element.textContent || "").replace(/\s+/g, " ").trim();
+
+    if (text === "2개월 예약 달력") {
+      element.textContent = CALENDAR_TITLE;
     }
   });
 }
