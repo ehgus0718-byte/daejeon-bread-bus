@@ -70,6 +70,17 @@ export default function AdminDashboard({
     [capacityOverrides, priceOverrides, reservationsWithNotes, scheduleStatus]
   );
 
+  function handleRefreshClick() {
+    if (typeof onRefreshReservations === "function") {
+      onRefreshReservations();
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  }
+
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-stone-950 p-5 shadow-xl shadow-orange-100 md:p-8">
       <div className="mb-8 flex flex-col gap-4 text-white md:flex-row md:items-end md:justify-between">
@@ -88,8 +99,8 @@ export default function AdminDashboard({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={onRefreshReservations}
-            disabled={isRefreshingReservations || typeof onRefreshReservations !== "function"}
+            onClick={handleRefreshClick}
+            disabled={isRefreshingReservations}
             className="rounded-full bg-orange-500 px-4 py-3 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/60"
           >
             {isRefreshingReservations ? "예약 목록 불러오는 중..." : "예약 목록 새로고침"}
