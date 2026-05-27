@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from "react";
 import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
+const DEFAULT_SCHEDULE_TEMPLATE = [
+  "09:00 집결 및 인원 확인",
+  "10:00 빵집 투어 시작",
+  "11:30 포토타임 및 자유시간",
+  "12:30 점심 또는 휴식",
+  "14:00 로컬 명소 이동",
+  "16:30 기념품 구매",
+  "17:30 복귀 및 해산"
+].join("\n");
+
 function getTodayInputValue() {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -29,6 +39,14 @@ export default function AdminScheduleDetailEditor({
   function handleDateChange(nextDate) {
     setTargetDate(nextDate);
     setMessage("");
+  }
+
+  function handleUseTemplate() {
+    setDetail((currentDetail) => {
+      const hasCurrentDetail = Boolean(String(currentDetail || "").trim());
+      return hasCurrentDetail ? `${currentDetail.trim()}\n\n${DEFAULT_SCHEDULE_TEMPLATE}` : DEFAULT_SCHEDULE_TEMPLATE;
+    });
+    setMessage("기본 일정 템플릿을 넣었습니다. 실제 운영에 맞게 수정해주세요.");
   }
 
   function handleSave() {
@@ -81,8 +99,15 @@ export default function AdminScheduleDetailEditor({
           />
         </label>
 
-        <div className="mb-4 rounded-2xl bg-white px-4 py-3 text-sm font-black text-stone-700">
-          선택 날짜: {targetDate || "날짜를 선택해주세요"}
+        <div className="mb-4 flex flex-col gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-black text-stone-700 md:flex-row md:items-center md:justify-between">
+          <div>선택 날짜: {targetDate || "날짜를 선택해주세요"}</div>
+          <button
+            type="button"
+            onClick={handleUseTemplate}
+            className="rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-white transition hover:bg-orange-600"
+          >
+            기본 일정 넣기
+          </button>
         </div>
 
         <textarea
