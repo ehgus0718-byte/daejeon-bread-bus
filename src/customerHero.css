@@ -30,7 +30,7 @@ word-break:keep-all!important;
 }
 
 body[data-admin-page="false"] main>section:first-child p::before{
-content:"노가이드·노팁으로 부담 없이, 달력에서 원하는 날짜를 고르고\A 대전의 인기 빵집 코스를 편하게 예약해보세요."!important;
+content:"노가이드·노팁으로 부담 없이\A 대전의 인기 빵집 코스를 편하게 예약해보세요."!important;
 white-space:pre-line!important;
 font-size:1.04rem!important;
 line-height:1.9!important;
