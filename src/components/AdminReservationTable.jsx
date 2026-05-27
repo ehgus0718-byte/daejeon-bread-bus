@@ -12,6 +12,8 @@ const STATUS_OPTIONS = [
   "탑승완료"
 ];
 const DEFAULT_STATUS = STATUS_OPTIONS[0] || "예약접수";
+const INITIAL_VISIBLE_COUNT = 25;
+const VISIBLE_COUNT_STEP = 25;
 
 function formatDate(dateString) {
   if (!dateString) return "-";
@@ -86,6 +88,82 @@ function SummaryItem({ label, value }) {
   );
 }
 
+function ReservationRow({
+  reservation,
+  index,
+  tableColumnClassName,
+  canRemoveReservation,
+  onChangeStatus,
+  onRemoveReservation
+}) {
+  const statusValue = getReservationStatusValue(reservation.status);
+  const phoneLabel = getReservationPhoneLabel(reservation.phone);
+  const phoneHref = getReservationPhoneHref(reservation.phone);
+
+  return (
+    <div
+      className={`grid ${tableColumnClassName} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700`}
+    >
+      <div>{formatDate(reservation.date)}</div>
+
+      <div className="min-w-0">
+        <div className="truncate text-base font-black text-stone-900">
+          {reservation.name || "-"}
+        </div>
+
+        {phoneHref ? (
+          <a
+            href={phoneHref}
+            className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-700 transition hover:bg-orange-100 hover:text-orange-700"
+          >
+            <span className="mr-1 text-stone-400">☎</span>
+            <span className="truncate">{phoneLabel}</span>
+          </a>
+        ) : (
+          <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-500">
+            <span className="mr-1 text-stone-400">☎</span>
+            <span className="truncate">{phoneLabel}</span>
+          </div>
+        )}
+      </div>
+
+      <div>{formatPeopleCount(reservation.people)}</div>
+
+      <div>
+        <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
+          {getReservationStatusLabel(reservation.status)}
+        </span>
+      </div>
+
+      <div>
+        <select
+          value={statusValue}
+          onChange={(event) => onChangeStatus?.(reservation.id, event.target.value)}
+          className="w-full rounded-2xl border border-stone-200 px-3 py-3 text-sm font-black outline-none transition focus:border-orange-400"
+        >
+          {STATUS_OPTIONS.map((statusOption) => (
+            <option key={statusOption} value={statusOption}>
+              {statusOption}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {canRemoveReservation ? (
+        <div>
+          <button
+            type="button"
+            onClick={() => onRemoveReservation(reservation.id)}
+            className="w-full rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
+          >
+            삭제
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AdminReservationTable({
   reservations = [],
   onChangeStatus,
@@ -94,6 +172,7 @@ export default function AdminReservationTable({
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [sortKey, setSortKey] = useState("newest");
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   const safeReservations = Array.isArray(reservations) ? reservations : [];
   const canRemoveReservation = typeof onRemoveReservation === "function";
   const tableColumnClassName = canRemoveReservation ? "grid-cols-6" : "grid-cols-5";
@@ -108,10 +187,40 @@ export default function AdminReservationTable({
     return sortReservations(filteredReservations, sortKey);
   }, [keyword, safeReservations, sortKey, status]);
 
+  const renderedReservations = useMemo(
+    () => visibleReservations.slice(0, visibleCount),
+    [visibleCount, visibleReservations]
+  );
+
   const visibleSummary = useMemo(
     () => createVisibleReservationSummary(visibleReservations),
     [visibleReservations]
   );
+
+  const hasMoreReservations = renderedReservations.length < visibleReservations.length;
+
+  function handleKeywordChange(nextKeyword) {
+    setKeyword(nextKeyword);
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  function handleStatusChange(nextStatus) {
+    setStatus(nextStatus);
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  function handleSortKeyChange(nextSortKey) {
+    setSortKey(nextSortKey);
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
+
+  function handleShowMore() {
+    setVisibleCount((currentCount) => currentCount + VISIBLE_COUNT_STEP);
+  }
+
+  function handleShowLess() {
+    setVisibleCount(INITIAL_VISIBLE_COUNT);
+  }
 
   return (
     <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
@@ -124,7 +233,7 @@ export default function AdminReservationTable({
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="rounded-full bg-stone-100 px-4 py-2 text-xs font-black text-stone-700">
-            총 {safeReservations.length}건 / 표시 {visibleReservations.length}건
+            총 {safeReservations.length}건 / 검색 {visibleReservations.length}건 / 표시 {renderedReservations.length}건
           </div>
           <AdminCsvDownloadButton reservations={visibleReservations} />
         </div>
@@ -135,9 +244,9 @@ export default function AdminReservationTable({
           keyword={keyword}
           status={status}
           sortKey={sortKey}
-          onChangeKeyword={setKeyword}
-          onChangeStatus={setStatus}
-          onChangeSortKey={setSortKey}
+          onChangeKeyword={handleKeywordChange}
+          onChangeStatus={handleStatusChange}
+          onChangeSortKey={handleSortKeyChange}
         />
       </div>
 
@@ -148,6 +257,10 @@ export default function AdminReservationTable({
         <SummaryItem label="결제완료" value={`${visibleSummary.paid}건`} />
         <SummaryItem label="결제대기" value={`${visibleSummary.waiting}건`} />
         <SummaryItem label="취소" value={`${visibleSummary.cancelled}건`} />
+      </div>
+
+      <div className="mt-4 rounded-3xl bg-stone-50 px-5 py-4 text-xs font-bold leading-6 text-stone-500">
+        예약 목록은 성능을 위해 처음 {INITIAL_VISIBLE_COUNT}건만 표시합니다. 검색·필터·정렬 결과는 전체 예약을 기준으로 계산되며, 필요한 경우 아래에서 더 불러올 수 있습니다.
       </div>
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-stone-100">
@@ -166,77 +279,44 @@ export default function AdminReservationTable({
               조건에 맞는 예약이 없습니다.
             </div>
           ) : (
-            visibleReservations.map((reservation, index) => {
-              const statusValue = getReservationStatusValue(reservation.status);
-              const phoneLabel = getReservationPhoneLabel(reservation.phone);
-              const phoneHref = getReservationPhoneHref(reservation.phone);
-
-              return (
-                <div
-                  key={createReservationRowKey(reservation, index)}
-                  className={`grid ${tableColumnClassName} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700`}
-                >
-                  <div>{formatDate(reservation.date)}</div>
-                  <div className="min-w-0">
-                    <div className="truncate text-base font-black text-stone-900">
-                      {reservation.name || "-"}
-                    </div>
-                    {phoneHref ? (
-                      <a
-                        href={phoneHref}
-                        className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-700 transition hover:bg-orange-100 hover:text-orange-700"
-                      >
-                        <span className="mr-1 text-stone-400">☎</span>
-                        <span className="truncate">{phoneLabel}</span>
-                      </a>
-                    ) : (
-                      <div className="mt-2 inline-flex max-w-full items-center rounded-full bg-stone-100 px-3 py-1 text-xs font-black text-stone-500">
-                        <span className="mr-1 text-stone-400">☎</span>
-                        <span className="truncate">{phoneLabel}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div>{formatPeopleCount(reservation.people)}</div>
-                  <div>
-                    <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
-                      {getReservationStatusLabel(reservation.status)}
-                    </span>
-                  </div>
-                  <div>
-                    <select
-                      value={statusValue}
-                      onChange={(event) =>
-                        onChangeStatus?.(
-                          reservation.id,
-                          event.target.value
-                        )
-                      }
-                      className="w-full rounded-2xl border border-stone-200 px-3 py-3 text-sm font-black outline-none transition focus:border-orange-400"
-                    >
-                      {STATUS_OPTIONS.map((statusOption) => (
-                        <option key={statusOption} value={statusOption}>
-                          {statusOption}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {canRemoveReservation ? (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveReservation(reservation.id)}
-                        className="w-full rounded-2xl border border-red-100 bg-red-50 px-3 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })
+            renderedReservations.map((reservation, index) => (
+              <ReservationRow
+                key={createReservationRowKey(reservation, index)}
+                reservation={reservation}
+                index={index}
+                tableColumnClassName={tableColumnClassName}
+                canRemoveReservation={canRemoveReservation}
+                onChangeStatus={onChangeStatus}
+                onRemoveReservation={onRemoveReservation}
+              />
+            ))
           )}
         </div>
       </div>
+
+      {visibleReservations.length > INITIAL_VISIBLE_COUNT ? (
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          {hasMoreReservations ? (
+            <button
+              type="button"
+              onClick={handleShowMore}
+              className="rounded-full bg-stone-950 px-5 py-3 text-sm font-black text-white transition hover:bg-orange-600"
+            >
+              예약 {Math.min(VISIBLE_COUNT_STEP, visibleReservations.length - renderedReservations.length)}건 더 보기
+            </button>
+          ) : null}
+
+          {renderedReservations.length > INITIAL_VISIBLE_COUNT ? (
+            <button
+              type="button"
+              onClick={handleShowLess}
+              className="rounded-full border border-stone-200 bg-white px-5 py-3 text-sm font-black text-stone-700 transition hover:bg-stone-50"
+            >
+              처음 {INITIAL_VISIBLE_COUNT}건만 보기
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
