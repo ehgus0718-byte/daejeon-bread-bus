@@ -133,14 +133,31 @@ function ensureSupabaseClient() {
   return null;
 }
 
-export async function fetchSupabaseReservations() {
+function getSafeListLimit(options = {}) {
+  const limit = Number(options.limit || 0);
+  return Number.isInteger(limit) && limit > 0 ? limit : 0;
+}
+
+function applyListLimit(query, options = {}) {
+  const limit = getSafeListLimit(options);
+
+  if (!limit) {
+    return query;
+  }
+
+  return query.range(0, limit - 1);
+}
+
+export async function fetchSupabaseReservations(options = {}) {
   const configError = ensureSupabaseClient();
   if (configError) return configError;
 
-  const { data, error, status } = await supabaseClient
+  const query = supabaseClient
     .from(getReservationsTableName())
     .select(RESERVATION_SELECT_COLUMNS)
     .order("reservation_date", { ascending: false });
+
+  const { data, error, status } = await applyListLimit(query, options);
 
   if (error) {
     return createSupabaseResult({ ok: false, data: [], error, status });
