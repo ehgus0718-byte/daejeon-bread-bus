@@ -175,9 +175,6 @@ async function updateRemoteReservation(client, reservationId, patch = {}) {
     return createRepositoryResult({ ok: false, data: null, error: result.error });
   }
 
-  const listResult = await listRemoteReservations(client);
-  if (listResult.ok) return listResult;
-
   const updatedReservation = normalizeRemoteReservation(result.data);
   return createRepositoryResult({ data: updatedReservation ? [updatedReservation] : [] });
 }
