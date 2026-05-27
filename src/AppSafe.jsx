@@ -162,6 +162,8 @@ export default function AppSafe() {
   );
   const [reservations, setReservations] = useState(getInitialReservations);
   const [adminReservations, setAdminReservations] = useState(null);
+  const [recentChangedReservationId, setRecentChangedReservationId] = useState("");
+  const [operationNotice, setOperationNotice] = useState("");
   const [capacityOverrides, setCapacityOverrides] = useState(
     savedAdminSettings.capacityOverrides
   );
@@ -194,6 +196,7 @@ export default function AppSafe() {
 
       if (!result.ok) {
         setNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
+        setOperationNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
         if (USES_REMOTE_RESERVATION_STORAGE) setReservations([]);
         return;
       }
@@ -299,7 +302,13 @@ export default function AppSafe() {
 
   function handleClearQuickReservations() {
     clearQuickAdminReservations();
+    setOperationNotice("전체 예약 목록 보기로 돌아왔습니다.");
     setNotice("전체 예약 목록 보기로 돌아왔습니다.");
+  }
+
+  function markReservationChanged(reservationId, message) {
+    setRecentChangedReservationId(reservationId || "");
+    setOperationNotice(message || "예약 정보가 반영되었습니다.");
   }
 
   function remaining(date) {
@@ -406,23 +415,29 @@ export default function AppSafe() {
     if (isRefreshingReservations) return;
 
     setNotice("");
+    setOperationNotice("");
     setIsRefreshingReservations(true);
 
     try {
       const result = await reservationRepository.list({ limit: ADMIN_QUICK_REFRESH_LIMIT });
 
       if (!result.ok) {
-        setNotice(`예약 목록 새로고침에 실패했습니다. ${getErrorMessage(result.error)}`);
+        const message = `예약 목록 새로고침에 실패했습니다. ${getErrorMessage(result.error)}`;
+        setNotice(message);
+        setOperationNotice(message);
         return;
       }
 
       if (Array.isArray(result.data)) {
         setAdminReservations(result.data);
+        setOperationNotice(`최근 예약 ${result.data.length}건을 빠르게 불러왔습니다.`);
         setNotice(`최근 예약 ${result.data.length}건을 빠르게 불러왔습니다.`);
       }
     } catch (error) {
       console.warn("Reservation refresh failed", error);
-      setNotice(`예약 목록 새로고침에 실패했습니다. ${getErrorMessage(error)}`);
+      const message = `예약 목록 새로고침에 실패했습니다. ${getErrorMessage(error)}`;
+      setNotice(message);
+      setOperationNotice(message);
     } finally {
       setIsRefreshingReservations(false);
     }
@@ -430,6 +445,7 @@ export default function AppSafe() {
 
   async function handleReservationStatusChange(id, nextStatus) {
     setNotice("");
+    setOperationNotice("예약 상태를 저장하는 중입니다...");
     clearQuickAdminReservations();
 
     const previousReservations = reservations;
@@ -440,13 +456,16 @@ export default function AppSafe() {
     });
 
     setReservations(nextReservations);
+    setRecentChangedReservationId(id || "");
 
     try {
       const result = await reservationRepository.update(id, { status: nextStatus });
 
       if (!result.ok) {
+        const message = `예약 상태 저장에 실패했습니다. ${getErrorMessage(result.error)}`;
         setReservations(previousReservations);
-        setNotice(`예약 상태 저장에 실패했습니다. ${getErrorMessage(result.error)}`);
+        setNotice(message);
+        setOperationNotice(message);
         return;
       }
 
@@ -455,19 +474,26 @@ export default function AppSafe() {
           mergeReservationsById(currentReservations, result.data)
         );
       }
+
+      markReservationChanged(id, "예약 상태가 저장되었습니다.");
     } catch (error) {
       console.warn("Reservation status update failed", error);
+      const message = `예약 상태 저장에 실패했습니다. ${getErrorMessage(error)}`;
       setReservations(previousReservations);
-      setNotice(`예약 상태 저장에 실패했습니다. ${getErrorMessage(error)}`);
+      setNotice(message);
+      setOperationNotice(message);
     }
   }
 
   async function handleSaveReservationNote(id, note = "") {
     setNotice("");
+    setOperationNotice("관리자 메모를 저장하는 중입니다...");
     clearQuickAdminReservations();
 
     if (!id) {
-      setNotice("메모를 저장할 예약을 찾지 못했습니다.");
+      const message = "메모를 저장할 예약을 찾지 못했습니다.";
+      setNotice(message);
+      setOperationNotice(message);
       return false;
     }
 
@@ -480,13 +506,16 @@ export default function AppSafe() {
     });
 
     setReservations(nextReservations);
+    setRecentChangedReservationId(id || "");
 
     try {
       const result = await reservationRepository.update(id, { adminNote: safeNote });
 
       if (!result.ok) {
+        const message = `관리자 메모 저장에 실패했습니다. ${getErrorMessage(result.error)}`;
         setReservations(previousReservations);
-        setNotice(`관리자 메모 저장에 실패했습니다. ${getErrorMessage(result.error)}`);
+        setNotice(message);
+        setOperationNotice(message);
         return false;
       }
 
@@ -496,12 +525,15 @@ export default function AppSafe() {
         );
       }
 
+      markReservationChanged(id, "관리자 메모가 저장되었습니다.");
       setNotice("관리자 메모가 저장되었습니다.");
       return true;
     } catch (error) {
       console.warn("Reservation note save failed", error);
+      const message = `관리자 메모 저장에 실패했습니다. ${getErrorMessage(error)}`;
       setReservations(previousReservations);
-      setNotice(`관리자 메모 저장에 실패했습니다. ${getErrorMessage(error)}`);
+      setNotice(message);
+      setOperationNotice(message);
       return false;
     }
   }
@@ -512,14 +544,18 @@ export default function AppSafe() {
 
   async function handleRemoveReservation(id) {
     setNotice("");
+    setOperationNotice("예약을 삭제하는 중입니다...");
     clearQuickAdminReservations();
 
     if (!id) {
-      setNotice("삭제할 예약을 찾지 못했습니다.");
+      const message = "삭제할 예약을 찾지 못했습니다.";
+      setNotice(message);
+      setOperationNotice(message);
       return;
     }
 
     if (typeof window !== "undefined" && !window.confirm("선택한 예약을 삭제하시겠습니까?")) {
+      setOperationNotice("");
       return;
     }
 
@@ -527,26 +563,33 @@ export default function AppSafe() {
     const nextReservations = reservations.filter((reservation) => reservation.id !== id);
 
     setReservations(nextReservations);
+    setRecentChangedReservationId("");
 
     try {
       const result = await reservationRepository.remove(id);
 
       if (!result.ok) {
+        const message = `예약 삭제에 실패했습니다. ${getErrorMessage(result.error)}`;
         setReservations(previousReservations);
-        setNotice(`예약 삭제에 실패했습니다. ${getErrorMessage(result.error)}`);
+        setNotice(message);
+        setOperationNotice(message);
         return;
       }
 
       setNotice("예약이 삭제되었습니다.");
+      setOperationNotice("예약이 삭제되었습니다.");
     } catch (error) {
       console.warn("Reservation remove failed", error);
+      const message = `예약 삭제에 실패했습니다. ${getErrorMessage(error)}`;
       setReservations(previousReservations);
-      setNotice(`예약 삭제에 실패했습니다. ${getErrorMessage(error)}`);
+      setNotice(message);
+      setOperationNotice(message);
     }
   }
 
   async function handleSubmit() {
     setNotice("");
+    setOperationNotice("");
     clearQuickAdminReservations();
 
     const remainingSeats = remaining(selectedDate);
@@ -579,16 +622,15 @@ export default function AppSafe() {
         return;
       }
 
-      if (Array.isArray(result.data) && result.data.length > 0) {
-        setReservations((currentReservations) =>
-          mergeReservationsById(currentReservations, result.data)
-        );
-      } else {
-        setReservations((currentReservations) =>
-          mergeReservationsById(currentReservations, [reservationItem])
-        );
-      }
+      const createdReservations = Array.isArray(result.data) && result.data.length > 0
+        ? result.data
+        : [reservationItem];
 
+      setReservations((currentReservations) =>
+        mergeReservationsById(currentReservations, createdReservations)
+      );
+      setRecentChangedReservationId(getReservationId(createdReservations[0]) || "");
+      setOperationNotice("신규 예약이 접수되었습니다.");
       setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
       resetForm();
     } catch (error) {
@@ -693,6 +735,8 @@ export default function AppSafe() {
             isRefreshingReservations={isRefreshingReservations}
             isQuickReservationView={isQuickReservationView}
             quickReservationLimit={ADMIN_QUICK_REFRESH_LIMIT}
+            recentChangedReservationId={recentChangedReservationId}
+            operationNotice={operationNotice}
             onRefreshReservations={handleRefreshReservations}
             onClearQuickReservations={handleClearQuickReservations}
             onChangeReservationStatus={handleReservationStatusChange}
