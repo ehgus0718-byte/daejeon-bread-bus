@@ -4,6 +4,7 @@ import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
+import CustomerScheduleSection from "./components/CustomerScheduleSection.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
 import { validateAdminPassword } from "./core/adminPasswordValidation.js";
 import {
@@ -98,7 +99,8 @@ function normalizeAdminSettings(settings = {}) {
   return {
     capacityOverrides: settings.capacityOverrides || {},
     priceOverrides: settings.priceOverrides || {},
-    scheduleStatus: settings.scheduleStatus || {}
+    scheduleStatus: settings.scheduleStatus || {},
+    scheduleDetails: settings.scheduleDetails || {}
   };
 }
 
@@ -106,6 +108,19 @@ function removeDateKey(settings = {}, date) {
   const nextSettings = { ...settings };
   delete nextSettings[date];
   return nextSettings;
+}
+
+function updateScheduleDetail(settings = {}, date, detail = "") {
+  const safeDetail = String(detail || "").trim();
+
+  if (!safeDetail) {
+    return removeDateKey(settings, date);
+  }
+
+  return {
+    ...settings,
+    [date]: safeDetail
+  };
 }
 
 export default function AppSafe() {
@@ -127,6 +142,9 @@ export default function AppSafe() {
   );
   const [scheduleStatus, setScheduleStatus] = useState(
     savedAdminSettings.scheduleStatus
+  );
+  const [scheduleDetails, setScheduleDetails] = useState(
+    savedAdminSettings.scheduleDetails || {}
   );
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -189,6 +207,7 @@ export default function AppSafe() {
       setCapacityOverrides(nextSettings.capacityOverrides);
       setPriceOverrides(nextSettings.priceOverrides);
       setScheduleStatus(nextSettings.scheduleStatus);
+      setScheduleDetails(nextSettings.scheduleDetails);
       saveAdminSettings(nextSettings);
       setIsAdminSettingsReady(true);
     }
@@ -204,7 +223,8 @@ export default function AppSafe() {
     const nextSettings = {
       capacityOverrides,
       priceOverrides,
-      scheduleStatus
+      scheduleStatus,
+      scheduleDetails
     };
 
     saveAdminSettings(nextSettings);
@@ -227,16 +247,17 @@ export default function AppSafe() {
     return () => {
       isCancelled = true;
     };
-  }, [capacityOverrides, priceOverrides, scheduleStatus, isAdminSettingsReady]);
+  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, isAdminSettingsReady]);
 
   const managedDateSettings = useMemo(
     () =>
       buildDateSettings({
         capacityOverrides,
         priceOverrides,
-        scheduleStatus
+        scheduleStatus,
+        scheduleDetails
       }),
-    [capacityOverrides, priceOverrides, scheduleStatus]
+    [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails]
   );
 
   function remaining(date) {
@@ -253,6 +274,7 @@ export default function AppSafe() {
   }, [managedDateSettings, selectedDate]);
 
   const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "closed";
+  const selectedScheduleDetail = managedDateSettings[selectedDate]?.detail || "";
 
   function handleFormChange(key, value) {
     setReservationForm((prev) => ({ ...prev, [key]: value }));
@@ -305,6 +327,26 @@ export default function AppSafe() {
     );
   }
 
+  function handleScheduleDetailChange(date, nextDetail) {
+    if (!date) {
+      setNotice("일정을 저장할 날짜를 찾지 못했습니다.");
+      return;
+    }
+
+    setScheduleDetails((prev) => updateScheduleDetail(prev, date, nextDetail));
+    setNotice("여행 일정이 저장되었습니다.");
+  }
+
+  function handleRemoveScheduleDetail(date) {
+    if (!date) {
+      setNotice("삭제할 일정 날짜를 찾지 못했습니다.");
+      return;
+    }
+
+    setScheduleDetails((prev) => removeDateKey(prev, date));
+    setNotice("선택한 날짜의 여행 일정이 삭제되었습니다.");
+  }
+
   function handleRemoveDateSettings(date) {
     if (!date) {
       setNotice("삭제할 날짜를 찾지 못했습니다.");
@@ -314,6 +356,7 @@ export default function AppSafe() {
     setCapacityOverrides((prev) => removeDateKey(prev, date));
     setPriceOverrides((prev) => removeDateKey(prev, date));
     setScheduleStatus((prev) => removeDateKey(prev, date));
+    setScheduleDetails((prev) => removeDateKey(prev, date));
     setNotice("선택한 날짜 설정이 삭제되었습니다.");
   }
 
@@ -527,6 +570,12 @@ export default function AppSafe() {
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
           />
+
+          <CustomerScheduleSection
+            selectedDate={selectedDate}
+            scheduleDetail={selectedScheduleDetail}
+            scheduleStatus={selectedScheduleStatus}
+          />
         </section>
 
         <section className="mt-10">
@@ -552,11 +601,15 @@ export default function AppSafe() {
             capacityOverrides={capacityOverrides}
             priceOverrides={priceOverrides}
             scheduleStatus={scheduleStatus}
+            scheduleDetails={scheduleDetails}
+            selectedDate={selectedDate}
             onChangeReservationStatus={handleReservationStatusChange}
             onRemoveReservation={handleRemoveReservation}
             onChangeCapacity={handleCapacityChange}
             onChangePrice={handlePriceChange}
             onChangeScheduleStatus={handleScheduleStatusChange}
+            onChangeScheduleDetail={handleScheduleDetailChange}
+            onRemoveScheduleDetail={handleRemoveScheduleDetail}
             onRemoveDateSettings={handleRemoveDateSettings}
             onSaveReservationNote={handleSaveReservationNote}
             onClearReservationNote={handleClearReservationNote}
