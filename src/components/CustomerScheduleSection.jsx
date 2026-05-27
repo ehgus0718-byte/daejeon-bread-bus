@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { loadSiteSettings } from "../api/siteSettingsClient.js";
 
 const FALLBACK_TIMELINE = [
   "출발 및 인원 확인",
@@ -36,17 +37,63 @@ function getTimelineLabel(index) {
   return labels[index] || `일정 ${index + 1}`;
 }
 
+function getFirstSavedScheduleDetail(scheduleDetails = {}) {
+  const entries = Object.entries(scheduleDetails || {})
+    .filter(([, detail]) => String(detail || "").trim())
+    .sort(([dateA], [dateB]) => String(dateA).localeCompare(String(dateB)));
+
+  if (entries.length === 0) {
+    return { date: "", detail: "" };
+  }
+
+  return {
+    date: entries[0][0],
+    detail: entries[0][1]
+  };
+}
+
 export default function CustomerScheduleSection({
   selectedDate,
   scheduleDetail = "",
   scheduleStatus = "closed"
 }) {
-  const hasSchedule = Boolean(String(scheduleDetail || "").trim());
-  const scheduleLines = getScheduleLines(scheduleDetail);
+  const [remoteScheduleDetails, setRemoteScheduleDetails] = useState({});
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRemoteScheduleDetails() {
+      const result = await loadSiteSettings();
+
+      if (!isMounted || !result.ok) return;
+
+      setRemoteScheduleDetails(result.data?.scheduleDetails || {});
+    }
+
+    loadRemoteScheduleDetails();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const firstSavedSchedule = useMemo(
+    () => getFirstSavedScheduleDetail(remoteScheduleDetails),
+    [remoteScheduleDetails]
+  );
+
+  const selectedRemoteDetail = String(remoteScheduleDetails?.[selectedDate] || "").trim();
+  const directDetail = String(scheduleDetail || "").trim();
+  const finalScheduleDetail = directDetail || selectedRemoteDetail || firstSavedSchedule.detail || "";
+  const displayDate = directDetail || selectedRemoteDetail ? selectedDate : firstSavedSchedule.date || selectedDate;
+  const hasSchedule = Boolean(finalScheduleDetail);
+  const scheduleLines = getScheduleLines(finalScheduleDetail);
   const displayLines = hasSchedule && scheduleLines.length > 0 ? scheduleLines : FALLBACK_TIMELINE;
 
   return (
     <section className="mb-8 overflow-hidden rounded-[2rem] border border-orange-100 bg-white shadow-sm">
+      <style>{`main section.mt-10 > div.mb-5 > div.rounded-full.bg-white { display: none !important; }`}</style>
+
       <div className="bg-gradient-to-br from-stone-950 to-stone-800 p-6 text-white md:p-7">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -65,7 +112,7 @@ export default function CustomerScheduleSection({
 
           <div className="flex flex-wrap gap-2">
             <div className="rounded-full bg-white px-4 py-2 text-xs font-black text-stone-900">
-              {formatDisplayDate(selectedDate)}
+              {formatDisplayDate(displayDate)}
             </div>
 
             <div className="rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-white">
@@ -77,7 +124,13 @@ export default function CustomerScheduleSection({
 
       {!hasSchedule ? (
         <div className="border-b border-orange-100 bg-orange-50 px-6 py-4 text-sm font-black text-orange-700 md:px-7">
-          아직 선택한 날짜에 등록된 상세 일정이 없습니다. 달력에서 일정 뱃지가 있는 날짜를 선택하거나, 관리자에서 날짜별 여행 일정을 등록해주세요.
+          아직 등록된 상세 일정이 없습니다. 관리자 페이지에서 날짜별 여행 일정을 등록하면 이 영역에 바로 표시됩니다.
+        </div>
+      ) : null}
+
+      {hasSchedule && !directDetail && !selectedRemoteDetail && firstSavedSchedule.date ? (
+        <div className="border-b border-orange-100 bg-orange-50 px-6 py-4 text-sm font-black text-orange-700 md:px-7">
+          선택 날짜에 등록된 일정이 없어 등록된 일정 중 가장 빠른 일정을 먼저 보여드립니다.
         </div>
       ) : null}
 
@@ -89,7 +142,7 @@ export default function CustomerScheduleSection({
                 ROUTE PLAN
               </p>
               <h4 className="mt-1 text-xl font-black text-stone-950">
-                {hasSchedule ? "선택 날짜의 여행 흐름" : "일정 예시"}
+                {hasSchedule ? "등록된 여행 일정" : "일정 예시"}
               </h4>
             </div>
 
