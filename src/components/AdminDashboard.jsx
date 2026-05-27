@@ -25,7 +25,10 @@ export default function AdminDashboard({
   scheduleDetails = {},
   selectedDate = "",
   isRefreshingReservations = false,
+  isQuickReservationView = false,
+  quickReservationLimit = 100,
   onRefreshReservations,
+  onClearQuickReservations,
   onChangeReservationStatus,
   onRemoveReservation,
   onChangeCapacity,
@@ -87,6 +90,12 @@ export default function AdminDashboard({
     }
   }
 
+  function handleClearQuickViewClick() {
+    if (typeof onClearQuickReservations === "function") {
+      onClearQuickReservations();
+    }
+  }
+
   return (
     <section className="mt-10 rounded-[2.5rem] border border-stone-200 bg-stone-950 p-5 shadow-xl shadow-orange-100 md:p-8">
       <div className="mb-8 flex flex-col gap-4 text-white md:flex-row md:items-end md:justify-between">
@@ -109,7 +118,7 @@ export default function AdminDashboard({
             disabled={isRefreshingReservations}
             className="rounded-full bg-orange-500 px-4 py-3 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-white/60"
           >
-            {isRefreshingReservations ? "예약 목록 불러오는 중..." : "예약 목록 새로고침"}
+            {isRefreshingReservations ? "예약 목록 불러오는 중..." : `최근 ${quickReservationLimit}건 빠른 새로고침`}
           </button>
 
           <div className="rounded-full bg-white/10 px-4 py-3 text-xs font-black text-orange-100">
@@ -117,6 +126,32 @@ export default function AdminDashboard({
           </div>
         </div>
       </div>
+
+      {isQuickReservationView ? (
+        <div className="mb-6 rounded-[1.5rem] border border-orange-300/40 bg-orange-400/10 p-5 text-white">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-black tracking-[0.2em] text-orange-200">
+                QUICK VIEW MODE
+              </p>
+              <h3 className="mt-1 text-xl font-black">
+                최근 {quickReservationLimit}건 빠른보기 중입니다.
+              </h3>
+              <p className="mt-2 text-sm font-bold leading-6 text-orange-50/80">
+                고객 잔여좌석 계산은 전체 예약 데이터를 유지하고, 관리자 목록만 빠르게 보기 위해 최근 예약만 표시합니다.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleClearQuickViewClick}
+              className="rounded-full bg-white px-5 py-3 text-sm font-black text-stone-950 transition hover:bg-orange-50"
+            >
+              전체 목록으로 복귀
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-6">
         <AdminSummaryCards cards={summaryCards} />
