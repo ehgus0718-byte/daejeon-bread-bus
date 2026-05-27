@@ -8,6 +8,7 @@ import AdminReservationNotesSection from "./AdminReservationNotesSection.jsx";
 import AdminHealthReport from "./AdminHealthReport.jsx";
 import AdminOperationGuide from "./AdminOperationGuide.jsx";
 import AdminDateSettingsForm from "./AdminDateSettingsForm.jsx";
+import AdminScheduleDetailEditor from "./AdminScheduleDetailEditor.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
@@ -21,6 +22,8 @@ export default function AdminDashboard({
   capacityOverrides = {},
   priceOverrides = {},
   scheduleStatus = {},
+  scheduleDetails = {},
+  selectedDate = "",
   isRefreshingReservations = false,
   onRefreshReservations,
   onChangeReservationStatus,
@@ -28,6 +31,8 @@ export default function AdminDashboard({
   onChangeCapacity,
   onChangePrice,
   onChangeScheduleStatus,
+  onChangeScheduleDetail,
+  onRemoveScheduleDetail,
   onRemoveDateSettings,
   onSaveReservationNote,
   onClearReservationNote
@@ -49,9 +54,10 @@ export default function AdminDashboard({
       buildDateSettings({
         capacityOverrides,
         priceOverrides,
-        scheduleStatus
+        scheduleStatus,
+        scheduleDetails
       }),
-    [capacityOverrides, priceOverrides, scheduleStatus]
+    [capacityOverrides, priceOverrides, scheduleDetails, scheduleStatus]
   );
 
   const summaryCards = useMemo(() => {
@@ -92,7 +98,7 @@ export default function AdminDashboard({
             관리자 운영 센터
           </h2>
           <p className="mt-3 text-sm font-bold leading-6 text-stone-300">
-            예약 상태, 날짜별 정원, 가격, 모집 상태를 한 곳에서 관리합니다.
+            예약 상태, 날짜별 정원, 가격, 모집 상태와 고객용 여행 일정을 관리합니다.
           </p>
         </div>
 
@@ -139,6 +145,13 @@ export default function AdminDashboard({
           onChangePrice={onChangePrice}
           onChangeScheduleStatus={onChangeScheduleStatus}
           onRemoveDateSettings={onRemoveDateSettings}
+        />
+
+        <AdminScheduleDetailEditor
+          selectedDate={selectedDate}
+          scheduleDetails={scheduleDetails}
+          onSave={onChangeScheduleDetail}
+          onRemove={onRemoveScheduleDetail}
         />
 
         <AdminCapacityControl
