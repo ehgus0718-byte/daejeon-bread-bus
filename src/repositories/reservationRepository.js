@@ -34,6 +34,23 @@ function normalizeRemoteReservation(data) {
   return data;
 }
 
+function getReservationId(reservation = {}) {
+  return reservation?.id || reservation?.reservationId || null;
+}
+
+function mergeCreatedReservation({ reservations = [], createdReservation = null }) {
+  const safeReservations = normalizeReservations(reservations);
+  const createdId = getReservationId(createdReservation);
+
+  if (!createdReservation || !createdId) return safeReservations;
+
+  const alreadyIncluded = safeReservations.some(
+    (reservation) => getReservationId(reservation) === createdId
+  );
+
+  return alreadyIncluded ? safeReservations : [createdReservation, ...safeReservations];
+}
+
 function createMissingReservationIdResult() {
   return createRepositoryResult({
     ok: false,
@@ -134,10 +151,18 @@ async function addRemoteReservation(client, reservation = {}) {
     return createRepositoryResult({ ok: false, data: null, error: result.error });
   }
 
+  const createdReservation = normalizeRemoteReservation(result.data) || reservation;
   const listResult = await listRemoteReservations(client);
-  if (listResult.ok && listResult.data.length > 0) return listResult;
 
-  const createdReservation = normalizeRemoteReservation(result.data);
+  if (listResult.ok) {
+    return createRepositoryResult({
+      data: mergeCreatedReservation({
+        reservations: listResult.data,
+        createdReservation
+      })
+    });
+  }
+
   return createRepositoryResult({ data: createdReservation ? [createdReservation] : [] });
 }
 
