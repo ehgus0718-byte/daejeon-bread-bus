@@ -6,10 +6,13 @@ function toPhoneDigits(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function isActiveReservation(reservation = {}) {
+  return reservation.status !== "취소" && reservation.status !== "예약취소";
+}
+
 export function createDuplicateReservationKey(reservation = {}) {
   return [
     toComparableText(reservation.date),
-    toComparableText(reservation.name),
     toPhoneDigits(reservation.phone)
   ].join("|");
 }
@@ -30,7 +33,9 @@ export function findDuplicateReservation(reservations = [], nextReservation = {}
 
   return (
     reservations.find(
-      (reservation) => createDuplicateReservationKey(reservation) === nextKey
+      (reservation) =>
+        isActiveReservation(reservation) &&
+        createDuplicateReservationKey(reservation) === nextKey
     ) || null
   );
 }
