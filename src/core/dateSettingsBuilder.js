@@ -7,13 +7,24 @@ function normalizeScheduleStatus(value) {
   return value || "closed";
 }
 
-function getDateKeys({ baseDateSettings = {}, capacityOverrides = {}, priceOverrides = {}, scheduleStatus = {} }) {
+function normalizeScheduleDetail(value) {
+  return String(value || "").trim();
+}
+
+function getDateKeys({
+  baseDateSettings = {},
+  capacityOverrides = {},
+  priceOverrides = {},
+  scheduleStatus = {},
+  scheduleDetails = {}
+}) {
   return Array.from(
     new Set([
       ...Object.keys(baseDateSettings),
       ...Object.keys(capacityOverrides),
       ...Object.keys(priceOverrides),
-      ...Object.keys(scheduleStatus)
+      ...Object.keys(scheduleStatus),
+      ...Object.keys(scheduleDetails)
     ])
   ).sort();
 }
@@ -23,6 +34,7 @@ export function buildDateSettings({
   capacityOverrides = {},
   priceOverrides = {},
   scheduleStatus = {},
+  scheduleDetails = {},
   fallbackCapacity = 15,
   fallbackPrice = 30000
 } = {}) {
@@ -30,14 +42,24 @@ export function buildDateSettings({
     baseDateSettings,
     capacityOverrides,
     priceOverrides,
-    scheduleStatus
+    scheduleStatus,
+    scheduleDetails
   }).reduce((result, date) => {
     const base = baseDateSettings[date] || {};
+
     const capacity = Number(
       capacityOverrides[date] || base.capacity || fallbackCapacity
     );
+
     const price = Number(priceOverrides[date] || base.price || fallbackPrice);
-    const status = normalizeScheduleStatus(scheduleStatus[date] || base.status || "closed");
+
+    const status = normalizeScheduleStatus(
+      scheduleStatus[date] || base.status || "closed"
+    );
+
+    const detail = normalizeScheduleDetail(
+      scheduleDetails[date] || base.detail || ""
+    );
 
     return {
       ...result,
@@ -45,7 +67,8 @@ export function buildDateSettings({
         ...base,
         capacity,
         price,
-        status
+        status,
+        detail
       }
     };
   }, {});
