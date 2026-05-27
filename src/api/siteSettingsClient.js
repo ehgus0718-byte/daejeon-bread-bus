@@ -2,7 +2,9 @@ import { hasSupabaseConfig, supabaseClient } from "./supabaseClient.js";
 
 const TABLE_NAME = ["admin", "settings"].join("_");
 const ROW_ID = "default";
-const COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,updated_at";
+const BASE_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,updated_at";
+const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,updated_at";
+const SCHEDULE_DETAILS_FALLBACK_KEY = "__schedule_details__";
 
 function ok(data = null, status = 200) {
   return { ok: true, data, error: null, status };
@@ -20,17 +22,49 @@ function record(value) {
   return isRecord(value) ? value : {};
 }
 
+function isMissingScheduleDetailsColumnError(error) {
+  const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
+  return message.includes("schedule_details") || message.includes("column");
+}
+
+function splitScheduleStatusAndDetails(scheduleStatus = {}, explicitScheduleDetails = {}) {
+  const sourceStatus = record(scheduleStatus);
+  const fallbackScheduleDetails = record(sourceStatus[SCHEDULE_DETAILS_FALLBACK_KEY]);
+  const nextScheduleStatus = { ...sourceStatus };
+  delete nextScheduleStatus[SCHEDULE_DETAILS_FALLBACK_KEY];
+
+  return {
+    scheduleStatus: nextScheduleStatus,
+    scheduleDetails: {
+      ...fallbackScheduleDetails,
+      ...record(explicitScheduleDetails)
+    }
+  };
+}
+
+function mergeScheduleDetailsIntoStatus(settings = {}) {
+  return {
+    ...record(settings.scheduleStatus),
+    [SCHEDULE_DETAILS_FALLBACK_KEY]: record(settings.scheduleDetails)
+  };
+}
+
 function fromRow(row = {}) {
+  const splitSchedule = splitScheduleStatusAndDetails(
+    row.schedule_status,
+    row.schedule_details
+  );
+
   return {
     capacityOverrides: record(row.capacity_overrides),
     priceOverrides: record(row.price_overrides),
-    scheduleStatus: record(row.schedule_status),
-    scheduleDetails: record(row.schedule_details),
+    scheduleStatus: splitSchedule.scheduleStatus,
+    scheduleDetails: splitSchedule.scheduleDetails,
     updatedAt: row.updated_at || ""
   };
 }
 
-function toRow(settings = {}) {
+function toExtendedRow(settings = {}) {
   return {
     id: ROW_ID,
     capacity_overrides: record(settings.capacityOverrides),
@@ -40,32 +74,81 @@ function toRow(settings = {}) {
   };
 }
 
+function toFallbackRow(settings = {}) {
+  return {
+    id: ROW_ID,
+    capacity_overrides: record(settings.capacityOverrides),
+    price_overrides: record(settings.priceOverrides),
+    schedule_status: mergeScheduleDetailsIntoStatus(settings)
+  };
+}
+
 function hasClient() {
   return hasSupabaseConfig() && Boolean(supabaseClient);
+}
+
+async function loadSiteSettingsWithColumns(columns) {
+  return supabaseClient
+    .from(TABLE_NAME)
+    .select(columns)
+    .eq("id", ROW_ID)
+    .single();
+}
+
+async function saveSiteSettingsWithColumns(row, columns) {
+  return supabaseClient
+    .from(TABLE_NAME)
+    .upsert(row, { onConflict: "id" })
+    .select(columns)
+    .single();
 }
 
 export async function loadSiteSettings() {
   if (!hasClient()) return fail(new Error("원격 설정 저장소를 사용할 수 없습니다."));
 
-  const { data, error, status } = await supabaseClient
-    .from(TABLE_NAME)
-    .select(COLUMNS)
-    .eq("id", ROW_ID)
-    .single();
+  const extendedResult = await loadSiteSettingsWithColumns(EXTENDED_COLUMNS);
 
-  if (error) return fail(error, status);
-  return ok(fromRow(data), status);
+  if (!extendedResult.error) {
+    return ok(fromRow(extendedResult.data), extendedResult.status);
+  }
+
+  if (!isMissingScheduleDetailsColumnError(extendedResult.error)) {
+    return fail(extendedResult.error, extendedResult.status);
+  }
+
+  const fallbackResult = await loadSiteSettingsWithColumns(BASE_COLUMNS);
+
+  if (fallbackResult.error) {
+    return fail(fallbackResult.error, fallbackResult.status);
+  }
+
+  return ok(fromRow(fallbackResult.data), fallbackResult.status);
 }
 
 export async function saveSiteSettings(settings = {}) {
   if (!hasClient()) return fail(new Error("원격 설정 저장소를 사용할 수 없습니다."));
 
-  const { data, error, status } = await supabaseClient
-    .from(TABLE_NAME)
-    .upsert(toRow(settings), { onConflict: "id" })
-    .select(COLUMNS)
-    .single();
+  const extendedResult = await saveSiteSettingsWithColumns(
+    toExtendedRow(settings),
+    EXTENDED_COLUMNS
+  );
 
-  if (error) return fail(error, status);
-  return ok(fromRow(data), status);
+  if (!extendedResult.error) {
+    return ok(fromRow(extendedResult.data), extendedResult.status);
+  }
+
+  if (!isMissingScheduleDetailsColumnError(extendedResult.error)) {
+    return fail(extendedResult.error, extendedResult.status);
+  }
+
+  const fallbackResult = await saveSiteSettingsWithColumns(
+    toFallbackRow(settings),
+    BASE_COLUMNS
+  );
+
+  if (fallbackResult.error) {
+    return fail(fallbackResult.error, fallbackResult.status);
+  }
+
+  return ok(fromRow(fallbackResult.data), fallbackResult.status);
 }
