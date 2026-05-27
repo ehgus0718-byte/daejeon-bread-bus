@@ -4,7 +4,7 @@ import SectionTitle from "./SectionTitle.jsx";
 
 const LEGACY_PAYMENT_NOTICE = "예약이 저장되었습니다. 결제를 진행해주세요.";
 const RESERVATION_RECEIVED_NOTICE =
-  "예약이 접수되었습니다. 관리자가 확인 후 연락처로 결제 또는 입금 안내를 드립니다.";
+  "예약이 접수되었습니다. 관리자가 연락처 확인 후 결제 계좌를 안내드리며, 입금 확인 후 예약이 확정됩니다.";
 
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
@@ -109,7 +109,7 @@ export default function ReservationPanel({
           description="선택한 날짜의 잔여 좌석과 결제 예정금액을 확인하고 예약 정보를 입력합니다."
         />
         <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
-          실시간 모집현황 반영
+          연락처 확인 후 예약 확정
         </div>
       </div>
 
@@ -135,12 +135,12 @@ export default function ReservationPanel({
       </div>
 
       <div className="mt-5 rounded-3xl border border-orange-100 bg-orange-50/70 p-5 text-sm font-bold leading-6 text-stone-700">
-        <p className="font-black text-orange-700">결제 안내</p>
+        <p className="font-black text-orange-700">예약 및 결제 안내</p>
         <p className="mt-2">
-          예약 접수 후 관리자가 예약 내용을 확인하고 연락처로 결제 또는 입금 안내를 드립니다.
+          예약 접수 후 관리자가 연락처와 예약 내용을 확인한 뒤 결제 계좌를 안내드립니다.
         </p>
         <p className="mt-1 text-xs font-black text-stone-500">
-          관리자 확인 전까지 예약 상태는 결제대기로 저장됩니다.
+          입금 확인 후 예약이 확정되며, 관리자 확인 전까지 예약 상태는 결제대기로 저장됩니다.
         </p>
       </div>
 
@@ -148,7 +148,7 @@ export default function ReservationPanel({
         <div className="rounded-2xl bg-white p-4">
           <p className="font-black text-stone-950">예약 전 확인</p>
           <p className="mt-2 text-xs font-bold text-stone-500">
-            출발 시간, 집결 장소, 세부 일정은 예약 확인 연락 시 함께 안내됩니다.
+            실제 연락 가능한 휴대폰 번호로만 예약해 주세요. 연락처 확인이 어려우면 예약이 확정되지 않을 수 있습니다.
           </p>
         </div>
         <div className="rounded-2xl bg-white p-4">
@@ -191,7 +191,7 @@ export default function ReservationPanel({
             autoComplete="tel"
             value={form.phone || ""}
             onChange={(e) => onChange?.("phone", e.target.value)}
-            placeholder="010-0000-0000"
+            placeholder="휴대폰 번호를 입력해주세요"
             className="rounded-2xl border border-stone-200 px-4 py-4 font-bold outline-none transition focus:border-orange-400"
           />
         </label>
