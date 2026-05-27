@@ -265,9 +265,15 @@ export default function AppSafe() {
   );
 
   const visibleAdminReservations = adminReservations || reservations;
+  const isQuickReservationView = Array.isArray(adminReservations);
 
   function clearQuickAdminReservations() {
     setAdminReservations(null);
+  }
+
+  function handleClearQuickReservations() {
+    clearQuickAdminReservations();
+    setNotice("전체 예약 목록 보기로 돌아왔습니다.");
   }
 
   function remaining(date) {
@@ -644,7 +650,10 @@ export default function AppSafe() {
             scheduleDetails={scheduleDetails}
             selectedDate={selectedDate}
             isRefreshingReservations={isRefreshingReservations}
+            isQuickReservationView={isQuickReservationView}
+            quickReservationLimit={ADMIN_QUICK_REFRESH_LIMIT}
             onRefreshReservations={handleRefreshReservations}
+            onClearQuickReservations={handleClearQuickReservations}
             onChangeReservationStatus={handleReservationStatusChange}
             onRemoveReservation={handleRemoveReservation}
             onChangeCapacity={handleCapacityChange}
