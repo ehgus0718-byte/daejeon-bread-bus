@@ -8,6 +8,10 @@ const FALLBACK_TIMELINE = [
   "기념품 구매 및 복귀"
 ];
 
+const PROMO_TITLE = "빵 따라 떠나는\n대전 로컬 미식여행";
+const PROMO_DESCRIPTION =
+  "노가이드·노팁으로 부담 없이, 달력에서 원하는 날짜를 고르고 대전의 인기 빵집 코스를 편하게 예약해보세요.";
+
 function formatDisplayDate(date) {
   if (!date) return "날짜 선택 전";
 
@@ -52,12 +56,48 @@ function getFirstSavedScheduleDetail(scheduleDetails = {}) {
   };
 }
 
+function updateLandingCopy() {
+  if (typeof document === "undefined") return;
+
+  document.querySelectorAll("h1").forEach((element) => {
+    if (element.textContent?.trim() === "대전빵셔틀 빵버스") {
+      element.textContent = "대전빵버스 빵셔틀";
+    }
+  });
+
+  document.querySelectorAll("h2").forEach((element) => {
+    const text = String(element.textContent || "").replace(/\s+/g, " ").trim();
+
+    if (text.includes("달력으로 선택하고") && text.includes("대전 빵버스를 예약하세요")) {
+      element.innerHTML = PROMO_TITLE.replace("\n", "<br />");
+    }
+  });
+
+  document.querySelectorAll("p").forEach((element) => {
+    const text = String(element.textContent || "").replace(/\s+/g, " ").trim();
+
+    if (
+      text.includes("날짜별 모집현황") ||
+      text.includes("실제 운영형 예약 플랫폼")
+    ) {
+      element.textContent = PROMO_DESCRIPTION;
+    }
+  });
+}
+
 export default function CustomerScheduleSection({
   selectedDate,
   scheduleDetail = "",
   scheduleStatus = "closed"
 }) {
   const [remoteScheduleDetails, setRemoteScheduleDetails] = useState({});
+
+  useEffect(() => {
+    updateLandingCopy();
+    const timer = window.setTimeout(updateLandingCopy, 300);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
