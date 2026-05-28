@@ -1,12 +1,16 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { formatCurrency, formatSeatCount } from "../core/formatters.js";
 import SectionTitle from "./SectionTitle.jsx";
+import {
+  isSmsVerificationEnabled,
+  requestSmsVerification,
+  verifySmsCode
+} from "../api/smsVerificationClient.js";
 
 const LEGACY_PAYMENT_NOTICE = "예약이 저장되었습니다. 결제를 진행해주세요.";
 const RESERVATION_RECEIVED_NOTICE =
   "예약이 접수되었습니다. 관리자가 연락처 확인 후 결제 계좌를 안내드리며, 입금 확인 후 예약이 확정됩니다.";
-const ENABLE_SMS_VERIFICATION_PREVIEW =
-  import.meta.env.VITE_ENABLE_SMS_VERIFICATION_PREVIEW === "true";
+const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
@@ -22,45 +26,8 @@ function normalizeNoticeText(value = "") {
   return value === LEGACY_PAYMENT_NOTICE ? RESERVATION_RECEIVED_NOTICE : value;
 }
 
-function SmsVerificationPreview({ phone = "" }) {
-  return (
-    <div className="md:col-span-2 rounded-3xl border border-orange-100 bg-orange-50/60 p-5">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-black text-orange-700">휴대폰 인증 준비 영역</p>
-          <p className="mt-1 text-xs font-bold leading-5 text-stone-500">
-            SOLAPI 연동 후 인증번호 발송과 확인 기능이 활성화됩니다. 현재는 실제 문자 발송 전 안전 준비 상태입니다.
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled
-          className="rounded-2xl bg-stone-300 px-5 py-3 text-xs font-black text-white disabled:cursor-not-allowed"
-        >
-          인증번호 받기 준비중
-        </button>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-        <input
-          type="text"
-          inputMode="numeric"
-          disabled
-          value=""
-          placeholder={phone ? "인증번호 6자리" : "연락처 입력 후 인증번호 발송"}
-          className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none disabled:text-stone-400"
-          readOnly
-        />
-        <button
-          type="button"
-          disabled
-          className="rounded-2xl bg-stone-300 px-5 py-3 text-xs font-black text-white disabled:cursor-not-allowed"
-        >
-          인증 확인 준비중
-        </button>
-      </div>
-    </div>
-  );
+function getPhoneDigits(value = "") {
+  return String(value || "").replace(/\D/g, "");
 }
 
 function PassengerCounter({
@@ -108,6 +75,117 @@ function PassengerCounter({
   );
 }
 
+function SmsVerificationBox({ phone = "", onVerifiedChange }) {
+  const [code, setCode] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [message, setMessage] = useState("휴대폰 번호 입력 후 인증번호를 받아주세요.");
+  const [isVerified, setIsVerified] = useState(false);
+  const phoneDigits = getPhoneDigits(phone);
+  const canRequest = phoneDigits.length === 11 && phoneDigits.startsWith("010") && !isSending;
+  const canVerify = code.replace(/\D/g, "").length === 6 && !isChecking && !isVerified;
+
+  useEffect(() => {
+    setCode("");
+    setIsVerified(false);
+    setMessage("휴대폰 번호 입력 후 인증번호를 받아주세요.");
+    onVerifiedChange?.(false);
+  }, [phoneDigits, onVerifiedChange]);
+
+  async function handleRequestCode() {
+    if (!canRequest) {
+      setMessage("010으로 시작하는 휴대폰 번호 11자리를 입력해주세요.");
+      return;
+    }
+
+    setIsSending(true);
+    setMessage("인증번호를 발송하는 중입니다...");
+
+    try {
+      const result = await requestSmsVerification(phoneDigits);
+      setMessage(result.message || (result.ok ? "인증번호를 발송했습니다." : "인증번호 발송에 실패했습니다."));
+    } catch (error) {
+      console.warn("SMS request failed", error);
+      setMessage("인증번호 발송 중 오류가 발생했습니다.");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  async function handleVerifyCode() {
+    const safeCode = code.replace(/\D/g, "").slice(0, 6);
+
+    if (safeCode.length !== 6) {
+      setMessage("인증번호 6자리를 입력해주세요.");
+      return;
+    }
+
+    setIsChecking(true);
+    setMessage("인증번호를 확인하는 중입니다...");
+
+    try {
+      const result = await verifySmsCode({ phone: phoneDigits, code: safeCode });
+
+      if (result.ok) {
+        setIsVerified(true);
+        onVerifiedChange?.(true);
+      }
+
+      setMessage(result.message || (result.ok ? "휴대폰 인증이 완료되었습니다." : "인증번호 확인에 실패했습니다."));
+    } catch (error) {
+      console.warn("SMS verify failed", error);
+      setMessage("인증번호 확인 중 오류가 발생했습니다.");
+    } finally {
+      setIsChecking(false);
+    }
+  }
+
+  return (
+    <div className="md:col-span-2 rounded-3xl border border-orange-100 bg-orange-50/60 p-5">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm font-black text-orange-700">휴대폰 인증</p>
+          <p className="mt-1 text-xs font-bold leading-5 text-stone-500">
+            실제 연락 가능한 번호인지 확인한 뒤 예약이 가능합니다.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleRequestCode}
+          disabled={!canRequest || isVerified}
+          className="rounded-2xl bg-orange-500 px-5 py-3 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-stone-300"
+        >
+          {isSending ? "발송 중..." : isVerified ? "인증 완료" : "인증번호 받기"}
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+        <input
+          type="text"
+          inputMode="numeric"
+          value={code}
+          onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+          placeholder="인증번호 6자리"
+          disabled={isVerified}
+          className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-400 disabled:text-stone-400"
+        />
+        <button
+          type="button"
+          onClick={handleVerifyCode}
+          disabled={!canVerify}
+          className="rounded-2xl bg-stone-900 px-5 py-3 text-xs font-black text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
+        >
+          {isChecking ? "확인 중..." : isVerified ? "인증 완료" : "인증 확인"}
+        </button>
+      </div>
+
+      <p className={`mt-3 text-xs font-black ${isVerified ? "text-green-600" : "text-stone-500"}`}>
+        {message}
+      </p>
+    </div>
+  );
+}
+
 export default function ReservationPanel({
   selectedDate,
   remainingSeats = 0,
@@ -118,6 +196,7 @@ export default function ReservationPanel({
   notice,
   isSubmitting = false
 }) {
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const safeRemainingSeats = Math.max(0, toSafeNumber(remainingSeats, 0));
   const adultCount = toCount(form.adultCount, 1);
   const childCount = toCount(form.childCount, 0);
@@ -129,7 +208,8 @@ export default function ReservationPanel({
   const displayNotice = normalizeNoticeText(notice);
   const hasAvailableSeats = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
-  const canSubmit = hasAvailableSeats && hasValidPeopleSelection && !isSubmitting;
+  const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
+  const canSubmit = hasAvailableSeats && hasValidPeopleSelection && hasRequiredPhoneVerification && !isSubmitting;
 
   function updatePassengerCount(key, nextValue) {
     const nextAdultCount = key === "adultCount" ? nextValue : adultCount;
@@ -239,8 +319,11 @@ export default function ReservationPanel({
           />
         </label>
 
-        {ENABLE_SMS_VERIFICATION_PREVIEW ? (
-          <SmsVerificationPreview phone={form.phone} />
+        {SMS_VERIFICATION_ENABLED ? (
+          <SmsVerificationBox
+            phone={form.phone}
+            onVerifiedChange={setIsPhoneVerified}
+          />
         ) : null}
       </div>
 
@@ -292,7 +375,9 @@ export default function ReservationPanel({
             {isSubmitting
               ? "예약 접수 중..."
               : hasAvailableSeats
-                ? "예약하기"
+                ? SMS_VERIFICATION_ENABLED && !isPhoneVerified
+                  ? "휴대폰 인증 후 예약"
+                  : "예약하기"
                 : "잔여 좌석 없음"}
           </button>
         </div>
@@ -300,6 +385,12 @@ export default function ReservationPanel({
         {!hasValidPeopleSelection ? (
           <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">
             예약 인원은 최소 1명 이상이며 잔여 좌석을 초과할 수 없습니다.
+          </div>
+        ) : null}
+
+        {SMS_VERIFICATION_ENABLED && !isPhoneVerified ? (
+          <div className="mt-4 rounded-2xl bg-orange-50 px-4 py-3 text-xs font-black text-orange-700">
+            휴대폰 인증을 완료해야 예약 접수가 가능합니다.
           </div>
         ) : null}
       </div>
