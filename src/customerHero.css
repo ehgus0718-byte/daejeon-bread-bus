@@ -1,10 +1,33 @@
+body[data-admin-page="false"] {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(251, 191, 36, 0.18), transparent 28%),
+    radial-gradient(circle at 92% 18%, rgba(249, 115, 22, 0.12), transparent 30%),
+    linear-gradient(180deg, #fff7ed 0%, #fffbeb 42%, #fffaf3 100%) !important;
+  color: #2f1b0c !important;
+}
+
+body[data-admin-page="false"] main {
+  background: transparent !important;
+}
+
+body[data-admin-page="false"] header,
+body[data-admin-page="false"] nav {
+  background: rgba(255, 251, 235, 0.9) !important;
+  border-color: rgba(217, 119, 6, 0.16) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
 body[data-admin-page="false"] main>section:first-child{
 position:relative!important;
 overflow:hidden!important;
-background:#fffdf8!important;
+background:
+  linear-gradient(135deg, rgba(255,255,255,.92), rgba(255,247,237,.96)),
+  radial-gradient(circle at 78% 20%, rgba(251,146,60,.28), transparent 30%)!important;
 max-width:1240px!important;
 min-height:0!important;
-padding:42px 64px!important;
+padding:48px 64px!important;
+border:1px solid rgba(251,146,60,.22)!important;
+box-shadow:0 28px 80px rgba(146,64,14,.16)!important;
 }
 
 body[data-admin-page="false"] main>section:first-child>*{
@@ -13,12 +36,14 @@ position:relative!important;
 z-index:2!important;
 }
 
+body[data-admin-page="false"] main>section:first-child h1,
 body[data-admin-page="false"] main>section:first-child h2{
-max-width:500px!important;
-line-height:1.16!important;
-color:#1c1917!important;
+max-width:520px!important;
+line-height:1.13!important;
+color:#2f1b0c!important;
 text-shadow:none!important;
 margin-top:18px!important;
+letter-spacing:-.055em!important;
 }
 
 body[data-admin-page="false"] main>section:first-child h2::before{
@@ -39,13 +64,13 @@ display:block!important;
 font-size:clamp(2.2rem,4vw,3.5rem)!important;
 line-height:1.15!important;
 letter-spacing:-.045em!important;
-color:#1c1917!important;
+color:#2f1b0c!important;
 }
 
 body[data-admin-page="false"] main>section:first-child p{
 max-width:560px!important;
 line-height:1.9!important;
-color:#44403c!important;
+color:#6b3f18!important;
 font-size:0!important;
 word-break:keep-all!important;
 }
@@ -56,7 +81,7 @@ white-space:pre-line!important;
 font-size:1.04rem!important;
 line-height:1.9!important;
 display:block!important;
-color:#44403c!important;
+color:#6b3f18!important;
 }
 
 body[data-admin-page="false"] main>section:first-child p:first-child{
@@ -71,7 +96,7 @@ body[data-admin-page="false"] main>section:first-child p:first-child::before{
 content:"DAEJEON BREAD BUS"!important;
 white-space:normal!important;
 font-size:.875rem!important;
-letter-spacing:.18em!important;
+letter-spacing:.2em!important;
 line-height:1.4!important;
 color:#c2410c!important;
 }
@@ -86,24 +111,69 @@ bottom:34px!important;
 width:auto!important;
 height:auto!important;
 min-height:0!important;
-border-radius:30px!important;
-background-image:url("https://media.canva.com/v2/image-resize/format:PNG/height:1200/quality:100/uri:ifs%3A%2F%2FM%2Fce207907-b827-4748-aa2d-024e67d49636/watermark:F/width:1200?csig=AAAAAAAAAAAAAAAAAAAAACwHi4blRzq09cq4LSquXBozivKmNZUP31SwrK-TK_TW&exp=1779900132&osig=AAAAAAAAAAAAAAAAAAAAACT6zcsd04L8Xq4PX3rx26UKLwmCISqOUhDmgarZA9hl&signer=media-rpc&x-canva-quality=screen_3x")!important;
+border-radius:32px!important;
+background:
+  linear-gradient(180deg, rgba(255,244,214,.06), rgba(120,53,15,.08)),
+  url("/images/hero-bread.jpg"),
+  url("https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1400&q=80")!important;
 background-position:center!important;
 background-size:cover!important;
 background-repeat:no-repeat!important;
-box-shadow:0 22px 56px rgba(120,53,15,.14)!important;
+box-shadow:0 24px 60px rgba(120,53,15,.22)!important;
 border:1px solid rgba(255,255,255,.92)!important;
 z-index:1!important;
 opacity:1!important;
-filter:none!important;
+filter:saturate(1.08) contrast(1.03)!important;
 }
 
-body[data-admin-page="false"] main>section:first-child::after{display:none!important;}
+body[data-admin-page="false"] main>section:first-child::after{
+content:"오늘의 빵 투어"!important;
+position:absolute!important;
+right:92px!important;
+bottom:58px!important;
+z-index:2!important;
+border-radius:999px!important;
+background:rgba(255,251,235,.92)!important;
+color:#9a3412!important;
+padding:10px 16px!important;
+font-size:13px!important;
+font-weight:900!important;
+box-shadow:0 12px 28px rgba(120,53,15,.16)!important;
+}
+
+body[data-admin-page="false"] main section:not(:first-child),
+body[data-admin-page="false"] main>div,
+body[data-admin-page="false"] .rounded-\[2rem\],
+body[data-admin-page="false"] .rounded-3xl{
+  border-color: rgba(251,146,60,.18) !important;
+}
+
+body[data-admin-page="false"] .bg-white{
+  background-color: rgba(255, 253, 247, .96) !important;
+}
+
+body[data-admin-page="false"] .bg-orange-50{
+  background-color: #ffedd5 !important;
+}
+
+body[data-admin-page="false"] .text-orange-600,
+body[data-admin-page="false"] .text-orange-700{
+  color:#c2410c!important;
+}
+
+body[data-admin-page="false"] .bg-orange-500{
+  background:linear-gradient(135deg,#f97316,#ea580c)!important;
+}
+
+body[data-admin-page="false"] .shadow-orange-100{
+  --tw-shadow-color: rgba(251, 146, 60, .24) !important;
+}
 
 @media (max-width:1100px){
-body[data-admin-page="false"] main>section:first-child{padding:38px 34px!important;}
+body[data-admin-page="false"] main>section:first-child{padding:42px 34px!important;}
 body[data-admin-page="false"] main>section:first-child>*{max-width:45%!important;}
 body[data-admin-page="false"] main>section:first-child::before{right:34px!important;left:48%!important;top:32px!important;bottom:32px!important;}
+body[data-admin-page="false"] main>section:first-child::after{right:58px!important;}
 }
 
 @media (max-width:900px){
@@ -122,10 +192,11 @@ width:100%!important;
 height:260px!important;
 margin:28px auto 0!important;
 opacity:1!important;
-filter:none!important;
+filter:saturate(1.08) contrast(1.03)!important;
 background-color:transparent!important;
 background-blend-mode:normal!important;
 }
+body[data-admin-page="false"] main>section:first-child::after{right:42px!important;bottom:36px!important;}
 body[data-admin-page="false"] main>section:first-child p::before{font-size:1rem!important;}
 .bb-calendar-card{padding:14px!important;border-radius:24px!important;}
 .bb-calendar-badge{display:none!important;}
