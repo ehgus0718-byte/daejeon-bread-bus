@@ -22,7 +22,7 @@ const defaultConfig = {
   tourPackages: [
     {
       title: "대전 디저트 카페 버스 여행",
-      date: "2026-05-30",
+      date: "2026-06-13",
       image: "https://images.unsplash.com/photo-1483695028939-5bb13f8648b0?auto=format&fit=crop&w=1400&q=80",
       description: "디저트, 카페, 베이커리를 함께 즐기는 달콤한 코스",
       itinerary: [
