@@ -206,6 +206,9 @@ export default function ReservationPanel({
   const childPrice = Math.max(0, safePrice - 10000);
   const totalAmount = adultCount * safePrice + childCount * childPrice;
   const displayNotice = normalizeNoticeText(notice);
+  const hasReservationSuccessNotice =
+  displayNotice.includes("예약이 접수되었습니다") ||
+  displayNotice.includes("예약이 DB에 저장되었습니다");
   const hasAvailableSeats = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
@@ -388,7 +391,7 @@ export default function ReservationPanel({
           </div>
         ) : null}
 
-        {SMS_VERIFICATION_ENABLED ? (
+        {SMS_VERIFICATION_ENABLED && !hasReservationSuccessNotice ? (
           <div className={`mt-4 rounded-2xl px-4 py-3 text-xs font-black ${
             isPhoneVerified
               ? "bg-green-50 text-green-700"
@@ -402,10 +405,16 @@ export default function ReservationPanel({
       </div>
 
       {displayNotice ? (
-        <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700">
-          {displayNotice}
-        </div>
-      ) : null}
+  <div
+    className={`mt-5 rounded-2xl border px-4 py-4 text-sm font-black ${
+      hasReservationSuccessNotice
+        ? "border-green-200 bg-green-50 text-green-700"
+        : "border-orange-100 bg-orange-50 text-orange-700"
+    }`}
+  >
+    {displayNotice}
+  </div>
+) : null}
     </section>
   );
 }
