@@ -389,16 +389,16 @@ export default function ReservationPanel({
         ) : null}
 
         {SMS_VERIFICATION_ENABLED ? (
-  <div className={`mt-4 rounded-2xl px-4 py-3 text-xs font-black ${
-    isPhoneVerified
-      ? "bg-green-50 text-green-700"
-      : "bg-orange-50 text-orange-700"
-  }`}>
-    {isPhoneVerified
-      ? "휴대폰 인증이 완료되었습니다."
-      : "휴대폰 인증을 완료해야 예약 접수가 가능합니다."}
-  </div>
-) : null}
+          <div className={`mt-4 rounded-2xl px-4 py-3 text-xs font-black ${
+            isPhoneVerified
+              ? "bg-green-50 text-green-700"
+              : "bg-orange-50 text-orange-700"
+          }`}>
+            {isPhoneVerified
+              ? "휴대폰 인증이 완료되었습니다."
+              : "휴대폰 인증을 완료해야 예약 접수가 가능합니다."}
+          </div>
+        ) : null}
       </div>
 
       {displayNotice ? (
