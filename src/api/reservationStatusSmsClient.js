@@ -10,6 +10,26 @@ function getReservationId(reservation = {}) {
   return reservation?.id || reservation?.reservationId || null;
 }
 
+function getReservationDate(reservation = {}) {
+  return reservation?.date || reservation?.selectedDate || reservation?.reservationDate || "";
+}
+
+function getReservationPeople(reservation = {}) {
+  const explicitPeople = Number(reservation?.people);
+  if (Number.isFinite(explicitPeople) && explicitPeople > 0) return explicitPeople;
+
+  const adultCount = Number(reservation?.adultCount || 0);
+  const childCount = Number(reservation?.childCount || 0);
+  const infantCount = Number(reservation?.infantCount || 0);
+  const totalPeople = adultCount + childCount + infantCount;
+
+  return Number.isFinite(totalPeople) && totalPeople > 0 ? totalPeople : 0;
+}
+
+function normalizePhone(value = "") {
+  return String(value || "").replace(/\D/g, "");
+}
+
 export function shouldSendReservationStatusSms(status = "") {
   return SMS_TARGET_STATUSES.has(String(status || "").trim());
 }
@@ -29,14 +49,39 @@ export async function sendReservationStatusSms({ reservation = {}, status = "" }
   }
 
   const reservationId = getReservationId(reservation);
+  const name = reservation?.name || reservation?.customerName || reservation?.reservationName || "";
+  const phone = normalizePhone(reservation?.phone || reservation?.contact || reservation?.mobile || "");
+  const date = getReservationDate(reservation);
+  const people = getReservationPeople(reservation);
+  const amount = Number(reservation?.totalAmount || reservation?.amount || reservation?.price || 0) || 0;
+  const normalizedReservation = {
+    ...reservation,
+    id: reservationId,
+    reservationId,
+    name,
+    phone,
+    date,
+    selectedDate: date,
+    people,
+    status: nextStatus,
+    totalAmount: amount
+  };
+
   const payload = {
     reservationId,
+    id: reservationId,
+    name,
+    phone,
+    contact: phone,
+    mobile: phone,
+    date,
+    selectedDate: date,
+    reservationDate: date,
+    people,
     status: nextStatus,
-    reservation: {
-      ...reservation,
-      id: reservationId,
-      status: nextStatus
-    }
+    totalAmount: amount,
+    amount,
+    reservation: normalizedReservation
   };
 
   const { data, error } = await supabaseClient.functions.invoke(
