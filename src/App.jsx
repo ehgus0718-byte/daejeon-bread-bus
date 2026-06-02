@@ -110,6 +110,23 @@ async function fetchReservationsFromDB() {
     createdAt: item.created_at,
   }));
 }
+async function updateReservationStatusInDB(id, nextStatus) {
+  if (!id) {
+    throw new Error("예약 ID가 없습니다.");
+  }
+
+  const { error } = await supabase
+    .from("reservations")
+    .update({ status: nextStatus })
+    .eq("id", id);
+
+  if (error) {
+    console.error("예약 상태 저장 실패:", error);
+    throw error;
+  }
+
+  return true;
+}
 async function saveReservationToDB(form, config) {
   const people = clamp(form.people, 1, Number(config.maxPeople || 1));
   const amount = people * Number(config.pricePerPerson || 0);
