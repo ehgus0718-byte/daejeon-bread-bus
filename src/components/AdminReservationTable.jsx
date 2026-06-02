@@ -7,13 +7,20 @@ import { sortReservations } from "../core/reservationSorters.js";
 import { formatPeopleCount } from "../core/formatters.js";
 import { RESERVATION_STATUS_OPTIONS } from "../core/statusConstants.js";
 
-const STATUS_OPTIONS = [
-  ...RESERVATION_STATUS_OPTIONS,
-  "탑승완료"
-];
+const STATUS_OPTIONS = [...RESERVATION_STATUS_OPTIONS];
 const DEFAULT_STATUS = STATUS_OPTIONS[0] || "예약접수";
 const INITIAL_VISIBLE_COUNT = 25;
 const VISIBLE_COUNT_STEP = 25;
+
+const STATUS_STYLES = {
+  예약접수: "bg-orange-50 text-orange-700 border-orange-100",
+  결제대기: "bg-yellow-50 text-yellow-700 border-yellow-100",
+  결제완료: "bg-blue-50 text-blue-700 border-blue-100",
+  예약확정: "bg-green-50 text-green-700 border-green-100",
+  예약취소: "bg-red-50 text-red-700 border-red-100",
+  취소: "bg-red-50 text-red-700 border-red-100",
+  탑승완료: "bg-stone-100 text-stone-700 border-stone-200"
+};
 
 function formatDate(dateString) {
   if (!dateString) return "-";
@@ -35,12 +42,23 @@ function createReservationRowKey(reservation = {}, index = 0) {
   return reservation.id || `${reservation.date || "date"}-${reservation.name || "name"}-${index}`;
 }
 
+function normalizeReservationStatus(status = "") {
+  if (status === "취소") return "예약취소";
+  return status || DEFAULT_STATUS;
+}
+
 function getReservationStatusValue(status = "") {
-  return STATUS_OPTIONS.includes(status) ? status : DEFAULT_STATUS;
+  const normalizedStatus = normalizeReservationStatus(status);
+  return STATUS_OPTIONS.includes(normalizedStatus) ? normalizedStatus : DEFAULT_STATUS;
 }
 
 function getReservationStatusLabel(status = "") {
-  return status || "상태 미정";
+  return normalizeReservationStatus(status) || "상태 미정";
+}
+
+function getReservationStatusClassName(status = "") {
+  const normalizedStatus = getReservationStatusLabel(status);
+  return STATUS_STYLES[normalizedStatus] || "bg-stone-100 text-stone-700 border-stone-200";
 }
 
 function getReservationPhoneLabel(phone = "") {
@@ -57,32 +75,47 @@ function createVisibleReservationSummary(reservations = []) {
     (summary, reservation) => {
       const people = Number(reservation.people || 0);
       const amount = Number(reservation.amount || 0);
-      const status = String(reservation.status || "");
+      const status = normalizeReservationStatus(String(reservation.status || ""));
 
       return {
         count: summary.count + 1,
         people: summary.people + (Number.isFinite(people) ? people : 0),
         amount: summary.amount + (Number.isFinite(amount) ? amount : 0),
-        paid: summary.paid + (status === "결제완료" ? 1 : 0),
+        received: summary.received + (status === "예약접수" ? 1 : 0),
         waiting: summary.waiting + (status === "결제대기" ? 1 : 0),
-        cancelled: summary.cancelled + (status === "취소" ? 1 : 0)
+        paid: summary.paid + (status === "결제완료" ? 1 : 0),
+        confirmed: summary.confirmed + (status === "예약확정" ? 1 : 0),
+        cancelled: summary.cancelled + (status === "예약취소" ? 1 : 0),
+        boarded: summary.boarded + (status === "탑승완료" ? 1 : 0)
       };
     },
     {
       count: 0,
       people: 0,
       amount: 0,
-      paid: 0,
+      received: 0,
       waiting: 0,
-      cancelled: 0
+      paid: 0,
+      confirmed: 0,
+      cancelled: 0,
+      boarded: 0
     }
   );
 }
 
-function SummaryItem({ label, value }) {
+function SummaryItem({ label, value, tone = "orange" }) {
+  const toneClassName = {
+    orange: "border-orange-100 bg-orange-50/60 text-orange-600",
+    yellow: "border-yellow-100 bg-yellow-50 text-yellow-700",
+    blue: "border-blue-100 bg-blue-50 text-blue-700",
+    green: "border-green-100 bg-green-50 text-green-700",
+    red: "border-red-100 bg-red-50 text-red-700",
+    stone: "border-stone-200 bg-stone-50 text-stone-600"
+  }[tone] || "border-orange-100 bg-orange-50/60 text-orange-600";
+
   return (
-    <div className="rounded-3xl border border-orange-100 bg-orange-50/60 px-4 py-3">
-      <div className="text-xs font-black text-orange-600">{label}</div>
+    <div className={`rounded-3xl border px-4 py-3 ${toneClassName}`}>
+      <div className="text-xs font-black">{label}</div>
       <div className="mt-1 text-lg font-black text-stone-900">{value}</div>
     </div>
   );
@@ -139,7 +172,7 @@ function ReservationRow({
       <div>{formatPeopleCount(reservation.people)}</div>
 
       <div>
-        <span className="rounded-full bg-orange-50 px-3 py-2 text-xs font-black text-orange-700">
+        <span className={`inline-flex rounded-full border px-3 py-2 text-xs font-black ${getReservationStatusClassName(reservation.status)}`}>
           {getReservationStatusLabel(reservation.status)}
         </span>
       </div>
@@ -268,12 +301,18 @@ export default function AdminReservationTable({
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <SummaryItem label="검색 결과" value={`${visibleSummary.count}건`} />
-        <SummaryItem label="총 인원" value={formatPeopleCount(visibleSummary.people)} />
-        <SummaryItem label="총 금액" value={formatCurrency(visibleSummary.amount)} />
-        <SummaryItem label="결제완료" value={`${visibleSummary.paid}건`} />
-        <SummaryItem label="결제대기" value={`${visibleSummary.waiting}건`} />
-        <SummaryItem label="취소" value={`${visibleSummary.cancelled}건`} />
+        <SummaryItem label="예약접수" value={`${visibleSummary.received}건`} tone="orange" />
+        <SummaryItem label="결제대기" value={`${visibleSummary.waiting}건`} tone="yellow" />
+        <SummaryItem label="결제완료" value={`${visibleSummary.paid}건`} tone="blue" />
+        <SummaryItem label="예약확정" value={`${visibleSummary.confirmed}건`} tone="green" />
+        <SummaryItem label="예약취소" value={`${visibleSummary.cancelled}건`} tone="red" />
+        <SummaryItem label="탑승완료" value={`${visibleSummary.boarded}건`} tone="stone" />
+      </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <SummaryItem label="검색 결과" value={`${visibleSummary.count}건`} tone="stone" />
+        <SummaryItem label="총 인원" value={formatPeopleCount(visibleSummary.people)} tone="stone" />
+        <SummaryItem label="총 금액" value={formatCurrency(visibleSummary.amount)} tone="stone" />
       </div>
 
       <div className="mt-4 rounded-3xl bg-stone-50 px-5 py-4 text-xs font-bold leading-6 text-stone-500">
