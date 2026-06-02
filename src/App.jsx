@@ -235,6 +235,29 @@ function AdminReservations({ reservations, setReservations }) { return <Card cla
       )
     );
 
+    if (["결제완료", "예약확정", "예약취소"].includes(nextStatus)) {
+      const { data, error } = await supabase.functions.invoke(
+        "send-reservation-status-sms",
+        {
+          body: {
+            phone: r.phone,
+            name: r.name,
+            date: r.date,
+            status: nextStatus
+          }
+        }
+      );
+
+      if (error || data?.ok === false) {
+        console.warn("상태 안내 문자 발송 실패:", error || data);
+        setNotice("예약 상태는 저장되었습니다. 다만 안내 문자 발송은 실패했습니다.");
+        return;
+      }
+
+      setNotice("예약 상태가 저장되었고 안내 문자를 발송했습니다.");
+      return;
+    }
+
     setNotice("예약 상태가 저장되었습니다.");
   } catch (error) {
     console.error("예약 상태 저장 오류:", error);
