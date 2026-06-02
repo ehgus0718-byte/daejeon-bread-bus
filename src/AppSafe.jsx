@@ -730,7 +730,7 @@ export default function AppSafe() {
               <h3 className="text-3xl font-black">2개월 예약 달력</h3>
             </div>
             <div className="rounded-full bg-white px-4 py-3 text-sm font-black shadow-sm">
-              관리자에서 날짜별 정원·가격·상태 수정 가능
+              예약 가능한 날짜를 선택한 뒤 정보를 입력해주세요
             </div>
           </div>
 
@@ -747,6 +747,66 @@ export default function AppSafe() {
             selectedDate={selectedDate}
             onSelectDate={handleSelectDate}
           />
+        </section>
+
+        <section className="mt-10 rounded-[2rem] border border-orange-200 bg-white p-6 shadow-xl shadow-orange-100/60 md:p-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-black tracking-[0.2em] text-orange-700">BOOKING GUIDE</p>
+              <h3 className="mt-2 text-3xl font-black text-stone-950">예약 전 꼭 확인해주세요</h3>
+            </div>
+            <p className="max-w-xl text-sm font-bold leading-6 text-stone-600">
+              예약은 접수 후 바로 확정되는 방식이 아니며, 담당자 확인과 입금 확인 후 최종 확정됩니다.
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
+              <p className="text-sm font-black text-orange-800">예약 절차</p>
+              <p className="mt-3 text-sm font-bold leading-6 text-stone-700">
+                날짜 선택 후 휴대폰 인증과 예약 정보를 입력하면 예약이 접수됩니다.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
+              <p className="text-sm font-black text-orange-800">결제 안내</p>
+              <p className="mt-3 text-sm font-bold leading-6 text-stone-700">
+                담당자가 연락처와 예약 내용을 확인한 뒤 문자로 결제 계좌를 안내드립니다.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
+              <p className="text-sm font-black text-orange-800">확정 기준</p>
+              <p className="mt-3 text-sm font-bold leading-6 text-stone-700">
+                입금 확인 후 예약확정 문자가 발송되며, 그때 최종 예약이 완료됩니다.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
+              <p className="text-sm font-black text-orange-800">출발 안내</p>
+              <p className="mt-3 text-sm font-bold leading-6 text-stone-700">
+                출발 장소와 시간은 예약 확정 후 문자로 개별 안내드립니다.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="rounded-3xl border border-red-100 bg-red-50 p-5">
+              <p className="text-sm font-black text-red-700">취소 및 환불 안내</p>
+              <ul className="mt-3 space-y-2 text-sm font-bold leading-6 text-stone-700">
+                <li>출발 3일 전까지 취소 시 전액 환불됩니다.</li>
+                <li>출발 2일 전 취소 시 결제 금액의 50%가 환불됩니다.</li>
+                <li>출발 1일 전 및 당일 취소는 환불이 어렵습니다.</li>
+                <li>운영사 사정으로 취소될 경우 전액 환불됩니다.</li>
+              </ul>
+            </div>
+            <div className="rounded-3xl border border-green-100 bg-green-50 p-5">
+              <p className="text-sm font-black text-green-700">운영 안내</p>
+              <ul className="mt-3 space-y-2 text-sm font-bold leading-6 text-stone-700">
+                <li>최소 출발 인원 미달 시 일정이 조정되거나 취소될 수 있습니다.</li>
+                <li>예약 변경은 잔여 좌석이 있는 경우에 한해 가능합니다.</li>
+                <li>문의가 필요한 경우 예약자 연락처로 안내드립니다.</li>
+                <li>예약 상태 변경 시 안내 문자가 자동 발송됩니다.</li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         <section className="mt-10">
