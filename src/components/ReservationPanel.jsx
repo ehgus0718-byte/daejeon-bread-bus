@@ -7,9 +7,6 @@ import {
   verifySmsCode
 } from "../api/smsVerificationClient.js";
 
-const LEGACY_PAYMENT_NOTICE = "예약이 저장되었습니다. 결제를 진행해주세요.";
-const RESERVATION_RECEIVED_NOTICE =
-  "예약이 접수되었습니다. 관리자가 연락처 확인 후 결제 계좌를 안내드리며, 입금 확인 후 예약이 확정됩니다.";
 const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
 function toSafeNumber(value, fallbackValue = 0) {
@@ -20,10 +17,6 @@ function toSafeNumber(value, fallbackValue = 0) {
 function toCount(value, fallbackValue = 0) {
   const numberValue = toSafeNumber(value, fallbackValue);
   return Math.max(0, Math.floor(numberValue));
-}
-
-function normalizeNoticeText(value = "") {
-  return value === LEGACY_PAYMENT_NOTICE ? RESERVATION_RECEIVED_NOTICE : value;
 }
 
 function getPhoneDigits(value = "") {
@@ -194,6 +187,7 @@ export default function ReservationPanel({
   onChange,
   onSubmit,
   notice,
+  reservationSuccessNotice = "",
   isSubmitting = false
 }) {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
@@ -205,10 +199,8 @@ export default function ReservationPanel({
   const safePrice = Math.max(0, toSafeNumber(price, 0));
   const childPrice = Math.max(0, safePrice - 10000);
   const totalAmount = adultCount * safePrice + childCount * childPrice;
-  const displayNotice = normalizeNoticeText(notice);
-  const hasReservationSuccessNotice =
-  displayNotice.includes("예약이 접수되었습니다") ||
-  displayNotice.includes("예약이 DB에 저장되었습니다");
+  const displayNotice = notice || "";
+  const hasReservationSuccessNotice = Boolean(reservationSuccessNotice);
   const hasAvailableSeats = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
@@ -405,16 +397,16 @@ export default function ReservationPanel({
       </div>
 
       {displayNotice ? (
-  <div
-    className={`mt-5 rounded-2xl border px-4 py-4 text-sm font-black ${
-      hasReservationSuccessNotice
-        ? "border-green-200 bg-green-50 text-green-700"
-        : "border-orange-100 bg-orange-50 text-orange-700"
-    }`}
-  >
-    {displayNotice}
-  </div>
-) : null}
+        <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700">
+          {displayNotice}
+        </div>
+      ) : null}
+
+      {reservationSuccessNotice ? (
+        <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-4 text-sm font-black text-green-700">
+          {reservationSuccessNotice}
+        </div>
+      ) : null}
     </section>
   );
 }
