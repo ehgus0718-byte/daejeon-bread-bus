@@ -879,7 +879,7 @@ export default function AppSafe() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-stone-800">
             <span className="font-black text-stone-950">소망투어</span>
             <span className="text-stone-300">|</span>
-            <span>대전빵셔틀 빵버스</span>
+            <span>대전빵버스 빵셔틀</span>
             <span className="text-stone-300">|</span>
             <span>대표전화 010-6422-9352</span>
           </div>
