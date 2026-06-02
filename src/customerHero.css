@@ -189,6 +189,21 @@ body[data-admin-page="false"] button.bg-orange-500{
   box-shadow:0 10px 24px rgba(194,65,12,.25)!important;
 }
 
+body[data-admin-page="false"] button:not(:disabled).bg-stone-900,
+body[data-admin-page="false"] button:not(:disabled).bg-orange-500,
+body[data-admin-page="false"] button:not(:disabled).bg-red-500{
+  background:linear-gradient(135deg,#f97316,#ea580c)!important;
+  color:#fff!important;
+  border:0!important;
+  box-shadow:0 12px 26px rgba(234,88,12,.28)!important;
+}
+
+body[data-admin-page="false"] button:not(:disabled).bg-stone-900:hover,
+body[data-admin-page="false"] button:not(:disabled).bg-orange-500:hover,
+body[data-admin-page="false"] button:not(:disabled).bg-red-500:hover{
+  background:linear-gradient(135deg,#ea580c,#c2410c)!important;
+}
+
 body[data-admin-page="false"] button.bg-red-500{
   background:linear-gradient(135deg,#f97316,#ea580c)!important;
   color:#fff!important;
@@ -199,11 +214,31 @@ body[data-admin-page="false"] button.bg-red-500:hover{
   background:linear-gradient(135deg,#ea580c,#c2410c)!important;
 }
 
-body[data-admin-page="false"] button.disabled\:bg-stone-300:disabled,
 body[data-admin-page="false"] button:disabled{
-  background:#a8a29e!important;
-  color:#fff!important;
+  background:#d6d3d1!important;
+  color:#57534e!important;
   box-shadow:none!important;
+  opacity:1!important;
+}
+
+body[data-admin-page="false"] button:disabled:has(+ *){
+  background:#d6d3d1!important;
+}
+
+body[data-admin-page="false"] button:disabled.bg-stone-900,
+body[data-admin-page="false"] button:disabled.bg-orange-500,
+body[data-admin-page="false"] button:disabled.bg-red-500{
+  background:#d6d3d1!important;
+  color:#57534e!important;
+}
+
+body[data-admin-page="false"] button:disabled:is(.bg-stone-900, .bg-orange-500, .bg-red-500){
+  background:#d6d3d1!important;
+}
+
+body[data-admin-page="false"] button[disabled]:not(.bg-red-500):not(.bg-stone-900):not(.bg-orange-500){
+  background:#e7e5e4!important;
+  color:#78716c!important;
 }
 
 body[data-admin-page="false"] input,
@@ -236,6 +271,18 @@ body[data-admin-page="false"] .shadow-orange-100{
   --tw-shadow-color: rgba(234, 88, 12, .32) !important;
 }
 
+body[data-admin-page="false"] .md\:col-span-2.rounded-3xl.border.border-orange-100.bg-orange-50\/60,
+body[data-admin-page="false"] .md\:col-span-2.rounded-3xl{
+  border-color:#fb923c!important;
+}
+
+body[data-admin-page="false"] .rounded-2xl.bg-orange-50.text-orange-700,
+body[data-admin-page="false"] .rounded-2xl.bg-orange-50{
+  background:#ffedd5!important;
+  color:#9a3412!important;
+  border:1px solid #fdba74!important;
+}
+
 .bb-calendar-card{
   background:#fffef9!important;
   border:2px solid rgba(234,88,12,.24)!important;
@@ -249,16 +296,43 @@ body[data-admin-page="false"] .shadow-orange-100{
 }
 
 .bb-calendar-day[data-open="true"]{
-  background:#ffedd5!important;
-  border:2px solid #fb923c!important;
-  color:#9a3412!important;
-  box-shadow:0 8px 18px rgba(249,115,22,.15)!important;
+  background:#dcfce7!important;
+  border:2px solid #22c55e!important;
+  color:#065f46!important;
+  box-shadow:0 8px 20px rgba(34,197,94,.2)!important;
+}
+
+.bb-calendar-day[data-open="true"] .bb-calendar-seat-label,
+.bb-calendar-day[data-open="true"] .bb-calendar-detail-label{
+  color:#047857!important;
+  font-weight:1000!important;
+}
+
+.bb-calendar-day[data-open="true"]::before{
+  content:"가능"!important;
+  position:absolute!important;
+  top:7px!important;
+  right:7px!important;
+  border-radius:999px!important;
+  background:#16a34a!important;
+  color:#fff!important;
+  font-size:10px!important;
+  font-weight:1000!important;
+  line-height:1!important;
+  padding:4px 6px!important;
+  z-index:3!important;
 }
 
 .bb-calendar-day[data-low-seats="true"]{
   background:#fee2e2!important;
   border:2px solid #ef4444!important;
   color:#991b1b!important;
+  box-shadow:0 8px 20px rgba(239,68,68,.18)!important;
+}
+
+.bb-calendar-day[data-low-seats="true"]::before{
+  content:"마감임박"!important;
+  background:#dc2626!important;
 }
 
 .bb-calendar-day[data-selected="true"]{
@@ -272,11 +346,17 @@ body[data-admin-page="false"] .shadow-orange-100{
   color:#fff!important;
 }
 
+.bb-calendar-day[data-selected="true"]::before{
+  content:"선택"!important;
+  background:#fff!important;
+  color:#c2410c!important;
+}
+
 .bb-calendar-day[data-open="false"]{
   background:#f5f0e8!important;
   border-color:#e7d6c4!important;
   color:#8a7a6b!important;
-  opacity:.72!important;
+  opacity:.66!important;
 }
 
 @media (max-width:1100px){
@@ -319,11 +399,12 @@ body[data-admin-page="false"] main>section:first-child p::before{font-size:1rem!
 .bb-calendar-detail-dot,.bb-calendar-detail-label,.bb-calendar-seat-label,.bb-calendar-no-schedule{font-size:0!important;padding:0!important;margin:0!important;background:transparent!important;color:transparent!important;}
 .bb-calendar-info{display:block!important;}
 .bb-calendar-day::after{content:""!important;position:absolute!important;right:6px!important;bottom:6px!important;width:8px!important;height:8px!important;border-radius:999px!important;background:#a8a29e!important;}
-.bb-calendar-day[data-open="true"]{background:#ffedd5!important;border-color:#fb923c!important;color:#9a3412!important;opacity:1!important;}
-.bb-calendar-day[data-open="true"]::after{background:#f97316!important;}
+.bb-calendar-day[data-open="true"]{background:#dcfce7!important;border-color:#22c55e!important;color:#065f46!important;opacity:1!important;}
+.bb-calendar-day[data-open="true"]::after{background:#16a34a!important;}
+.bb-calendar-day[data-open="true"]::before{content:""!important;width:0!important;height:0!important;padding:0!important;overflow:hidden!important;}
 .bb-calendar-day[data-low-seats="true"]{background:#fee2e2!important;border-color:#ef4444!important;color:#991b1b!important;opacity:1!important;}
 .bb-calendar-day[data-low-seats="true"]::after{background:#ef4444!important;}
-.bb-calendar-day[data-open="false"]{background:#f0e7dc!important;border-color:#e0c9b2!important;color:#9a8a7a!important;opacity:.62!important;}
+.bb-calendar-day[data-open="false"]{background:#f0e7dc!important;border-color:#e0c9b2!important;color:#9a8a7a!important;opacity:.58!important;}
 .bb-calendar-day[data-open="false"]::after{background:#a8a29e!important;opacity:.65!important;}
 .bb-calendar-day[data-selected="true"]{background:#ea580c!important;border:2px solid #7c2d12!important;color:#fff!important;box-shadow:0 8px 20px rgba(249,115,22,.32)!important;opacity:1!important;}
 .bb-calendar-day[data-selected="true"]::after{background:#fff!important;width:9px!important;height:9px!important;}
@@ -331,8 +412,8 @@ body[data-admin-page="false"] main>section:first-child p::before{font-size:1rem!
 .bb-calendar-legend{display:flex!important;flex-wrap:wrap!important;gap:10px 14px!important;margin-top:8px!important;font-size:12px!important;font-weight:900!important;line-height:1.7!important;}
 .bb-legend-item{display:inline-flex!important;align-items:center!important;gap:5px!important;}
 .bb-legend-item::before{content:""!important;width:8px!important;height:8px!important;border-radius:999px!important;display:inline-block!important;}
-.bb-legend-open{color:#ea580c!important;}
-.bb-legend-open::before{background:#ea580c!important;}
+.bb-legend-open{color:#16a34a!important;}
+.bb-legend-open::before{background:#16a34a!important;}
 .bb-legend-low{color:#dc2626!important;}
 .bb-legend-low::before{background:#dc2626!important;}
 .bb-legend-closed{color:#78716c!important;}
