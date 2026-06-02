@@ -26,6 +26,10 @@ import {
   saveAdminSettings
 } from "./services/storageIndex.js";
 import { loadSiteSettings, saveSiteSettings } from "./api/siteSettingsClient.js";
+import {
+  sendReservationStatusSms,
+  shouldSendReservationStatusSms
+} from "./api/reservationStatusSmsClient.js";
 import { reservationRepository } from "./repositories/index.js";
 import {
   getReservationRepositoryMode,
@@ -481,13 +485,38 @@ export default function AppSafe() {
         return;
       }
 
+      let savedReservations = [];
+
       if (Array.isArray(result.data) && result.data.length > 0) {
+        savedReservations = result.data;
         setReservations((currentReservations) =>
           mergeReservationsById(currentReservations, result.data)
         );
       }
 
-      markReservationChanged(id, "예약 상태가 저장되었습니다.");
+      const smsReservation =
+        savedReservations[0] ||
+        nextReservations.find((reservation) => getReservationId(reservation) === id) ||
+        previousReservations.find((reservation) => getReservationId(reservation) === id) ||
+        { id, status: nextStatus };
+
+      if (!shouldSendReservationStatusSms(nextStatus)) {
+        markReservationChanged(id, "예약 상태가 저장되었습니다.");
+        return;
+      }
+
+      const smsResult = await sendReservationStatusSms({
+        reservation: { ...smsReservation, status: nextStatus },
+        status: nextStatus
+      });
+
+      if (smsResult.ok && !smsResult.skipped) {
+        markReservationChanged(id, "예약 상태가 저장되었고 안내 문자가 발송되었습니다.");
+        return;
+      }
+
+      const smsErrorMessage = smsResult.error ? ` ${getErrorMessage(smsResult.error)}` : "";
+      markReservationChanged(id, `예약 상태는 저장되었지만 안내 문자 발송에 실패했습니다.${smsErrorMessage}`);
     } catch (error) {
       console.warn("Reservation status update failed", error);
       const message = `예약 상태 저장에 실패했습니다. ${getErrorMessage(error)}`;
