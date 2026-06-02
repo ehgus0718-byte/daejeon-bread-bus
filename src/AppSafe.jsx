@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
-import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import CustomerScheduleSection from "./components/CustomerScheduleSection.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
@@ -853,14 +852,7 @@ export default function AppSafe() {
             onSaveReservationNote={handleSaveReservationNote}
             onClearReservationNote={handleClearReservationNote}
           />
-        ) : (
-          <AdminLogin
-            password={adminPassword}
-            error={adminError}
-            onChangePassword={setAdminPassword}
-            onSubmit={handleAdminLogin}
-          />
-        )}
+        ) : null}
       </main>
     </div>
   );
