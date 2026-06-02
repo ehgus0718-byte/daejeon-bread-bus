@@ -38,6 +38,8 @@ const ADMIN_QUICK_REFRESH_LIMIT = 100;
 const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
 const USES_REMOTE_RESERVATION_STORAGE =
   RESERVATION_REPOSITORY_MODE !== REPOSITORY_MODE.LOCAL;
+const RESERVATION_RECEIVED_NOTICE =
+  "예약이 접수되었습니다. 관리자가 연락처 확인 후 결제 계좌를 안내드리며, 입금 확인 후 예약이 확정됩니다.";
 
 function getErrorMessage(error) {
   return error?.message || String(error || "알 수 없는 오류");
@@ -177,6 +179,7 @@ export default function AppSafe() {
     savedAdminSettings.scheduleDetails || {}
   );
   const [notice, setNotice] = useState("");
+  const [reservationSuccessNotice, setReservationSuccessNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshingReservations, setIsRefreshingReservations] = useState(false);
   const [isAdminAuthed, setIsAdminAuthed] = useState(getInitialAdminAuthState);
@@ -327,7 +330,16 @@ export default function AppSafe() {
   const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "closed";
   const selectedScheduleDetail = managedDateSettings[selectedDate]?.detail || "";
 
+  function handleSelectDate(date) {
+    setSelectedDate(date);
+    setReservationSuccessNotice("");
+  }
+
   function handleFormChange(key, value) {
+    if (["name", "phone", "people", "adultCount", "childCount", "infantCount"].includes(key)) {
+      setReservationSuccessNotice("");
+    }
+
     setReservationForm((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -589,6 +601,7 @@ export default function AppSafe() {
 
   async function handleSubmit() {
     setNotice("");
+    setReservationSuccessNotice("");
     setOperationNotice("");
     clearQuickAdminReservations();
 
@@ -631,7 +644,7 @@ export default function AppSafe() {
       );
       setRecentChangedReservationId(getReservationId(createdReservations[0]) || "");
       setOperationNotice("신규 예약이 접수되었습니다.");
-      setNotice("예약이 저장되었습니다. 결제를 진행해주세요.");
+      setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
       resetForm();
     } catch (error) {
       console.warn("Reservation submit failed", error);
@@ -703,7 +716,7 @@ export default function AppSafe() {
             dateSettings={managedDateSettings}
             getRemainingSeats={remaining}
             selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
+            onSelectDate={handleSelectDate}
           />
         </section>
 
@@ -716,6 +729,7 @@ export default function AppSafe() {
             onChange={handleFormChange}
             onSubmit={handleSubmit}
             notice={notice}
+            reservationSuccessNotice={reservationSuccessNotice}
             isSubmitting={isSubmitting}
           />
         </section>
