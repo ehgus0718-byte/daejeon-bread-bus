@@ -155,6 +155,54 @@ function updateScheduleDetail(settings = {}, date, detail = "") {
   };
 }
 
+function PolicyModal({ type, onClose }) {
+  if (!type) return null;
+
+  const isPrivacy = type === "privacy";
+  const title = isPrivacy ? "개인정보처리방침" : "이용약관";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
+      <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl md:p-8">
+        <div className="flex items-start justify-between gap-4 border-b border-orange-100 pb-4">
+          <div>
+            <p className="text-xs font-black tracking-[0.2em] text-orange-700">SOMANG TOUR</p>
+            <h3 className="mt-2 text-2xl font-black text-stone-950">{title}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-stone-100 px-4 py-2 text-sm font-black text-stone-700"
+          >
+            닫기
+          </button>
+        </div>
+
+        {isPrivacy ? (
+          <div className="mt-5 space-y-4 text-sm font-bold leading-7 text-stone-700">
+            <p>소망투어는 대전빵셔틀 빵버스 예약 확인과 고객 안내를 위해 필요한 최소한의 개인정보를 수집합니다.</p>
+            <p><strong>수집 항목:</strong> 예약자명, 연락처, 예약일, 예약 인원, 예약 상태</p>
+            <p><strong>이용 목적:</strong> 예약 접수 확인, 결제 계좌 안내, 예약확정·취소 문자 발송, 고객 문의 응대</p>
+            <p><strong>보관 기간:</strong> 예약 처리와 고객 응대 목적 달성 후 관련 법령에 따라 필요한 기간 동안 보관할 수 있습니다.</p>
+            <p><strong>제3자 제공:</strong> 법령에 따른 경우를 제외하고 고객 동의 없이 개인정보를 외부에 제공하지 않습니다. 단, 문자 발송 등 예약 안내에 필요한 범위에서는 위탁 처리가 이루어질 수 있습니다.</p>
+            <p><strong>문의:</strong> 개인정보 관련 문의는 대표전화 010-6422-9352로 연락해 주세요.</p>
+          </div>
+        ) : (
+          <div className="mt-5 space-y-4 text-sm font-bold leading-7 text-stone-700">
+            <p>본 약관은 소망투어가 운영하는 대전빵셔틀 빵버스 예약 서비스 이용에 관한 기본 사항을 안내합니다.</p>
+            <p><strong>예약 접수:</strong> 고객은 날짜 선택, 휴대폰 인증, 예약 정보 입력을 통해 예약을 접수할 수 있습니다.</p>
+            <p><strong>예약 확정:</strong> 예약은 접수 즉시 확정되지 않으며, 담당자 확인과 입금 확인 후 예약확정 문자가 발송된 시점에 최종 확정됩니다.</p>
+            <p><strong>결제 안내:</strong> 예약 접수 후 담당자가 연락처와 예약 내용을 확인한 뒤 문자로 결제 계좌를 안내드립니다.</p>
+            <p><strong>취소 및 환불:</strong> 출발 3일 전까지는 전액 환불, 출발 2일 전은 50% 환불, 출발 1일 전 및 당일 취소는 환불이 어려울 수 있습니다. 운영사 사정으로 취소될 경우 전액 환불됩니다.</p>
+            <p><strong>운영 변경:</strong> 최소 출발 인원 미달, 기상 악화, 차량 사정 등으로 일정이 변경 또는 취소될 수 있습니다.</p>
+            <p><strong>문의:</strong> 예약 및 이용 문의는 대표전화 010-6422-9352로 연락해 주세요.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AppSafe() {
   const savedAdminSettings = useMemo(
     () => loadAdminSettings(INITIAL_ADMIN_SETTINGS),
@@ -191,6 +239,7 @@ export default function AppSafe() {
   const [isAdminSettingsReady, setIsAdminSettingsReady] = useState(
     !USES_REMOTE_RESERVATION_STORAGE
   );
+  const [activePolicyModal, setActivePolicyModal] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -826,6 +875,49 @@ export default function AppSafe() {
           <ReservationList reservations={reservations} />
         </section>
 
+        <footer className="mt-12 rounded-[2rem] border border-orange-100 bg-white/95 px-5 py-6 text-xs font-bold leading-6 text-stone-600 shadow-sm md:px-8">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-stone-800">
+            <span className="font-black text-stone-950">소망투어</span>
+            <span className="text-stone-300">|</span>
+            <span>대전빵셔틀 빵버스</span>
+            <span className="text-stone-300">|</span>
+            <span>대표전화 010-6422-9352</span>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            <span>사업자등록번호 781-69-00237</span>
+            <span>통신판매업 신고번호 2020-대전서구-0689</span>
+          </div>
+
+          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+            <span>주소 대전광역시 서구 청사서로 29</span>
+            <span>운영시간 09:00 ~ 18:00 (연중무휴)</span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <button
+              type="button"
+              onClick={() => setActivePolicyModal("terms")}
+              className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
+            >
+              이용약관
+            </button>
+            <span className="text-stone-300">|</span>
+            <button
+              type="button"
+              onClick={() => setActivePolicyModal("privacy")}
+              className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
+            >
+              개인정보처리방침
+            </button>
+            <span className="text-stone-400">예약 관련 문의는 운영시간 내 순차적으로 안내됩니다.</span>
+          </div>
+
+          <p className="mt-3 text-[11px] font-black text-stone-400">
+            Copyright © 소망투어. All rights reserved.
+          </p>
+        </footer>
+
         {isAdminAuthed ? (
           <AdminDashboard
             reservations={visibleAdminReservations}
@@ -854,6 +946,11 @@ export default function AppSafe() {
           />
         ) : null}
       </main>
+
+      <PolicyModal
+        type={activePolicyModal}
+        onClose={() => setActivePolicyModal(null)}
+      />
     </div>
   );
 }
