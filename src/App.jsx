@@ -223,13 +223,24 @@ function AdminTours({ config, setConfig }) { return <Card className="p-6 shadow-
 function AdminText({ config, setConfig }) { return <Card className="p-6 shadow-sm"><h2 className="mb-4 text-2xl font-black">하단 문구 / 약관 수정</h2><Area label="포함사항 - 줄바꿈 구분" value={config.notices.included.join("\n")} onChange={(v) => setConfig({ ...config, notices: { ...config.notices, included: v.split("\n").filter(Boolean) } })} /><div className="mt-3"><Area label="취소안내 - 줄바꿈 구분" value={config.notices.cancellation.join("\n")} onChange={(v) => setConfig({ ...config, notices: { ...config.notices, cancellation: v.split("\n").filter(Boolean) } })} /></div><div className="mt-3"><Area label="문의 - 줄바꿈 구분" value={config.notices.inquiry.join("\n")} onChange={(v) => setConfig({ ...config, notices: { ...config.notices, inquiry: v.split("\n").filter(Boolean) } })} /></div><div className="mt-3"><Area label="이용약관" value={config.legalPages.terms.content} onChange={(v) => setConfig({ ...config, legalPages: { ...config.legalPages, terms: { ...config.legalPages.terms, content: v } } })} /></div><div className="mt-3"><Area label="개인정보처리방침" value={config.legalPages.privacy.content} onChange={(v) => setConfig({ ...config, legalPages: { ...config.legalPages, privacy: { ...config.legalPages.privacy, content: v } } })} /></div><div className="mt-3"><Area label="고객센터" value={config.legalPages.support.content} onChange={(v) => setConfig({ ...config, legalPages: { ...config.legalPages, support: { ...config.legalPages.support, content: v } } })} /></div></Card>; }
 function AdminReservations({ reservations, setReservations }) { return <Card className="p-6 shadow-sm"><h2 className="mb-4 text-2xl font-black">예약 목록</h2><div className="overflow-x-auto rounded-3xl border border-stone-100"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-stone-100"><tr><th className="p-3">예약자</th><th className="p-3">날짜</th><th className="p-3">인원</th><th className="p-3">금액</th><th className="p-3">상태</th><th className="p-3">삭제</th></tr></thead><tbody>{reservations.length === 0 ? <tr><td colSpan="6" className="p-6 text-center text-stone-500">아직 예약이 없습니다.</td></tr> : reservations.map((r) => <tr key={r.id} className="border-t"><td className="p-3 font-bold">{r.name}<br /><span className="font-normal text-stone-500">{r.phone}</span></td><td className="p-3">{r.date}</td><td className="p-3">{r.people}명</td><td className="p-3">{won(r.amount)}</td><td className="p-3"><select
   value={r.status}
-  onChange={(e) =>
+  onChange={async (e) => {
+  const nextStatus = e.target.value;
+
+  try {
+    await updateReservationStatusInDB(r.id, nextStatus);
+
     setReservations(
       reservations.map((x) =>
-        x.id === r.id ? { ...x, status: e.target.value } : x
+        x.id === r.id ? { ...x, status: nextStatus } : x
       )
-    )
+    );
+
+    setNotice("예약 상태가 저장되었습니다.");
+  } catch (error) {
+    console.error("예약 상태 저장 오류:", error);
+    setNotice("예약 상태 저장 중 오류가 발생했습니다. 다시 시도해주세요.");
   }
+}}
   className="rounded-xl border px-2 py-1"
 >
   <option>결제대기</option>
