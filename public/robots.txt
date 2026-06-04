@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://대전빵버스.com/sitemap.xml
