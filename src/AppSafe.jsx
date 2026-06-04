@@ -210,7 +210,7 @@ export default function AppSafe() {
     []
   );
 
-  const [selectedDate, setSelectedDate] = useState("2026-05-30");
+  const [selectedDate, setSelectedDate] = useState("2026-06-01");
   const [reservationForm, setReservationForm] = useState(
     DEFAULT_RESERVATION_FORM
   );
@@ -793,7 +793,7 @@ export default function AppSafe() {
           />
 
           <TwoMonthCalendar
-            currentDate={new Date(2026, 4, 1)}
+            currentDate={new Date(2026, 5, 1)}
             dateSettings={managedDateSettings}
             getRemainingSeats={remaining}
             selectedDate={selectedDate}
@@ -881,48 +881,50 @@ export default function AppSafe() {
           </section>
         ) : null}
 
-        <footer className="mt-12 rounded-[2rem] border border-orange-100 bg-white/95 px-5 py-6 text-xs font-bold leading-6 text-stone-600 shadow-sm md:px-8">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-stone-800">
-            <span className="font-black text-stone-950">소망투어</span>
-            <span className="text-stone-300">|</span>
-            <span>대전빵버스 빵셔틀</span>
-            <span className="text-stone-300">|</span>
-            <span>대표전화 010-6422-9352</span>
-          </div>
+        {!isAdminPage ? (
+          <footer className="mt-12 rounded-[2rem] border border-orange-100 bg-white/95 px-5 py-6 text-xs font-bold leading-6 text-stone-600 shadow-sm md:px-8">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-stone-800">
+              <span className="font-black text-stone-950">소망투어</span>
+              <span className="text-stone-300">|</span>
+              <span>대전빵버스 빵셔틀</span>
+              <span className="text-stone-300">|</span>
+              <span>대표전화 010-6422-9352</span>
+            </div>
 
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-            <span>사업자등록번호 781-69-00237</span>
-            <span>통신판매업 신고번호 2020-대전서구-0689</span>
-          </div>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <span>사업자등록번호 781-69-00237</span>
+              <span>통신판매업 신고번호 2020-대전서구-0689</span>
+            </div>
 
-          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-            <span>주소 대전광역시 서구 청사서로 29</span>
-            <span>운영시간 09:00 ~ 18:00 (연중무휴)</span>
-          </div>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              <span>주소 대전광역시 서구 청사서로 29</span>
+              <span>운영시간 09:00 ~ 18:00 (연중무휴)</span>
+            </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <button
-              type="button"
-              onClick={() => setActivePolicyModal("terms")}
-              className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
-            >
-              이용약관
-            </button>
-            <span className="text-stone-300">|</span>
-            <button
-              type="button"
-              onClick={() => setActivePolicyModal("privacy")}
-              className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
-            >
-              개인정보처리방침
-            </button>
-            <span className="text-stone-400">예약 관련 문의는 운영시간 내 순차적으로 안내됩니다.</span>
-          </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <button
+                type="button"
+                onClick={() => setActivePolicyModal("terms")}
+                className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
+              >
+                이용약관
+              </button>
+              <span className="text-stone-300">|</span>
+              <button
+                type="button"
+                onClick={() => setActivePolicyModal("privacy")}
+                className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
+              >
+                개인정보처리방침
+              </button>
+              <span className="text-stone-400">예약 관련 문의는 운영시간 내 순차적으로 안내됩니다.</span>
+            </div>
 
-          <p className="mt-3 text-[11px] font-black text-stone-400">
-            Copyright © 소망투어. All rights reserved.
-          </p>
-        </footer>
+            <p className="mt-3 text-[11px] font-black text-stone-400">
+              Copyright © 소망투어. All rights reserved.
+            </p>
+          </footer>
+        ) : null}
 
         {isAdminPage && isAdminAuthed ? (
           <AdminDashboard
