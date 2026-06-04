@@ -1,6 +1,6 @@
 import { supabaseClient } from "./supabaseClient.js";
 
-const SMS_TARGET_STATUSES = new Set(["결제완료", "예약확정", "예약취소"]);
+const SMS_TARGET_STATUSES = new Set(["예약접수", "결제완료", "예약확정", "예약취소"]);
 
 function createResult({ ok = true, data = null, error = null, skipped = false } = {}) {
   return { ok, data, error, skipped };
