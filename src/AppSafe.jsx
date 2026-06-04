@@ -53,6 +53,19 @@ function getInitialReservations() {
   return USES_REMOTE_RESERVATION_STORAGE ? [] : INITIAL_RESERVATIONS;
 }
 
+function getInitialSelectedDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const date = today.getDate();
+
+  if (year === 2026 && (month === 5 || month === 6)) {
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
+  }
+
+  return "2026-06-01";
+}
+
 function getInitialAdminAuthState() {
   if (typeof window === "undefined") return false;
 
@@ -210,7 +223,7 @@ export default function AppSafe() {
     []
   );
 
-  const [selectedDate, setSelectedDate] = useState("2026-06-01");
+  const [selectedDate, setSelectedDate] = useState(getInitialSelectedDate);
   const [reservationForm, setReservationForm] = useState(
     DEFAULT_RESERVATION_FORM
   );
