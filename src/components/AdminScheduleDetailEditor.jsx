@@ -2,13 +2,11 @@ import React, { useEffect, useState } from "react";
 import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
 const DEFAULT_SCHEDULE_TEMPLATE = [
-  "09:00 집결 및 인원 확인",
-  "10:00 빵집 투어 시작",
-  "11:30 포토타임 및 자유시간",
-  "12:30 점심 또는 휴식",
-  "14:00 로컬 명소 이동",
-  "16:30 기념품 구매",
-  "17:30 복귀 및 해산"
+  "10:00 대전역 동광장 (호국철도광장)",
+  "10:30 성심당 DCC점 (도룡동)",
+  "11:20 창억떡집 호박인절미 (장대동)",
+  "12:10 하레하레, 이루미, 바잇첼, 행복한분식 (둔산동)",
+  "13:10 대전역 출발 (대전역 13:30 도착)"
 ].join("\n");
 
 function getTodayInputValue() {
@@ -46,7 +44,7 @@ export default function AdminScheduleDetailEditor({
       const hasCurrentDetail = Boolean(String(currentDetail || "").trim());
       return hasCurrentDetail ? `${currentDetail.trim()}\n\n${DEFAULT_SCHEDULE_TEMPLATE}` : DEFAULT_SCHEDULE_TEMPLATE;
     });
-    setMessage("기본 일정 템플릿을 넣었습니다. 실제 운영에 맞게 수정해주세요.");
+    setMessage("기본 일정을 넣었습니다. 실제 운영에 맞게 수정한 뒤 저장해주세요.");
   }
 
   function handleSave() {
@@ -114,7 +112,7 @@ export default function AdminScheduleDetailEditor({
           value={detail}
           onChange={(event) => setDetail(event.target.value)}
           rows={10}
-          placeholder="예: 09:00 출발, 10:30 빵집 투어, 12:00 자유시간, 17:00 복귀"
+          placeholder="예: 10:00 대전역 동광장, 10:30 성심당 DCC점"
           className="w-full rounded-[1.5rem] border border-stone-200 bg-white px-4 py-4 text-sm font-bold leading-7 text-stone-700 outline-none transition focus:border-orange-400"
         />
 
