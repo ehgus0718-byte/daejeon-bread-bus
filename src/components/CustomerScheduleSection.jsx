@@ -171,8 +171,9 @@ export default function CustomerScheduleSection({
       </div>
 
       {!hasSchedule ? (
-        <div className="border-b border-orange-100 bg-orange-50 px-6 py-4 text-sm font-black text-orange-700 md:px-7">
-          아직 등록된 상세 일정이 없습니다. 관리자 페이지에서 날짜별 여행 일정을 등록하면 이 영역에 바로 표시됩니다.
+        <div className="border-b border-orange-100 bg-orange-50 px-6 py-4 text-sm font-black leading-6 text-orange-700 md:px-7">
+          해당 날짜의 상세 일정은 준비 중입니다.<br />
+          예약 전 일정이 확정되면 이 영역에 안내됩니다.
         </div>
       ) : null}
 
