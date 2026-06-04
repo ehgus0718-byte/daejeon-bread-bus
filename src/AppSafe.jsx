@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import ReservationList from "./components/ReservationList.jsx";
+import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import CustomerScheduleSection from "./components/CustomerScheduleSection.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
@@ -240,6 +241,9 @@ export default function AppSafe() {
     !USES_REMOTE_RESERVATION_STORAGE
   );
   const [activePolicyModal, setActivePolicyModal] = useState(null);
+
+  const isAdminPage =
+    typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
 
   useEffect(() => {
     let isMounted = true;
@@ -797,6 +801,20 @@ export default function AppSafe() {
           />
         </section>
 
+        <section className="mt-10">
+          <ReservationPanel
+            selectedDate={selectedDate}
+            remainingSeats={remaining(selectedDate)}
+            price={selectedPrice}
+            form={reservationForm}
+            onChange={handleFormChange}
+            onSubmit={handleSubmit}
+            notice={notice}
+            reservationSuccessNotice={reservationSuccessNotice}
+            isSubmitting={isSubmitting}
+          />
+        </section>
+
         <section className="mt-10 rounded-[2rem] border border-orange-200 bg-white p-6 shadow-xl shadow-orange-100/60 md:p-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
@@ -857,23 +875,11 @@ export default function AppSafe() {
           </div>
         </section>
 
-        <section className="mt-10">
-          <ReservationPanel
-            selectedDate={selectedDate}
-            remainingSeats={remaining(selectedDate)}
-            price={selectedPrice}
-            form={reservationForm}
-            onChange={handleFormChange}
-            onSubmit={handleSubmit}
-            notice={notice}
-            reservationSuccessNotice={reservationSuccessNotice}
-            isSubmitting={isSubmitting}
-          />
-        </section>
-
-        <section className="mt-10">
-          <ReservationList reservations={reservations} />
-        </section>
+        {!isAdminPage ? (
+          <section className="mt-10">
+            <ReservationList reservations={reservations} />
+          </section>
+        ) : null}
 
         <footer className="mt-12 rounded-[2rem] border border-orange-100 bg-white/95 px-5 py-6 text-xs font-bold leading-6 text-stone-600 shadow-sm md:px-8">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-stone-800">
@@ -918,7 +924,7 @@ export default function AppSafe() {
           </p>
         </footer>
 
-        {isAdminAuthed ? (
+        {isAdminPage && isAdminAuthed ? (
           <AdminDashboard
             reservations={visibleAdminReservations}
             capacityOverrides={capacityOverrides}
@@ -943,6 +949,13 @@ export default function AppSafe() {
             onRemoveDateSettings={handleRemoveDateSettings}
             onSaveReservationNote={handleSaveReservationNote}
             onClearReservationNote={handleClearReservationNote}
+          />
+        ) : isAdminPage ? (
+          <AdminLogin
+            password={adminPassword}
+            error={adminError}
+            onChangePassword={setAdminPassword}
+            onSubmit={handleAdminLogin}
           />
         ) : null}
       </main>
