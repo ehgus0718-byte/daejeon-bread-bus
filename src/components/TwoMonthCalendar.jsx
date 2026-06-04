@@ -89,21 +89,21 @@ function CalendarCard({
                   onSelectDate?.(key);
                 }
               }}
-              className={`bb-calendar-day aspect-square rounded-2xl border p-2 text-left transition ${
+              className={`bb-calendar-day aspect-square overflow-hidden rounded-2xl border p-2 text-left transition ${
                 isSelected
-                  ? "border-orange-500 bg-orange-500 text-white shadow-lg shadow-orange-100"
+                  ? "border-orange-500 bg-orange-500 text-white shadow-md shadow-orange-100"
                   : isOpen
                     ? "border-orange-100 bg-orange-50/60 hover:border-orange-300"
                     : "border-stone-100 bg-stone-50"
               }`}
             >
-              <div className="bb-calendar-day-inner flex h-full flex-col justify-between gap-1">
-                <div className="flex items-start justify-between gap-1">
-                  <div className="bb-calendar-date text-lg font-black">{date.getDate()}</div>
+              <div className="bb-calendar-day-inner flex h-full min-h-0 flex-col justify-between gap-0.5">
+                <div className="flex min-h-0 items-start justify-between gap-1">
+                  <div className="bb-calendar-date text-base font-black leading-none">{date.getDate()}</div>
 
                   {hasDetail ? (
                     <div
-                      className={`bb-calendar-detail-dot rounded-full px-2 py-1 text-[10px] font-black ${
+                      className={`bb-calendar-detail-dot rounded-full px-1.5 py-0.5 text-[9px] font-black leading-none ${
                         isSelected
                           ? "bg-white text-orange-700"
                           : "bg-orange-500 text-white"
@@ -115,10 +115,10 @@ function CalendarCard({
                 </div>
 
                 {setting ? (
-                  <div className="bb-calendar-info grid gap-1">
+                  <div className="bb-calendar-info grid gap-0.5">
                     {hasDetail ? (
                       <div
-                        className={`bb-calendar-detail-label truncate rounded-full px-2 py-1 text-[10px] font-black ${
+                        className={`bb-calendar-detail-label truncate rounded-full px-1.5 py-0.5 text-[9px] font-black leading-tight ${
                           isSelected
                             ? "bg-white/90 text-stone-900"
                             : "bg-white text-stone-700"
@@ -129,7 +129,7 @@ function CalendarCard({
                     ) : null}
 
                     <div
-                      className={`bb-calendar-seat-label rounded-full px-2 py-1 text-[10px] font-black ${
+                      className={`bb-calendar-seat-label rounded-full px-1.5 py-0.5 text-[9px] font-black leading-tight ${
                         isSelected
                           ? "bg-white text-orange-700"
                           : remaining > 0
@@ -141,7 +141,7 @@ function CalendarCard({
                     </div>
                   </div>
                 ) : (
-                  <div className="bb-calendar-no-schedule text-[10px] font-bold text-stone-400">일정 없음</div>
+                  <div className="bb-calendar-no-schedule text-[10px] font-bold leading-tight text-stone-400">일정 없음</div>
                 )}
               </div>
             </button>
