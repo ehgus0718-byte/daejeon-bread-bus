@@ -914,7 +914,12 @@ resetForm();
               <span className="text-stone-300">|</span>
               <span>대전빵버스 빵셔틀</span>
               <span className="text-stone-300">|</span>
-              <span>대표전화 010-6422-9352</span>
+              <a
+                href="tel:01064229352"
+                className="font-black text-stone-800 underline decoration-orange-300 underline-offset-4"
+              >
+                대표전화 010-6422-9352
+              </a>
             </div>
 
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
