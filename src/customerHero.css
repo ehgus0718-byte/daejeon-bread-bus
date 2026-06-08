@@ -60,7 +60,7 @@ line-height:1.15!important;
 
 body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h2::before,
 body[data-admin-page="false"] main>section:nth-of-type(2)>div:first-child h3::before{
-content:"원하는 날짜로 빵셔틀 예약"!important;
+content:"미니버스(17인승) 빵셔틀 예약"!important;
 display:block!important;
 font-size:clamp(2.2rem,4vw,3.5rem)!important;
 line-height:1.15!important;
