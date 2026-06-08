@@ -11,6 +11,16 @@ function normalizeScheduleDetail(value) {
   return String(value || "").trim();
 }
 
+function getTodayKey() {
+  const today = new Date();
+
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+}
+
+function isPastDateKey(dateKey = "") {
+  return String(dateKey || "") < getTodayKey();
+}
+
 function getDateKeys({
   baseDateSettings = {},
   capacityOverrides = {},
@@ -53,9 +63,11 @@ export function buildDateSettings({
 
     const price = Number(priceOverrides[date] || base.price || fallbackPrice);
 
-    const status = normalizeScheduleStatus(
+    const configuredStatus = normalizeScheduleStatus(
       scheduleStatus[date] || base.status || "closed"
     );
+
+    const status = isPastDateKey(date) ? "closed" : configuredStatus;
 
     const detail = normalizeScheduleDetail(
       scheduleDetails[date] || base.detail || ""
