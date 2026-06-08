@@ -424,3 +424,11 @@ body[data-admin-page="false"] main>section:nth-of-type(4){display:none!important
 @media (min-width:901px){
 .bb-calendar-legend{display:none!important;}
 }
+
+/* Hide floating calendar status badges only. */
+.bb-calendar-day[data-open="true"]::before,
+.bb-calendar-day[data-low-seats="true"]::before,
+.bb-calendar-day[data-selected="true"]::before {
+  display: none !important;
+  content: none !important;
+}
