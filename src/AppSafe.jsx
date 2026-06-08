@@ -737,9 +737,22 @@ export default function AppSafe() {
         mergeReservationsById(currentReservations, createdReservations)
       );
       setRecentChangedReservationId(getReservationId(createdReservations[0]) || "");
-      setOperationNotice("신규 예약이 접수되었습니다.");
-      setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
-      resetForm();
+setOperationNotice("신규 예약이 접수되었습니다.");
+setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
+
+const adminSmsResult = await sendReservationStatusSms({
+  reservation: {
+    ...createdReservations[0],
+    phone: "01064229352"
+  },
+  status: "예약접수"
+});
+
+if (!adminSmsResult.ok) {
+  console.warn("관리자 신규 예약 알림 문자 발송 실패", adminSmsResult.error);
+}
+
+resetForm();
     } catch (error) {
       console.warn("Reservation submit failed", error);
       setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(error)}`);
