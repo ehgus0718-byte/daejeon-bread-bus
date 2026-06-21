@@ -5,6 +5,7 @@ import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import CustomerScheduleSection from "./components/CustomerScheduleSection.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
+import { validateAdminPassword } from "./core/adminPasswordValidation.js";
 import {
   updateCapacityOverride,
   updatePriceOverride,
@@ -35,6 +36,7 @@ import {
   REPOSITORY_MODE
 } from "./repositories/reservationRepositoryMode.js";
 
+const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 const ADMIN_SESSION_KEY = "daejeon-bread-bus-admin-authed";
 const ADMIN_QUICK_REFRESH_LIMIT = 100;
 const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
