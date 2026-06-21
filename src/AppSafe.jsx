@@ -1066,14 +1066,6 @@ export default function AppSafe() {
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
               <span>사업자등록번호 781-69-00237</span>
               <span>통신판매업 신고번호 2020-대전서구-0689</span>
-              <a
-                href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=7816900237"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
-              >
-                사업자정보 확인
-              </a>
             </div>
 
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
@@ -1085,10 +1077,6 @@ export default function AppSafe() {
                 이메일 ehgus0718@naver.com
               </a>
               <span>운영시간 09:00 ~ 18:00 (연중무휴)</span>
-            </div>
-
-            <div className="mt-1 text-stone-400">
-              Hosting by 카페24
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
