@@ -64,7 +64,7 @@ export async function listAdminReservations(accessCode, options = {}) {
 
 export async function updateAdminReservation(accessCode, reservationId, patch = {}) {
   if (!reservationId) {
-    return createAdminResult({ ok: false, data: null, error: new Error("예약 ID가 없습니다.") });
+    return createAdminResult({ ok: false, data: [], error: new Error("예약 ID가 없습니다.") });
   }
 
   const payload = { action: "update", id: reservationId };
@@ -80,24 +80,25 @@ export async function updateAdminReservation(accessCode, reservationId, patch = 
   const result = await invokeAdminFunction(accessCode, payload);
 
   if (!result.ok) {
-    return createAdminResult({ ok: false, data: null, error: result.error });
+    return createAdminResult({ ok: false, data: [], error: result.error });
   }
 
-  return createAdminResult({ ok: true, data: result.data.reservation || null });
+  const updated = result.data.reservation;
+  return createAdminResult({ ok: true, data: updated ? [updated] : [] });
 }
 
 export async function removeAdminReservation(accessCode, reservationId) {
   if (!reservationId) {
-    return createAdminResult({ ok: false, data: null, error: new Error("예약 ID가 없습니다.") });
+    return createAdminResult({ ok: false, data: [], error: new Error("예약 ID가 없습니다.") });
   }
 
   const result = await invokeAdminFunction(accessCode, { action: "remove", id: reservationId });
 
   if (!result.ok) {
-    return createAdminResult({ ok: false, data: null, error: result.error });
+    return createAdminResult({ ok: false, data: [], error: result.error });
   }
 
-  return createAdminResult({ ok: true, data: null });
+  return createAdminResult({ ok: true, data: [] });
 }
 
 export const adminReservationClient = {
