@@ -170,17 +170,15 @@ export async function createSupabaseReservation(reservation = {}) {
   const configError = ensureSupabaseClient();
   if (configError) return configError;
 
-  const { data, error, status } = await supabaseClient
+  const { error, status } = await supabaseClient
     .from(getReservationsTableName())
-    .insert(buildReservationRow(reservation))
-    .select(RESERVATION_SELECT_COLUMNS)
-    .single();
+    .insert(buildReservationRow(reservation));
 
   if (error) {
     return createSupabaseResult({ ok: false, data: null, error, status });
   }
 
-  return createSupabaseResult({ data: normalizeReservationPayload(data), status });
+  return createSupabaseResult({ data: null, status });
 }
 
 export async function patchSupabaseReservation(reservationId, patch = {}) {
