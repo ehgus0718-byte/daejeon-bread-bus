@@ -188,9 +188,18 @@ export default function ReservationPanel({
   onSubmit,
   notice,
   reservationSuccessNotice = "",
-  isSubmitting = false
+  isSubmitting = false,
+  onOpenPrivacyPolicy
 }) {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+
+  useEffect(() => {
+    if (reservationSuccessNotice) {
+      setPrivacyConsent(false);
+    }
+  }, [reservationSuccessNotice]);
+
   const safeRemainingSeats = Math.max(0, toSafeNumber(remainingSeats, 0));
   const adultCount = toCount(form.adultCount, 1);
   const childCount = toCount(form.childCount, 0);
@@ -204,7 +213,12 @@ export default function ReservationPanel({
   const hasAvailableSeats = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
-  const canSubmit = hasAvailableSeats && hasValidPeopleSelection && hasRequiredPhoneVerification && !isSubmitting;
+  const canSubmit =
+    hasAvailableSeats &&
+    hasValidPeopleSelection &&
+    hasRequiredPhoneVerification &&
+    privacyConsent &&
+    !isSubmitting;
 
   function updatePassengerCount(key, nextValue) {
     const nextAdultCount = key === "adultCount" ? nextValue : adultCount;
@@ -356,7 +370,28 @@ export default function ReservationPanel({
           />
         </div>
 
-        <div className="mt-5 flex flex-col gap-4 border-t border-stone-200 pt-5 md:flex-row md:items-center md:justify-between">
+        <div className="mt-5 flex items-start gap-3 border-t border-stone-200 pt-4">
+          <input
+            type="checkbox"
+            id="privacy-consent"
+            checked={privacyConsent}
+            onChange={(e) => setPrivacyConsent(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500 cursor-pointer"
+          />
+          <label htmlFor="privacy-consent" className="text-sm font-bold leading-6 text-stone-700 cursor-pointer">
+            <button
+              type="button"
+              onClick={() => onOpenPrivacyPolicy?.()}
+              className="font-black text-orange-700 underline decoration-orange-300 underline-offset-4"
+            >
+              개인정보 수집·이용
+            </button>
+            에 동의합니다.{" "}
+            <span className="text-xs font-black text-red-500">(필수)</span>
+          </label>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-4 border-t border-stone-200 pt-5 md:flex-row md:items-center md:justify-between">
           <div className="text-sm font-black text-stone-700">
             총 인원 {selectedPeople}명 · 총 금액
             <span className="ml-3 text-2xl text-stone-950">{formatCurrency(totalAmount)}</span>
@@ -372,7 +407,9 @@ export default function ReservationPanel({
               : hasAvailableSeats
                 ? SMS_VERIFICATION_ENABLED && !isPhoneVerified
                   ? "휴대폰 인증 후 예약"
-                  : "예약하기"
+                  : !privacyConsent
+                    ? "개인정보 동의 후 예약"
+                    : "예약하기"
                 : "잔여 좌석 없음"}
           </button>
         </div>
