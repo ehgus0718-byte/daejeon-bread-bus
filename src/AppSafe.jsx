@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
-import ReservationList from "./components/ReservationList.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import CustomerScheduleSection from "./components/CustomerScheduleSection.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
-import { validateAdminPassword } from "./core/adminPasswordValidation.js";
 import {
   updateCapacityOverride,
   updatePriceOverride,
@@ -30,13 +28,13 @@ import {
   sendReservationStatusSms,
   shouldSendReservationStatusSms
 } from "./api/reservationStatusSmsClient.js";
+import { supabaseClient } from "./api/supabaseClient.js";
 import { reservationRepository } from "./repositories/index.js";
 import {
   getReservationRepositoryMode,
   REPOSITORY_MODE
 } from "./repositories/reservationRepositoryMode.js";
 
-const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 const ADMIN_SESSION_KEY = "daejeon-bread-bus-admin-authed";
 const ADMIN_QUICK_REFRESH_LIMIT = 100;
 const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
@@ -51,6 +49,29 @@ function getErrorMessage(error) {
 
 function getInitialReservations() {
   return USES_REMOTE_RESERVATION_STORAGE ? [] : INITIAL_RESERVATIONS;
+}
+
+async function fetchReservationCounts() {
+  if (!supabaseClient) return [];
+
+  try {
+    const { data, error } = await supabaseClient.rpc("reservation_daily_counts");
+
+    if (error) {
+      console.warn("Reservation counts load failed", error);
+      return [];
+    }
+
+    return (Array.isArray(data) ? data : []).map((row) => ({
+      id: `count-${row.reservation_date}`,
+      date: row.reservation_date,
+      people: Number(row.reserved_people || 0),
+      status: "결제대기"
+    }));
+  } catch (error) {
+    console.warn("Reservation counts load failed", error);
+    return [];
+  }
 }
 
 function getInitialSelectedDate() {
@@ -262,23 +283,33 @@ export default function AppSafe() {
     let isMounted = true;
 
     async function loadStoredReservations() {
-      const result = await reservationRepository.list();
+      if (isAdminPage) {
+        const result = await reservationRepository.list();
 
-      if (!isMounted) return;
+        if (!isMounted) return;
 
-      if (!result.ok) {
-        setNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
-        setOperationNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
-        if (USES_REMOTE_RESERVATION_STORAGE) setReservations([]);
+        if (!result.ok) {
+          setNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
+          setOperationNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
+          if (USES_REMOTE_RESERVATION_STORAGE) setReservations([]);
+          return;
+        }
+
+        if (Array.isArray(result.data)) {
+          if (USES_REMOTE_RESERVATION_STORAGE || result.data.length > 0) {
+            setReservations(result.data);
+            setAdminReservations(null);
+          }
+        }
+
         return;
       }
 
-      if (Array.isArray(result.data)) {
-        if (USES_REMOTE_RESERVATION_STORAGE || result.data.length > 0) {
-          setReservations(result.data);
-          setAdminReservations(null);
-        }
-      }
+      const counts = await fetchReservationCounts();
+
+      if (!isMounted) return;
+
+      setReservations(counts);
     }
 
     loadStoredReservations();
@@ -900,12 +931,6 @@ resetForm();
             </div>
           </div>
         </section>
-
-        {!isAdminPage ? (
-          <section className="mt-10">
-            <ReservationList reservations={reservations} />
-          </section>
-        ) : null}
 
         {!isAdminPage ? (
           <footer className="mt-12 rounded-[2rem] border border-orange-100 bg-white/95 px-5 py-6 text-xs font-bold leading-6 text-stone-600 shadow-sm md:px-8">
