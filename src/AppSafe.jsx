@@ -5,7 +5,6 @@ import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import CustomerScheduleSection from "./components/CustomerScheduleSection.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
-import { validateAdminPassword } from "./core/adminPasswordValidation.js";
 import {
   updateCapacityOverride,
   updatePriceOverride,
@@ -30,14 +29,15 @@ import {
   shouldSendReservationStatusSms
 } from "./api/reservationStatusSmsClient.js";
 import { supabaseClient } from "./api/supabaseClient.js";
+import { adminReservationClient } from "./api/adminReservationClient.js";
 import { reservationRepository } from "./repositories/index.js";
 import {
   getReservationRepositoryMode,
   REPOSITORY_MODE
 } from "./repositories/reservationRepositoryMode.js";
 
-const ADMIN_ACCESS_CODE = import.meta.env.VITE_ADMIN_ACCESS_CODE || "breadbus2026";
 const ADMIN_SESSION_KEY = "daejeon-bread-bus-admin-authed";
+const ADMIN_ACCESS_STORAGE_KEY = "daejeon-bread-bus-admin-access";
 const ADMIN_QUICK_REFRESH_LIMIT = 100;
 const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
 const USES_REMOTE_RESERVATION_STORAGE =
@@ -89,22 +89,27 @@ function getInitialSelectedDate() {
   return "2026-06-01";
 }
 
-function getInitialAdminAuthState() {
-  if (typeof window === "undefined") return false;
+function getInitialAdminAccessCode() {
+  if (typeof window === "undefined") return "";
 
   try {
-    return window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+    return window.sessionStorage.getItem(ADMIN_ACCESS_STORAGE_KEY) || "";
   } catch (error) {
-    console.warn("Admin session read failed", error);
-    return false;
+    console.warn("Admin access read failed", error);
+    return "";
   }
 }
 
-function saveAdminSession() {
+function getInitialAdminAuthState() {
+  return Boolean(getInitialAdminAccessCode());
+}
+
+function saveAdminSession(accessCode) {
   if (typeof window === "undefined") return;
 
   try {
     window.sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+    window.sessionStorage.setItem(ADMIN_ACCESS_STORAGE_KEY, accessCode || "");
   } catch (error) {
     console.warn("Admin session save failed", error);
   }
@@ -115,6 +120,7 @@ function clearAdminSession() {
 
   try {
     window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    window.sessionStorage.removeItem(ADMIN_ACCESS_STORAGE_KEY);
   } catch (error) {
     console.warn("Admin session clear failed", error);
   }
@@ -271,6 +277,7 @@ export default function AppSafe() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshingReservations, setIsRefreshingReservations] = useState(false);
   const [isAdminAuthed, setIsAdminAuthed] = useState(getInitialAdminAuthState);
+  const [adminAccessCode, setAdminAccessCode] = useState(getInitialAdminAccessCode);
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [isAdminSettingsReady, setIsAdminSettingsReady] = useState(
@@ -286,24 +293,28 @@ export default function AppSafe() {
 
     async function loadStoredReservations() {
       if (isAdminPage) {
-        const result = await reservationRepository.list();
+        const storedAccessCode = getInitialAdminAccessCode();
+
+        if (!storedAccessCode) {
+          const counts = await fetchReservationCounts();
+          if (!isMounted) return;
+          setReservations(counts);
+          return;
+        }
+
+        const result = await adminReservationClient.list(storedAccessCode);
 
         if (!isMounted) return;
 
         if (!result.ok) {
           setNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
           setOperationNotice(`예약 데이터를 불러오지 못했습니다. ${getErrorMessage(result.error)}`);
-          if (USES_REMOTE_RESERVATION_STORAGE) setReservations([]);
+          setReservations([]);
           return;
         }
 
-        if (Array.isArray(result.data)) {
-          if (USES_REMOTE_RESERVATION_STORAGE || result.data.length > 0) {
-            setReservations(result.data);
-            setAdminReservations(null);
-          }
-        }
-
+        setReservations(Array.isArray(result.data) ? result.data : []);
+        setAdminReservations(null);
         return;
       }
 
@@ -449,27 +460,42 @@ export default function AppSafe() {
     setReservationForm(DEFAULT_RESERVATION_FORM);
   }
 
-  function handleAdminLogin() {
+  async function handleAdminLogin() {
     setAdminError("");
 
-    const validation = validateAdminPassword({
-      password: adminPassword,
-      accessCode: ADMIN_ACCESS_CODE
-    });
+    const code = adminPassword.trim();
 
-    if (!validation.valid) {
-      setAdminError(validation.message);
+    if (!code) {
+      setAdminError("관리자 접근 코드를 입력해주세요.");
       return;
     }
 
-    saveAdminSession();
+    const verifyResult = await adminReservationClient.verify(code);
+
+    if (!verifyResult.ok) {
+      setAdminError("관리자 인증에 실패했습니다. 접근 코드를 확인해주세요.");
+      return;
+    }
+
+    saveAdminSession(code);
+    setAdminAccessCode(code);
     setIsAdminAuthed(true);
     setAdminPassword("");
+
+    const listResult = await adminReservationClient.list(code);
+
+    if (listResult.ok) {
+      setReservations(Array.isArray(listResult.data) ? listResult.data : []);
+      setAdminReservations(null);
+    }
   }
 
   function handleAdminLogout() {
     clearAdminSession();
     setIsAdminAuthed(false);
+    setAdminAccessCode("");
+    setAdminReservations(null);
+    setReservations([]);
     setAdminPassword("");
     setAdminError("");
   }
@@ -533,7 +559,9 @@ export default function AppSafe() {
     setIsRefreshingReservations(true);
 
     try {
-      const result = await reservationRepository.list({ limit: ADMIN_QUICK_REFRESH_LIMIT });
+      const result = await adminReservationClient.list(adminAccessCode, {
+        limit: ADMIN_QUICK_REFRESH_LIMIT
+      });
 
       if (!result.ok) {
         const message = `예약 목록 새로고침에 실패했습니다. ${getErrorMessage(result.error)}`;
@@ -573,7 +601,7 @@ export default function AppSafe() {
     setRecentChangedReservationId(id || "");
 
     try {
-      const result = await reservationRepository.update(id, { status: nextStatus });
+      const result = await adminReservationClient.update(adminAccessCode, id, { status: nextStatus });
 
       if (!result.ok) {
         const message = `예약 상태 저장에 실패했습니다. ${getErrorMessage(result.error)}`;
@@ -648,7 +676,7 @@ export default function AppSafe() {
     setRecentChangedReservationId(id || "");
 
     try {
-      const result = await reservationRepository.update(id, { adminNote: safeNote });
+      const result = await adminReservationClient.update(adminAccessCode, id, { adminNote: safeNote });
 
       if (!result.ok) {
         const message = `관리자 메모 저장에 실패했습니다. ${getErrorMessage(result.error)}`;
@@ -705,7 +733,7 @@ export default function AppSafe() {
     setRecentChangedReservationId("");
 
     try {
-      const result = await reservationRepository.remove(id);
+      const result = await adminReservationClient.remove(adminAccessCode, id);
 
       if (!result.ok) {
         const message = `예약 삭제에 실패했습니다. ${getErrorMessage(result.error)}`;
@@ -766,9 +794,6 @@ export default function AppSafe() {
         ? result.data
         : [reservationItem];
 
-      setReservations((currentReservations) =>
-        mergeReservationsById(currentReservations, createdReservations)
-      );
       setRecentChangedReservationId(getReservationId(createdReservations[0]) || "");
 setOperationNotice("신규 예약이 접수되었습니다.");
 setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
