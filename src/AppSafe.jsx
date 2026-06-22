@@ -42,8 +42,10 @@ const ADMIN_QUICK_REFRESH_LIMIT = 100;
 const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
 const USES_REMOTE_RESERVATION_STORAGE =
   RESERVATION_REPOSITORY_MODE !== REPOSITORY_MODE.LOCAL;
+
+// ✅ 변경: 카드결제/계좌이체 중심 문구로 업데이트
 const RESERVATION_RECEIVED_NOTICE =
-  "예약이 접수되었습니다. 관리자가 연락처 확인 후 결제 계좌를 안내드리며, 입금 확인 후 예약이 확정됩니다.";
+  "예약이 접수되었습니다. 카드결제 또는 계좌이체로 결제를 완료해 주시면 예약이 확정됩니다. 결제 관련 문의: 010-6422-9352";
 
 function getErrorMessage(error) {
   return error?.message || String(error || "알 수 없는 오류");
@@ -237,7 +239,8 @@ function PolicyModal({ type, onClose }) {
             </div>
             <div>
               <p className="font-black text-stone-900">2. 개인정보 수집·이용 목적</p>
-              <p className="mt-2">예약 접수 및 확인, 결제 계좌 안내, 예약 확정·취소 문자 발송, 고객 문의 응대</p>
+              {/* ✅ 변경: "결제 계좌 안내" → "결제 처리 안내" */}
+              <p className="mt-2">예약 접수 및 확인, 결제 처리 안내, 예약 확정·취소 문자 발송, 고객 문의 응대</p>
             </div>
             <div>
               <p className="font-black text-stone-900">3. 보유 및 이용 기간</p>
@@ -280,11 +283,13 @@ function PolicyModal({ type, onClose }) {
             </div>
             <div>
               <p className="font-black text-stone-900">제2조 (예약 접수)</p>
-              <p className="mt-2">고객은 날짜 선택, 휴대폰 인증, 예약 정보 입력을 통해 예약을 접수할 수 있습니다. 예약 접수는 확정이 아니며, 담당자 확인과 입금 확인 후 최종 확정됩니다.</p>
+              {/* ✅ 변경: "입금 확인 후" → "결제 완료 후" */}
+              <p className="mt-2">고객은 날짜 선택, 휴대폰 인증, 예약 정보 입력을 통해 예약을 접수할 수 있습니다. 예약 접수 후 카드결제 또는 계좌이체로 결제를 완료하시면 최종 확정됩니다.</p>
             </div>
             <div>
               <p className="font-black text-stone-900">제3조 (결제)</p>
-              <p className="mt-2">예약 접수 후 담당자가 연락처와 예약 내용을 확인한 뒤 결제 방법을 안내드립니다. 입금 확인 후 예약확정 문자가 발송되며, 이 시점에 예약이 최종 확정됩니다.</p>
+              {/* ✅ 변경: 카드결제/계좌이체 중심으로 전면 교체 */}
+              <p className="mt-2">카드결제 또는 계좌이체로 결제를 완료하시면 예약확정 문자가 자동 발송되며, 이 시점에 예약이 최종 확정됩니다.</p>
             </div>
             <div>
               <p className="font-black text-stone-900">제4조 (청약철회 및 취소·환불)</p>
@@ -905,8 +910,6 @@ export default function AppSafe() {
     <div className="min-h-screen bg-[#fff8ef] text-stone-950">
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-4">
-
-          {/* ✅ 로고 클릭 시 홈으로 이동(새로고침) */}
           <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">
               🚌
@@ -994,8 +997,9 @@ export default function AppSafe() {
               <p className="text-sm font-black tracking-[0.2em] text-orange-700">BOOKING GUIDE</p>
               <h3 className="mt-2 text-3xl font-black text-stone-950">예약 전 꼭 확인해주세요</h3>
             </div>
+            {/* ✅ 변경: "입금 확인" → "결제 완료" */}
             <p className="max-w-xl text-sm font-bold leading-6 text-stone-600">
-              예약은 접수 후 바로 확정되는 방식이 아니며, 담당자 확인과 입금 확인 후 최종 확정됩니다.
+              예약 접수 후 카드결제 또는 계좌이체로 결제를 완료하시면 예약이 확정됩니다.
             </p>
           </div>
 
@@ -1008,14 +1012,16 @@ export default function AppSafe() {
             </div>
             <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
               <p className="text-sm font-black text-orange-800">결제 안내</p>
+              {/* ✅ 변경: 카드결제/계좌이체 중심 문구 */}
               <p className="mt-3 text-sm font-bold leading-6 text-stone-700">
-                담당자가 연락처와 예약 내용을 확인한 뒤 문자로 결제 계좌를 안내드립니다.
+                카드결제 또는 계좌이체로 간편하게 결제하실 수 있습니다. 결제 완료 즉시 예약이 확정됩니다.
               </p>
             </div>
             <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
               <p className="text-sm font-black text-orange-800">확정 기준</p>
+              {/* ✅ 변경: "입금 확인 후" → "결제 완료 즉시" */}
               <p className="mt-3 text-sm font-bold leading-6 text-stone-700">
-                입금 확인 후 예약확정 문자가 발송되며, 그때 최종 예약이 완료됩니다.
+                결제 완료 즉시 예약확정 문자가 발송되며, 그때 최종 예약이 완료됩니다.
               </p>
             </div>
             <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5">
