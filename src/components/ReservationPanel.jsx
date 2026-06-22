@@ -241,7 +241,7 @@ export default function ReservationPanel({
           description="선택한 날짜의 잔여 좌석과 결제 예정금액을 확인하고 예약 정보를 입력합니다."
         />
         <div className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black text-orange-700">
-          연락처 확인 후 예약 확정
+          결제 완료 후 즉시 예약 확정
         </div>
       </div>
 
@@ -266,13 +266,14 @@ export default function ReservationPanel({
         </div>
       </div>
 
+      {/* ✅ 변경: 카드결제/계좌이체 중심으로 안내 문구 교체 */}
       <div className="mt-5 rounded-3xl border border-orange-100 bg-orange-50/70 p-5 text-sm font-bold leading-6 text-stone-700">
-        <p className="font-black text-orange-700">예약 및 결제 안내</p>
+        <p className="font-black text-orange-700">결제 안내</p>
         <p className="mt-2">
-          예약 접수 후 관리자가 연락처와 예약 내용을 확인한 뒤 결제 계좌를 안내드립니다.
+          카드결제 또는 계좌이체로 간편하게 결제하실 수 있습니다.
         </p>
         <p className="mt-1 text-xs font-black text-stone-500">
-          입금 확인 후 예약이 확정되며, 관리자 확인 전까지 예약 상태는 결제대기로 저장됩니다.
+          결제 완료 후 예약이 즉시 확정되며, 예약확정 문자가 자동 발송됩니다.
         </p>
       </div>
 
