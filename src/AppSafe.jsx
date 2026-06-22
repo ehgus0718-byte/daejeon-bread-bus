@@ -175,7 +175,8 @@ function normalizeAdminSettings(settings = {}) {
     capacityOverrides: settings.capacityOverrides || {},
     priceOverrides: settings.priceOverrides || {},
     scheduleStatus: settings.scheduleStatus || {},
-    scheduleDetails: settings.scheduleDetails || {}
+    scheduleDetails: settings.scheduleDetails || {},
+    headerLinks: Array.isArray(settings.headerLinks) ? settings.headerLinks : []
   };
 }
 
@@ -196,6 +197,11 @@ function updateScheduleDetail(settings = {}, date, detail = "") {
     ...settings,
     [date]: safeDetail
   };
+}
+
+function isValidUrl(url = "") {
+  const s = String(url || "").trim();
+  return s.startsWith("http://") || s.startsWith("https://");
 }
 
 function PolicyModal({ type, onClose }) {
@@ -224,51 +230,42 @@ function PolicyModal({ type, onClose }) {
         {isPrivacy ? (
           <div className="mt-5 space-y-5 text-sm font-bold leading-7 text-stone-700">
             <p className="text-xs font-black text-stone-400">시행일: 2026년 6월 22일</p>
-
             <div>
               <p className="font-black text-stone-900">1. 수집하는 개인정보 항목</p>
               <p className="mt-2">소망투어는 대전빵버스 예약 서비스 운영을 위해 다음과 같은 개인정보를 수집합니다.</p>
               <p className="mt-1">예약자명, 휴대폰 번호, 예약일, 예약 인원, 예약 상태</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">2. 개인정보 수집·이용 목적</p>
               <p className="mt-2">예약 접수 및 확인, 결제 계좌 안내, 예약 확정·취소 문자 발송, 고객 문의 응대</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">3. 보유 및 이용 기간</p>
               <p className="mt-2">예약 서비스 이용 완료 후 관련 법령에 따라 보관합니다.</p>
               <p className="mt-1">전자상거래법에 따라 계약·청약철회 기록 5년, 소비자 불만·분쟁 처리 기록 3년, 표시·광고 기록 6개월을 보관하며, 이후 지체 없이 파기합니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">4. 개인정보의 제3자 제공</p>
               <p className="mt-2">소망투어는 법령에 따른 경우를 제외하고 고객의 동의 없이 개인정보를 외부에 제공하지 않습니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">5. 개인정보 처리 위탁</p>
               <p className="mt-2">소망투어는 예약 안내 문자 발송을 위해 문자 발송 서비스 업체에 최소한의 개인정보(휴대폰 번호)를 위탁할 수 있으며, 향후 전자결제 서비스 도입 시 PG사(결제대행업체)에도 결제에 필요한 정보를 위탁할 수 있습니다. 위탁 업체는 위탁 목적 외 개인정보를 이용하거나 제3자에게 제공하지 않습니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">6. 정보주체의 권리</p>
               <p className="mt-2">고객은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다. 요청은 아래 개인정보보호책임자에게 연락해 주시면 지체 없이 처리합니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">7. 개인정보 파기</p>
               <p className="mt-2">보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 즉시 파기합니다. 전자 파일 형태의 정보는 복구·재생이 불가능한 방법으로 영구 삭제하며, 출력물 등은 분쇄하거나 소각하여 파기합니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">8. 개인정보보호책임자</p>
               <p className="mt-2">성명: 전훈</p>
               <p>소속: 소망투어</p>
               <p>연락처: 010-6422-9352 / ehgus0718@naver.com</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">9. 권익침해 구제 방법</p>
               <p className="mt-2">개인정보 침해에 대한 신고나 상담이 필요하신 경우 개인정보보호위원회(privacy.go.kr, 국번없이 182) 또는 한국인터넷진흥원(kisa.or.kr, 118)으로 문의하실 수 있습니다.</p>
@@ -277,22 +274,18 @@ function PolicyModal({ type, onClose }) {
         ) : (
           <div className="mt-5 space-y-5 text-sm font-bold leading-7 text-stone-700">
             <p className="text-xs font-black text-stone-400">시행일: 2026년 6월 22일</p>
-
             <div>
               <p className="font-black text-stone-900">제1조 (목적)</p>
               <p className="mt-2">본 약관은 소망투어(이하 "회사")가 운영하는 대전빵셔틀 빵버스 예약 서비스(이하 "서비스")의 이용 조건 및 절차에 관한 사항을 규정합니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">제2조 (예약 접수)</p>
               <p className="mt-2">고객은 날짜 선택, 휴대폰 인증, 예약 정보 입력을 통해 예약을 접수할 수 있습니다. 예약 접수는 확정이 아니며, 담당자 확인과 입금 확인 후 최종 확정됩니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">제3조 (결제)</p>
               <p className="mt-2">예약 접수 후 담당자가 연락처와 예약 내용을 확인한 뒤 결제 방법을 안내드립니다. 입금 확인 후 예약확정 문자가 발송되며, 이 시점에 예약이 최종 확정됩니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">제4조 (청약철회 및 취소·환불)</p>
               <p className="mt-2">여행 서비스의 특성상 출발일 기준으로 아래와 같이 환불이 적용됩니다.</p>
@@ -304,22 +297,18 @@ function PolicyModal({ type, onClose }) {
               </ul>
               <p className="mt-2">단, 소비자보호에관한법률 등 관련 법령에 따라 고객에게 더 유리한 경우 해당 법령이 우선 적용됩니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">제5조 (운영 변경)</p>
               <p className="mt-2">최소 출발 인원 미달, 기상 악화, 차량 사정, 방문지 운영 상황 등으로 일정이 변경되거나 취소될 수 있습니다. 이 경우 사전에 연락드리며, 회사 귀책 사유로 취소 시 전액 환불됩니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">제6조 (면책)</p>
               <p className="mt-2">고객의 귀책 사유로 인한 취소·변경, 또는 천재지변·불가항력으로 인한 운행 불가 시 회사는 책임을 지지 않습니다. 단, 이 경우에도 고객이 기납부한 금액의 환불 여부는 관련 법령에 따릅니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">제7조 (분쟁 해결 및 관할)</p>
               <p className="mt-2">서비스 이용과 관련한 분쟁이 발생한 경우 회사와 고객은 원만한 합의를 위해 성실히 협의합니다. 협의가 이루어지지 않을 경우 대전지방법원을 전속 관할법원으로 합니다.</p>
             </div>
-
             <div>
               <p className="font-black text-stone-900">제8조 (문의)</p>
               <p className="mt-2">예약 및 이용 문의: 010-6422-9352 / ehgus0718@naver.com</p>
@@ -339,24 +328,17 @@ export default function AppSafe() {
   );
 
   const [selectedDate, setSelectedDate] = useState(getInitialSelectedDate);
-  const [reservationForm, setReservationForm] = useState(
-    DEFAULT_RESERVATION_FORM
-  );
+  const [reservationForm, setReservationForm] = useState(DEFAULT_RESERVATION_FORM);
   const [reservations, setReservations] = useState(getInitialReservations);
   const [adminReservations, setAdminReservations] = useState(null);
   const [recentChangedReservationId, setRecentChangedReservationId] = useState("");
   const [operationNotice, setOperationNotice] = useState("");
-  const [capacityOverrides, setCapacityOverrides] = useState(
-    savedAdminSettings.capacityOverrides
-  );
-  const [priceOverrides, setPriceOverrides] = useState(
-    savedAdminSettings.priceOverrides
-  );
-  const [scheduleStatus, setScheduleStatus] = useState(
-    savedAdminSettings.scheduleStatus
-  );
-  const [scheduleDetails, setScheduleDetails] = useState(
-    savedAdminSettings.scheduleDetails || {}
+  const [capacityOverrides, setCapacityOverrides] = useState(savedAdminSettings.capacityOverrides);
+  const [priceOverrides, setPriceOverrides] = useState(savedAdminSettings.priceOverrides);
+  const [scheduleStatus, setScheduleStatus] = useState(savedAdminSettings.scheduleStatus);
+  const [scheduleDetails, setScheduleDetails] = useState(savedAdminSettings.scheduleDetails || {});
+  const [headerLinks, setHeaderLinks] = useState(
+    Array.isArray(savedAdminSettings.headerLinks) ? savedAdminSettings.headerLinks : []
   );
   const [notice, setNotice] = useState("");
   const [reservationSuccessNotice, setReservationSuccessNotice] = useState("");
@@ -373,6 +355,14 @@ export default function AppSafe() {
 
   const isAdminPage =
     typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+
+  const visibleHeaderLinks = useMemo(
+    () =>
+      (Array.isArray(headerLinks) ? headerLinks : []).filter(
+        (link) => link.label && isValidUrl(link.url)
+      ),
+    [headerLinks]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -443,6 +433,7 @@ export default function AppSafe() {
       setPriceOverrides(nextSettings.priceOverrides);
       setScheduleStatus(nextSettings.scheduleStatus);
       setScheduleDetails(nextSettings.scheduleDetails);
+      setHeaderLinks(nextSettings.headerLinks);
       saveAdminSettings(nextSettings);
       setIsAdminSettingsReady(true);
     }
@@ -459,7 +450,8 @@ export default function AppSafe() {
       capacityOverrides,
       priceOverrides,
       scheduleStatus,
-      scheduleDetails
+      scheduleDetails,
+      headerLinks
     };
 
     saveAdminSettings(nextSettings);
@@ -482,7 +474,7 @@ export default function AppSafe() {
     return () => {
       isCancelled = true;
     };
-  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, isAdminSettingsReady]);
+  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, headerLinks, isAdminSettingsReady]);
 
   const managedDateSettings = useMemo(
     () =>
@@ -635,6 +627,10 @@ export default function AppSafe() {
     setScheduleStatus((prev) => removeDateKey(prev, date));
     setScheduleDetails((prev) => removeDateKey(prev, date));
     setNotice("선택한 날짜 설정이 삭제되었습니다.");
+  }
+
+  function handleUpdateHeaderLinks(nextLinks) {
+    setHeaderLinks(Array.isArray(nextLinks) ? nextLinks : []);
   }
 
   async function handleRefreshReservations() {
@@ -908,26 +904,40 @@ export default function AppSafe() {
   return (
     <div className="min-h-screen bg-[#fff8ef] text-stone-950">
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">
               🚌
             </div>
             <div>
-              <h1 className="text-xl font-black">대전빵셔틀 빵버스</h1>
+              <h1 className="text-xl font-black">대전빵버스 빵셔틀</h1>
               <p className="text-xs font-bold text-stone-500">2026 Reservation Platform</p>
             </div>
           </div>
 
-          {isAdminAuthed ? (
-            <button
-              type="button"
-              onClick={handleAdminLogout}
-              className="rounded-full bg-stone-950 px-4 py-2 text-xs font-black text-white"
-            >
-              관리자 로그아웃
-            </button>
-          ) : null}
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {visibleHeaderLinks.map((link) => (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black text-orange-700 transition hover:bg-orange-100 hover:text-orange-800"
+              >
+                {link.label}
+              </a>
+            ))}
+
+            {isAdminAuthed ? (
+              <button
+                type="button"
+                onClick={handleAdminLogout}
+                className="shrink-0 rounded-full bg-stone-950 px-4 py-2 text-xs font-black text-white"
+              >
+                관리자 로그아웃
+              </button>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -946,16 +956,6 @@ export default function AppSafe() {
         </section>
 
         <section className="mt-10">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-black text-orange-600">Reservation Calendar</p>
-              <h3 className="text-3xl font-black">2개월 예약 달력</h3>
-            </div>
-            <div className="rounded-full bg-white px-4 py-3 text-sm font-black shadow-sm">
-              예약 가능한 날짜를 선택한 뒤 정보를 입력해주세요
-            </div>
-          </div>
-
           <CustomerScheduleSection
             selectedDate={selectedDate}
             scheduleDetail={selectedScheduleDetail}
@@ -1117,6 +1117,7 @@ export default function AppSafe() {
             quickReservationLimit={ADMIN_QUICK_REFRESH_LIMIT}
             recentChangedReservationId={recentChangedReservationId}
             operationNotice={operationNotice}
+            headerLinks={headerLinks}
             onRefreshReservations={handleRefreshReservations}
             onClearQuickReservations={handleClearQuickReservations}
             onChangeReservationStatus={handleReservationStatusChange}
@@ -1129,6 +1130,7 @@ export default function AppSafe() {
             onRemoveDateSettings={handleRemoveDateSettings}
             onSaveReservationNote={handleSaveReservationNote}
             onClearReservationNote={handleClearReservationNote}
+            onUpdateHeaderLinks={handleUpdateHeaderLinks}
           />
         ) : isAdminPage ? (
           <AdminLogin
