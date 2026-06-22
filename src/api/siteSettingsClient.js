@@ -2,8 +2,8 @@ import { hasSupabaseConfig, supabaseClient } from "./supabaseClient.js";
 
 const TABLE_NAME = ["admin", "settings"].join("_");
 const ROW_ID = "default";
-const BASE_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,updated_at";
-const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,updated_at";
+const BASE_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,header_links,updated_at";
+const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,header_links,updated_at";
 const SCHEDULE_DETAILS_FALLBACK_KEY = "__schedule_details__";
 
 function ok(data = null, status = 200) {
@@ -20,6 +20,10 @@ function isRecord(value) {
 
 function record(value) {
   return isRecord(value) ? value : {};
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function isMissingScheduleDetailsColumnError(error) {
@@ -60,6 +64,7 @@ function fromRow(row = {}) {
     priceOverrides: record(row.price_overrides),
     scheduleStatus: splitSchedule.scheduleStatus,
     scheduleDetails: splitSchedule.scheduleDetails,
+    headerLinks: safeArray(row.header_links),
     updatedAt: row.updated_at || ""
   };
 }
@@ -70,7 +75,8 @@ function toExtendedRow(settings = {}) {
     capacity_overrides: record(settings.capacityOverrides),
     price_overrides: record(settings.priceOverrides),
     schedule_status: record(settings.scheduleStatus),
-    schedule_details: record(settings.scheduleDetails)
+    schedule_details: record(settings.scheduleDetails),
+    header_links: safeArray(settings.headerLinks)
   };
 }
 
@@ -79,7 +85,8 @@ function toFallbackRow(settings = {}) {
     id: ROW_ID,
     capacity_overrides: record(settings.capacityOverrides),
     price_overrides: record(settings.priceOverrides),
-    schedule_status: mergeScheduleDetailsIntoStatus(settings)
+    schedule_status: mergeScheduleDetailsIntoStatus(settings),
+    header_links: safeArray(settings.headerLinks)
   };
 }
 
