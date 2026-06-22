@@ -34,7 +34,11 @@ export function shouldSendReservationStatusSms(status = "") {
   return SMS_TARGET_STATUSES.has(String(status || "").trim());
 }
 
-export async function sendReservationStatusSms({ reservation = {}, status = "" } = {}) {
+export async function sendReservationStatusSms({
+  reservation = {},
+  status = "",
+  boardingTime = "10:00"
+} = {}) {
   const nextStatus = String(status || reservation?.status || "").trim();
 
   if (!shouldSendReservationStatusSms(nextStatus)) {
@@ -54,6 +58,8 @@ export async function sendReservationStatusSms({ reservation = {}, status = "" }
   const date = getReservationDate(reservation);
   const people = getReservationPeople(reservation);
   const amount = Number(reservation?.totalAmount || reservation?.amount || reservation?.price || 0) || 0;
+  const safeBoardingTime = String(boardingTime || "10:00").trim() || "10:00";
+
   const normalizedReservation = {
     ...reservation,
     id: reservationId,
@@ -81,6 +87,7 @@ export async function sendReservationStatusSms({ reservation = {}, status = "" }
     status: nextStatus,
     totalAmount: amount,
     amount,
+    boardingTime: safeBoardingTime,
     reservation: normalizedReservation
   };
 
