@@ -905,7 +905,9 @@ export default function AppSafe() {
     <div className="min-h-screen bg-[#fff8ef] text-stone-950">
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-4">
-          <div className="flex items-center gap-3">
+
+          {/* ✅ 로고 클릭 시 홈으로 이동(새로고침) */}
+          <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">
               🚌
             </div>
@@ -913,7 +915,7 @@ export default function AppSafe() {
               <h1 className="text-xl font-black">대전빵버스 빵셔틀</h1>
               <p className="text-xs font-bold text-stone-500">2026 Reservation Platform</p>
             </div>
-          </div>
+          </a>
 
           <div className="flex items-center gap-2 overflow-x-auto">
             {visibleHeaderLinks.map((link) => (
