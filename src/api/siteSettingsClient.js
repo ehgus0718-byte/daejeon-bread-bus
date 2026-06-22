@@ -2,8 +2,8 @@ import { hasSupabaseConfig, supabaseClient } from "./supabaseClient.js";
 
 const TABLE_NAME = ["admin", "settings"].join("_");
 const ROW_ID = "default";
-const BASE_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,header_links,updated_at";
-const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,header_links,updated_at";
+const BASE_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,header_links,boarding_time,updated_at";
+const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,header_links,boarding_time,updated_at";
 const SCHEDULE_DETAILS_FALLBACK_KEY = "__schedule_details__";
 
 function ok(data = null, status = 200) {
@@ -24,6 +24,11 @@ function record(value) {
 
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function safeBoardingTime(value) {
+  const s = String(value || "").trim();
+  return s || "10:00";
 }
 
 function isMissingScheduleDetailsColumnError(error) {
@@ -65,6 +70,7 @@ function fromRow(row = {}) {
     scheduleStatus: splitSchedule.scheduleStatus,
     scheduleDetails: splitSchedule.scheduleDetails,
     headerLinks: safeArray(row.header_links),
+    boardingTime: safeBoardingTime(row.boarding_time),
     updatedAt: row.updated_at || ""
   };
 }
@@ -76,7 +82,8 @@ function toExtendedRow(settings = {}) {
     price_overrides: record(settings.priceOverrides),
     schedule_status: record(settings.scheduleStatus),
     schedule_details: record(settings.scheduleDetails),
-    header_links: safeArray(settings.headerLinks)
+    header_links: safeArray(settings.headerLinks),
+    boarding_time: safeBoardingTime(settings.boardingTime)
   };
 }
 
@@ -86,7 +93,8 @@ function toFallbackRow(settings = {}) {
     capacity_overrides: record(settings.capacityOverrides),
     price_overrides: record(settings.priceOverrides),
     schedule_status: mergeScheduleDetailsIntoStatus(settings),
-    header_links: safeArray(settings.headerLinks)
+    header_links: safeArray(settings.headerLinks),
+    boarding_time: safeBoardingTime(settings.boardingTime)
   };
 }
 
