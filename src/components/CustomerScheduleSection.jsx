@@ -21,9 +21,29 @@ function getScheduleLines(scheduleDetail = "") {
     .filter(Boolean);
 }
 
-function getTimelineLabel(index) {
+/**
+ * 라벨 | 내용 형식을 파싱합니다.
+ * 예: "집결 | 10:00 대전역 동광장" → { label: "집결", content: "10:00 대전역 동광장" }
+ * 파이프 없으면 → { label: null, content: 원문 }
+ */
+function parseScheduleLine(line = "") {
+  const pipeIndex = line.indexOf("|");
+
+  if (pipeIndex !== -1) {
+    const label = line.substring(0, pipeIndex).trim();
+    const content = line.substring(pipeIndex + 1).trim();
+
+    if (label) {
+      return { label, content: content || line };
+    }
+  }
+
+  return { label: null, content: line };
+}
+
+function getDefaultTimelineLabel(index) {
   const labels = ["출발", "투어", "휴식", "복귀"];
-  return labels[index] || `일정 ${index + 1}`;
+  return labels[index] || `코스 ${index + 1}`;
 }
 
 function getFirstSavedScheduleDetail(scheduleDetails = {}) {
@@ -201,25 +221,30 @@ export default function CustomerScheduleSection({
           </div>
 
           <div className="grid gap-3">
-            {displayLines.map((line, index) => (
-              <div
-                key={`${line}-${index}`}
-                className={`flex gap-3 rounded-2xl bg-white p-4 shadow-sm ${!hasSchedule ? "opacity-80" : ""}`}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-black text-white">
-                  {String(index + 1).padStart(2, "0")}
-                </div>
+            {displayLines.map((line, index) => {
+              const parsed = parseScheduleLine(line);
+              const label = parsed.label || getDefaultTimelineLabel(index);
 
-                <div className="min-w-0">
-                  <div className="mb-1 text-xs font-black text-orange-600">
-                    {getTimelineLabel(index)}
+              return (
+                <div
+                  key={`${line}-${index}`}
+                  className={`flex gap-3 rounded-2xl bg-white p-4 shadow-sm ${!hasSchedule ? "opacity-80" : ""}`}
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500 text-xs font-black text-white">
+                    {String(index + 1).padStart(2, "0")}
                   </div>
-                  <div className="whitespace-pre-wrap text-sm font-bold leading-6 text-stone-700">
-                    {line}
+
+                  <div className="min-w-0">
+                    <div className="mb-1 text-xs font-black text-orange-600">
+                      {label}
+                    </div>
+                    <div className="whitespace-pre-wrap text-sm font-bold leading-6 text-stone-700">
+                      {parsed.content}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
