@@ -45,24 +45,24 @@ function AdminHeaderLinksEditor({ headerLinks = [], onUpdateHeaderLinks }) {
   }
 
   return (
-    <section className="rounded-[2rem] border border-stone-700 bg-stone-900 p-6">
+    <section className="rounded-[2rem] border border-stone-200 bg-white p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-xs font-black tracking-[0.2em] text-orange-300">HEADER LINKS</p>
-          <h3 className="mt-1 text-2xl font-black text-white">헤더 링크 관리</h3>
-          <p className="mt-2 text-sm font-bold leading-6 text-stone-400">
+          <p className="text-xs font-black tracking-[0.2em] text-orange-600">HEADER LINKS</p>
+          <h3 className="mt-1 text-2xl font-black text-stone-950">헤더 링크 관리</h3>
+          <p className="mt-2 text-sm font-bold leading-6 text-stone-600">
             고객 화면 상단에 표시되는 링크입니다. 블로그·인스타·카카오채널 등 최대 {MAX_HEADER_LINKS}개까지 등록할 수 있습니다.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-stone-800 px-3 py-2 text-xs font-black text-stone-300">
+          <span className="rounded-full bg-stone-100 px-3 py-2 text-xs font-black text-stone-600">
             {safeLinks.length} / {MAX_HEADER_LINKS}
           </span>
           <button
             type="button"
             onClick={handleAdd}
             disabled={!canAdd}
-            className="rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
+            className="rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
           >
             + 링크 추가
           </button>
@@ -70,11 +70,11 @@ function AdminHeaderLinksEditor({ headerLinks = [], onUpdateHeaderLinks }) {
       </div>
 
       {safeLinks.length === 0 ? (
-        <div className="mt-5 rounded-[1.5rem] border border-stone-700 bg-stone-800 p-6 text-center">
-          <p className="text-sm font-black text-stone-400">
+        <div className="mt-5 rounded-[1.5rem] border border-stone-100 bg-stone-50 p-6 text-center">
+          <p className="text-sm font-black text-stone-500">
             등록된 링크가 없습니다. 위의 "링크 추가" 버튼으로 추가해주세요.
           </p>
-          <p className="mt-2 text-xs font-bold text-stone-500">
+          <p className="mt-2 text-xs font-bold text-stone-400">
             예) 블로그: https://blog.naver.com/yourname
           </p>
         </div>
@@ -83,7 +83,7 @@ function AdminHeaderLinksEditor({ headerLinks = [], onUpdateHeaderLinks }) {
           {safeLinks.map((link, index) => (
             <div
               key={link.id}
-              className="rounded-[1.5rem] border border-stone-700 bg-stone-800 p-5"
+              className="rounded-[1.5rem] border border-stone-100 bg-stone-50 p-5"
             >
               <div className="mb-3 flex items-center justify-between gap-3">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-500 text-xs font-black text-white">
@@ -92,7 +92,7 @@ function AdminHeaderLinksEditor({ headerLinks = [], onUpdateHeaderLinks }) {
                 <button
                   type="button"
                   onClick={() => handleRemove(link.id)}
-                  className="rounded-full bg-red-900/50 px-3 py-1.5 text-xs font-black text-red-300 transition hover:bg-red-800/60"
+                  className="rounded-full bg-red-50 px-3 py-1.5 text-xs font-black text-red-500 transition hover:bg-red-100"
                 >
                   삭제
                 </button>
@@ -100,8 +100,8 @@ function AdminHeaderLinksEditor({ headerLinks = [], onUpdateHeaderLinks }) {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-black text-stone-300">
-                    버튼 이름 <span className="text-orange-400">(헤더에 표시)</span>
+                  <label className="text-xs font-black text-stone-600">
+                    버튼 이름 <span className="text-orange-500">(헤더에 표시)</span>
                   </label>
                   <input
                     type="text"
@@ -109,28 +109,28 @@ function AdminHeaderLinksEditor({ headerLinks = [], onUpdateHeaderLinks }) {
                     onChange={(e) => handleChange(link.id, "label", e.target.value)}
                     placeholder="예) 블로그, 인스타그램, 카카오채널"
                     maxLength={12}
-                    className="rounded-2xl border border-stone-600 bg-stone-700 px-4 py-3 text-sm font-bold text-white placeholder-stone-500 outline-none transition focus:border-orange-400"
+                    className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-bold text-stone-800 placeholder-stone-400 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-black text-stone-300">
-                    링크 주소 <span className="text-orange-400">(URL)</span>
+                  <label className="text-xs font-black text-stone-600">
+                    링크 주소 <span className="text-orange-500">(URL)</span>
                   </label>
                   <input
                     type="url"
                     value={link.url || ""}
                     onChange={(e) => handleChange(link.id, "url", e.target.value)}
                     placeholder="예) https://blog.naver.com/yourname"
-                    className="rounded-2xl border border-stone-600 bg-stone-700 px-4 py-3 text-sm font-bold text-white placeholder-stone-500 outline-none transition focus:border-orange-400"
+                    className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-bold text-stone-800 placeholder-stone-400 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
                   />
                 </div>
               </div>
 
               {link.label && link.url ? (
-                <div className="mt-3 rounded-2xl bg-stone-700/50 px-4 py-2.5">
-                  <p className="text-xs font-bold text-stone-400">
+                <div className="mt-3 rounded-2xl bg-orange-50 px-4 py-2.5">
+                  <p className="text-xs font-bold text-stone-500">
                     미리보기 →
-                    <span className="ml-2 rounded-full bg-stone-950 px-3 py-1 text-xs font-black text-orange-300">
+                    <span className="ml-2 rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-black text-orange-700">
                       {link.label}
                     </span>
                   </p>
@@ -141,8 +141,8 @@ function AdminHeaderLinksEditor({ headerLinks = [], onUpdateHeaderLinks }) {
         </div>
       )}
 
-      <div className="mt-5 rounded-[1.5rem] border border-stone-700 bg-stone-800/50 p-4">
-        <p className="text-xs font-black text-stone-400">💡 입력 즉시 자동 저장됩니다.</p>
+      <div className="mt-5 rounded-[1.5rem] border border-orange-100 bg-orange-50 p-4">
+        <p className="text-xs font-black text-orange-700">💡 입력 즉시 자동 저장됩니다.</p>
         <p className="mt-1 text-xs font-bold text-stone-500">
           링크 이름은 최대 12자, 주소는 https://로 시작해야 합니다. 저장 후 고객 화면 헤더에 바로 반영됩니다.
         </p>
