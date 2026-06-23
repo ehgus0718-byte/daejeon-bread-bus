@@ -516,7 +516,8 @@ export default function AppSafe() {
   return (
     <div className="min-h-screen bg-[#fff8ef] text-stone-950">
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-4">
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4">
+          {/* 왼쪽: 로고 */}
           <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
             <div>
@@ -525,8 +526,18 @@ export default function AppSafe() {
             </div>
           </a>
 
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {/* ✅ 전화상담 버튼 — text-sm / px-5 py-2.5 / border-2 로 크기 업 */}
+          {/* 중앙: 헤더 링크들 (이용후기, 블로그 등) */}
+          <div className="flex items-center justify-center gap-2 overflow-x-auto">
+            {visibleHeaderLinks.map((link) => (
+              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                className="shrink-0 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black text-orange-700 transition hover:bg-orange-100 hover:text-orange-800">
+                {link.label}
+              </a>
+            ))}
+          </div>
+
+          {/* 오른쪽: 전화상담 + 관리자 로그아웃 */}
+          <div className="flex items-center gap-2">
             {!isAdminPage ? (
               <a
                 href="tel:01045606701"
@@ -535,13 +546,6 @@ export default function AppSafe() {
                 📞 전화상담
               </a>
             ) : null}
-
-            {visibleHeaderLinks.map((link) => (
-              <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
-                className="shrink-0 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black text-orange-700 transition hover:bg-orange-100 hover:text-orange-800">
-                {link.label}
-              </a>
-            ))}
 
             {isAdminAuthed ? (
               <button type="button" onClick={handleAdminLogout}
