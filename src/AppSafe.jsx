@@ -526,7 +526,7 @@ export default function AppSafe() {
             </div>
           </a>
 
-          {/* 중앙: 헤더 링크들 (이용후기, 블로그 등) — 버튼 크기 확대 */}
+          {/* 중앙: 헤더 링크들 */}
           <div className="flex items-center justify-center gap-3 overflow-x-auto">
             {visibleHeaderLinks.map((link) => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -602,7 +602,6 @@ export default function AppSafe() {
           <footer className="mt-12 rounded-[2rem] border border-orange-100 bg-white/95 px-5 py-6 text-xs font-bold leading-6 text-stone-600 shadow-sm md:px-8">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-stone-800">
               <span className="font-black text-stone-950">소망투어</span><span className="text-stone-300">|</span>
-              <span>대표자 이도현</span><span className="text-stone-300">|</span>
               <span>대전빵버스 빵셔틀</span><span className="text-stone-300">|</span>
               <a href="tel:01045606701" className="font-black text-stone-800 underline decoration-orange-300 underline-offset-4">대표전화 010-4560-6701</a>
             </div>
