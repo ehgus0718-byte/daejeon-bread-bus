@@ -524,13 +524,25 @@ export default function AppSafe() {
               <p className="text-xs font-bold text-stone-500">2026 Reservation Platform</p>
             </div>
           </a>
+
           <div className="flex items-center gap-2 overflow-x-auto">
+            {/* ✅ 전화상담 버튼 — 고객 화면에만 표시 */}
+            {!isAdminPage ? (
+              <a
+                href="tel:01045606701"
+                className="shrink-0 flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-4 py-2 text-xs font-black text-orange-700 transition hover:bg-orange-100 hover:border-orange-400"
+              >
+                📞 전화상담
+              </a>
+            ) : null}
+
             {visibleHeaderLinks.map((link) => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
                 className="shrink-0 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black text-orange-700 transition hover:bg-orange-100 hover:text-orange-800">
                 {link.label}
               </a>
             ))}
+
             {isAdminAuthed ? (
               <button type="button" onClick={handleAdminLogout}
                 className="shrink-0 rounded-full bg-stone-950 px-4 py-2 text-xs font-black text-white">
