@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { formatCurrency, formatSeatCount } from "../core/formatters.js";
 import SectionTitle from "./SectionTitle.jsx";
 import {
@@ -68,26 +68,55 @@ function PassengerCounter({
   );
 }
 
+const COOLDOWN_SECONDS = 60;
+
 function SmsVerificationBox({ phone = "", onVerifiedChange }) {
   const [code, setCode] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [message, setMessage] = useState("휴대폰 번호 입력 후 인증번호를 받아주세요.");
   const [isVerified, setIsVerified] = useState(false);
+  const [hasSent, setHasSent] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const timerRef = useRef(null);
+
   const phoneDigits = getPhoneDigits(phone);
-  const canRequest = phoneDigits.length === 11 && phoneDigits.startsWith("010") && !isSending;
+  const isOnCooldown = cooldown > 0;
+  const canRequest = phoneDigits.length === 11 && phoneDigits.startsWith("010") && !isSending && !isOnCooldown;
   const canVerify = code.replace(/\D/g, "").length === 6 && !isChecking && !isVerified;
 
   useEffect(() => {
     setCode("");
     setIsVerified(false);
+    setHasSent(false);
+    setCooldown(0);
     setMessage("휴대폰 번호 입력 후 인증번호를 받아주세요.");
     onVerifiedChange?.(false);
+    if (timerRef.current) clearInterval(timerRef.current);
   }, [phoneDigits, onVerifiedChange]);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  function startCooldown() {
+    setCooldown(COOLDOWN_SECONDS);
+    timerRef.current = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
 
   async function handleRequestCode() {
     if (!canRequest) {
-      setMessage("010으로 시작하는 휴대폰 번호 11자리를 입력해주세요.");
+      if (phoneDigits.length !== 11 || !phoneDigits.startsWith("010")) {
+        setMessage("010으로 시작하는 휴대폰 번호 11자리를 입력해주세요.");
+      }
       return;
     }
 
@@ -96,7 +125,13 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
 
     try {
       const result = await requestSmsVerification(phoneDigits);
-      setMessage(result.message || (result.ok ? "인증번호를 발송했습니다." : "인증번호 발송에 실패했습니다."));
+      if (result.ok) {
+        setHasSent(true);
+        startCooldown();
+        setMessage("인증번호를 발송했습니다. 문자를 확인해주세요.");
+      } else {
+        setMessage(result.message || "인증번호 발송에 실패했습니다.");
+      }
     } catch (error) {
       console.warn("SMS request failed", error);
       setMessage("인증번호 발송 중 오류가 발생했습니다.");
@@ -122,6 +157,8 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
       if (result.ok) {
         setIsVerified(true);
         onVerifiedChange?.(true);
+        if (timerRef.current) clearInterval(timerRef.current);
+        setCooldown(0);
       }
 
       setMessage(result.message || (result.ok ? "휴대폰 인증이 완료되었습니다." : "인증번호 확인에 실패했습니다."));
@@ -131,6 +168,23 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
     } finally {
       setIsChecking(false);
     }
+  }
+
+  // 버튼 라벨 결정
+  function getButtonLabel() {
+    if (isVerified) return "✓ 인증 완료";
+    if (isSending) return "발송 중...";
+    if (isOnCooldown) return `${cooldown}초 후 재요청`;
+    if (hasSent) return "재요청";
+    return "인증번호 받기";
+  }
+
+  // 버튼 색상 결정
+  function getButtonClass() {
+    if (isVerified) return "rounded-2xl px-5 py-3 text-xs font-black text-white bg-green-500 cursor-default";
+    if (isOnCooldown) return "rounded-2xl px-5 py-3 text-xs font-black text-stone-500 bg-stone-200 cursor-not-allowed tabular-nums min-w-[120px] text-center";
+    if (!canRequest) return "rounded-2xl px-5 py-3 text-xs font-black text-white bg-stone-300 cursor-not-allowed";
+    return "rounded-2xl px-5 py-3 text-xs font-black text-white bg-orange-500 transition hover:bg-orange-600";
   }
 
   return (
@@ -146,9 +200,9 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
           type="button"
           onClick={handleRequestCode}
           disabled={!canRequest || isVerified}
-          className="rounded-2xl bg-orange-500 px-5 py-3 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-stone-300"
+          className={getButtonClass()}
         >
-          {isSending ? "발송 중..." : isVerified ? "인증 완료" : "인증번호 받기"}
+          {getButtonLabel()}
         </button>
       </div>
 
@@ -168,11 +222,11 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
           disabled={!canVerify}
           className="rounded-2xl bg-stone-900 px-5 py-3 text-xs font-black text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300"
         >
-          {isChecking ? "확인 중..." : isVerified ? "인증 완료" : "인증 확인"}
+          {isChecking ? "확인 중..." : isVerified ? "✓ 완료" : "인증 확인"}
         </button>
       </div>
 
-      <p className={`mt-3 text-xs font-black ${isVerified ? "text-green-600" : "text-stone-500"}`}>
+      <p className={`mt-3 text-xs font-black ${isVerified ? "text-green-600" : isOnCooldown ? "text-orange-600" : "text-stone-500"}`}>
         {message}
       </p>
     </div>
@@ -266,7 +320,6 @@ export default function ReservationPanel({
         </div>
       </div>
 
-      {/* ✅ 변경: 카드결제/계좌이체 중심으로 안내 문구 교체 */}
       <div className="mt-5 rounded-3xl border border-orange-100 bg-orange-50/70 p-5 text-sm font-bold leading-6 text-stone-700">
         <p className="font-black text-orange-700">결제 안내</p>
         <p className="mt-2">
