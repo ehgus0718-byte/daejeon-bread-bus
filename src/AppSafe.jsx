@@ -526,11 +526,11 @@ export default function AppSafe() {
           </a>
 
           <div className="flex items-center gap-2 overflow-x-auto">
-            {/* ✅ 전화상담 버튼 — 고객 화면에만 표시 */}
+            {/* ✅ 전화상담 버튼 — text-sm / px-5 py-2.5 / border-2 로 크기 업 */}
             {!isAdminPage ? (
               <a
                 href="tel:01045606701"
-                className="shrink-0 flex items-center gap-1.5 rounded-full border border-orange-300 bg-orange-50 px-4 py-2 text-xs font-black text-orange-700 transition hover:bg-orange-100 hover:border-orange-400"
+                className="shrink-0 flex items-center gap-2 rounded-full border-2 border-orange-400 bg-orange-50 px-5 py-2.5 text-sm font-black text-orange-700 shadow-sm transition hover:bg-orange-100 hover:border-orange-500"
               >
                 📞 전화상담
               </a>
