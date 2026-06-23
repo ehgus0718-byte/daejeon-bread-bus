@@ -43,7 +43,7 @@ const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
 const USES_REMOTE_RESERVATION_STORAGE =
   RESERVATION_REPOSITORY_MODE !== REPOSITORY_MODE.LOCAL;
 const RESERVATION_RECEIVED_NOTICE =
-  "예약이 접수되었습니다. 카드결제 또는 계좌이체로 결제를 완료해 주시면 예약이 확정됩니다. 결제 관련 문의: 010-6422-9352";
+  "예약이 접수되었습니다. 카드결제 또는 계좌이체로 결제를 완료해 주시면 예약이 확정됩니다. 결제 관련 문의: 010-4560-6701";
 
 function getErrorMessage(error) {
   return error?.message || String(error || "알 수 없는 오류");
@@ -185,7 +185,7 @@ function PolicyModal({ type, onClose }) {
             <div><p className="font-black text-stone-900">5. 개인정보 처리 위탁</p><p className="mt-2">소망투어는 예약 안내 문자 발송을 위해 문자 발송 서비스 업체에 최소한의 개인정보(휴대폰 번호)를 위탁할 수 있으며, 향후 전자결제 서비스 도입 시 PG사(결제대행업체)에도 결제에 필요한 정보를 위탁할 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">6. 정보주체의 권리</p><p className="mt-2">고객은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다. 요청은 아래 개인정보보호책임자에게 연락해 주시면 지체 없이 처리합니다.</p></div>
             <div><p className="font-black text-stone-900">7. 개인정보 파기</p><p className="mt-2">보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 즉시 파기합니다. 전자 파일은 복구 불가능한 방법으로 영구 삭제하며, 출력물은 분쇄 또는 소각합니다.</p></div>
-            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 전훈</p><p>소속: 소망투어</p><p>연락처: 010-6422-9352 / ehgus0718@naver.com</p></div>
+            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 전훈</p><p>소속: 소망투어</p><p>연락처: 010-4560-6701 / ehgus0718@naver.com</p></div>
             <div><p className="font-black text-stone-900">9. 권익침해 구제 방법</p><p className="mt-2">개인정보 침해 신고·상담: 개인정보보호위원회(privacy.go.kr, 182) 또는 한국인터넷진흥원(kisa.or.kr, 118)</p></div>
           </div>
         ) : (
@@ -198,7 +198,7 @@ function PolicyModal({ type, onClose }) {
             <div><p className="font-black text-stone-900">제5조 (운영 변경)</p><p className="mt-2">최소 출발 인원 미달, 기상 악화, 차량 사정 등으로 일정이 변경되거나 취소될 수 있습니다. 회사 귀책 사유로 취소 시 전액 환불됩니다.</p></div>
             <div><p className="font-black text-stone-900">제6조 (면책)</p><p className="mt-2">고객의 귀책 사유로 인한 취소·변경, 또는 천재지변으로 인한 운행 불가 시 회사는 책임을 지지 않습니다.</p></div>
             <div><p className="font-black text-stone-900">제7조 (분쟁 해결 및 관할)</p><p className="mt-2">분쟁 발생 시 대전지방법원을 전속 관할법원으로 합니다.</p></div>
-            <div><p className="font-black text-stone-900">제8조 (문의)</p><p className="mt-2">예약 및 이용 문의: 010-6422-9352 / ehgus0718@naver.com</p><p>운영시간: 09:00 ~ 18:00 (연중무휴)</p></div>
+            <div><p className="font-black text-stone-900">제8조 (문의)</p><p className="mt-2">예약 및 이용 문의: 010-4560-6701 / ehgus0718@naver.com</p><p>운영시간: 09:00 ~ 18:00 (연중무휴)</p></div>
           </div>
         )}
       </div>
@@ -502,7 +502,7 @@ export default function AppSafe() {
       setOperationNotice("신규 예약이 접수되었습니다.");
       setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
       const adminSmsResult = await sendReservationStatusSms({
-        reservation: { ...createdReservations[0], phone: "01064229352" },
+        reservation: { ...createdReservations[0], phone: "01045606701" },
         status: "예약접수",
         boardingTime: boardingTime || "10:00"
       });
@@ -588,7 +588,7 @@ export default function AppSafe() {
               <span className="font-black text-stone-950">소망투어</span><span className="text-stone-300">|</span>
               <span>대표자 이도현</span><span className="text-stone-300">|</span>
               <span>대전빵버스 빵셔틀</span><span className="text-stone-300">|</span>
-              <a href="tel:01064229352" className="font-black text-stone-800 underline decoration-orange-300 underline-offset-4">대표전화 010-6422-9352</a>
+              <a href="tel:01045606701" className="font-black text-stone-800 underline decoration-orange-300 underline-offset-4">대표전화 010-4560-6701</a>
             </div>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1"><span>사업자등록번호 781-69-00237</span><span>통신판매업 신고번호 2020-대전서구-0689</span></div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
