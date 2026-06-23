@@ -526,11 +526,11 @@ export default function AppSafe() {
             </div>
           </a>
 
-          {/* 중앙: 헤더 링크들 (이용후기, 블로그 등) */}
-          <div className="flex items-center justify-center gap-2 overflow-x-auto">
+          {/* 중앙: 헤더 링크들 (이용후기, 블로그 등) — 버튼 크기 확대 */}
+          <div className="flex items-center justify-center gap-3 overflow-x-auto">
             {visibleHeaderLinks.map((link) => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
-                className="shrink-0 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-black text-orange-700 transition hover:bg-orange-100 hover:text-orange-800">
+                className="shrink-0 rounded-full border-2 border-orange-300 bg-orange-50 px-6 py-2.5 text-sm font-black text-orange-700 shadow-sm transition hover:bg-orange-100 hover:border-orange-400 hover:text-orange-800">
                 {link.label}
               </a>
             ))}
