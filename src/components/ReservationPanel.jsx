@@ -12,6 +12,8 @@ const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
 const NICEPAY_SIGN_URL = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
 const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
+// ✅ 모바일 ReturnURL = Edge Function (POST body 수신 가능한 실제 서버)
+const NICEPAY_RETURN_URL = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
@@ -122,22 +124,14 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
   function handleCodeChange(e) {
     const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 6);
     setCode(digitsOnly);
-    if (inputRef.current && inputRef.current.value !== digitsOnly) {
-      inputRef.current.value = digitsOnly;
-    }
+    if (inputRef.current && inputRef.current.value !== digitsOnly) inputRef.current.value = digitsOnly;
   }
 
-  // ── 버튼 라벨 / 클래스 ──
   function getSendButtonContent() {
     if (isVerified) return { label: "✓ 인증 완료", cls: "rounded-2xl px-4 py-3 text-xs font-black text-white bg-green-500 cursor-default whitespace-nowrap" };
     if (isSending) return { label: "발송 중...", cls: "rounded-2xl px-4 py-3 text-xs font-black text-white bg-stone-300 cursor-not-allowed whitespace-nowrap" };
     if (isOnCooldown) return {
-      label: (
-        <span className="flex items-center gap-1 whitespace-nowrap">
-          <span className="tabular-nums font-black">{cooldown}초</span>
-          <span className="text-[10px]">후 재요청</span>
-        </span>
-      ),
+      label: (<span className="flex items-center gap-1 whitespace-nowrap"><span className="tabular-nums font-black">{cooldown}초</span><span className="text-[10px]">후 재요청</span></span>),
       cls: "rounded-2xl px-4 py-3 text-xs font-black text-orange-700 bg-orange-100 border-2 border-orange-300 cursor-not-allowed min-w-[90px] text-center"
     };
     if (!canRequest) return { label: "인증번호 받기", cls: "rounded-2xl px-4 py-3 text-xs font-black text-white bg-stone-300 cursor-not-allowed whitespace-nowrap" };
@@ -154,34 +148,18 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
             <p className="text-sm font-black text-orange-700">휴대폰 인증</p>
             <p className="mt-1 text-xs font-bold leading-5 text-stone-500">실제 연락 가능한 번호인지 확인한 뒤 예약이 가능합니다.</p>
           </div>
-          <button type="button" onClick={handleRequestCode} disabled={!canRequest || isVerified || isOnCooldown} className={sendBtn.cls}>
-            {sendBtn.label}
-          </button>
+          <button type="button" onClick={handleRequestCode} disabled={!canRequest || isVerified || isOnCooldown} className={sendBtn.cls}>{sendBtn.label}</button>
         </div>
-
-        {/* 쿨다운 진행 바 */}
         {isOnCooldown && (
           <div className="w-full rounded-full bg-orange-100 h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-orange-400 transition-all duration-1000"
-              style={{ width: `${(cooldown / COOLDOWN_SECONDS) * 100}%` }}
-            />
+            <div className="h-full bg-orange-400 transition-all duration-1000" style={{ width: `${(cooldown / COOLDOWN_SECONDS) * 100}%` }} />
           </div>
         )}
-
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-          <input
-            ref={inputRef}
-            type="tel"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={code}
-            onChange={handleCodeChange}
-            placeholder="인증번호 6자리"
-            disabled={isVerified}
+          <input ref={inputRef} type="tel" inputMode="numeric" pattern="[0-9]*" value={code}
+            onChange={handleCodeChange} placeholder="인증번호 6자리" disabled={isVerified}
             autoComplete="one-time-code"
-            className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-400 disabled:text-stone-400"
-          />
+            className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-400 disabled:text-stone-400" />
           <button type="button" onClick={handleVerifyCode} disabled={!canVerify}
             className="rounded-2xl bg-stone-900 px-5 py-3 text-xs font-black text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300 whitespace-nowrap">
             {isChecking ? "확인 중..." : isVerified ? "✓ 완료" : "인증 확인"}
@@ -249,7 +227,8 @@ export default function ReservationPanel({
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
           BuyerName: form.name || "고객",
           BuyerTel: getPhoneDigits(form.phone || ""),
-          ReturnURL: `${window.location.origin}/payment-result`,
+          // ✅ ReturnURL = Edge Function (모바일 POST 수신 가능)
+          ReturnURL: NICEPAY_RETURN_URL,
           ReqReserved: JSON.stringify({ date: selectedDate, people: selectedPeople, adultCount, childCount, infantCount }),
         }),
       });
@@ -272,7 +251,8 @@ export default function ReservationPanel({
       BuyerName: signParams.BuyerName, BuyerTel: signParams.BuyerTel,
       EdiDate: signParams.EdiDate, SignData: signParams.SignData,
       CharSet: "utf-8", GoodsCl: "1", TransType: "0",
-      ReturnURL: signParams.ReturnURL, ReqReserved: signParams.ReqReserved,
+      ReturnURL: signParams.ReturnURL,
+      ReqReserved: signParams.ReqReserved,
     };
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
@@ -281,7 +261,7 @@ export default function ReservationPanel({
     });
     document.body.appendChild(form_el);
 
-    // PC 콜백
+    // PC 전용 콜백
     window.nicepaySubmit = async function () {
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
@@ -299,7 +279,6 @@ export default function ReservationPanel({
         if (result.ok) {
           setPaymentNotice("");
           await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
-          // ✅ 핵심: 결제 완료 후 처리 중 상태 해제
           setIsPaymentProcessing(false);
         } else {
           setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
