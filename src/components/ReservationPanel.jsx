@@ -9,6 +9,11 @@ import {
 
 const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
+// 나이스페이 설정
+const NICEPAY_MID = "topbuss01m";
+const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
+const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
+
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : fallbackValue;
@@ -22,6 +27,53 @@ function toCount(value, fallbackValue = 0) {
 function getPhoneDigits(value = "") {
   return String(value || "").replace(/\D/g, "");
 }
+
+// 나이스페이 JS 로드
+function loadNicepayScript() {
+  return new Promise((resolve, reject) => {
+    if (document.getElementById("nicepay-script")) { resolve(); return; }
+    const script = document.createElement("script");
+    script.id = "nicepay-script";
+    script.src = "https://pg-web.nicepay.co.kr/v3/common/js/nicepay-pgweb.js";
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// SHA-256 (브라우저 SubtleCrypto)
+async function sha256hex(str) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// 주문번호 생성
+function generateMoid(reservationId) {
+  const ts = Date.now().toString().slice(-8);
+  const safe = (reservationId || "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
+  return `BUS${ts}${safe}`.slice(0, 40);
+}
+
+// EdiDate 생성 (YYYYMMDDHHMMSS)
+function getEdiDate() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+    pad(now.getHours()),
+    pad(now.getMinutes()),
+    pad(now.getSeconds()),
+  ].join("");
+}
+
+// SignKey (프론트에서 임시 사용 — 실제 운영에서는 서버에서 생성)
+const SIGN_KEY = "IOSbs3hgPu8HH1oe3Ykz6gTVTxlG/aXGFtqj15WBH7yuGBAC9gwcYyN9oqurG65esabKt7VR09bN4pqtgFCkzg==";
 
 function PassengerCounter({
   label,
@@ -103,10 +155,7 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
     setCooldown(COOLDOWN_SECONDS);
     timerRef.current = setInterval(() => {
       setCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(timerRef.current); return 0; }
         return prev - 1;
       });
     }, 1000);
@@ -119,10 +168,8 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
       }
       return;
     }
-
     setIsSending(true);
     setMessage("인증번호를 발송하는 중입니다...");
-
     try {
       const result = await requestSmsVerification(phoneDigits);
       if (result.ok) {
@@ -142,25 +189,17 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
 
   async function handleVerifyCode() {
     const safeCode = code.replace(/\D/g, "").slice(0, 6);
-
-    if (safeCode.length !== 6) {
-      setMessage("인증번호 6자리를 입력해주세요.");
-      return;
-    }
-
+    if (safeCode.length !== 6) { setMessage("인증번호 6자리를 입력해주세요."); return; }
     setIsChecking(true);
     setMessage("인증번호를 확인하는 중입니다...");
-
     try {
       const result = await verifySmsCode({ phone: phoneDigits, code: safeCode });
-
       if (result.ok) {
         setIsVerified(true);
         onVerifiedChange?.(true);
         if (timerRef.current) clearInterval(timerRef.current);
         setCooldown(0);
       }
-
       setMessage(result.message || (result.ok ? "휴대폰 인증이 완료되었습니다." : "인증번호 확인에 실패했습니다."));
     } catch (error) {
       console.warn("SMS verify failed", error);
@@ -170,7 +209,6 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
     }
   }
 
-  // 버튼 라벨 결정
   function getButtonLabel() {
     if (isVerified) return "✓ 인증 완료";
     if (isSending) return "발송 중...";
@@ -179,7 +217,6 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
     return "인증번호 받기";
   }
 
-  // 버튼 색상 결정
   function getButtonClass() {
     if (isVerified) return "rounded-2xl px-5 py-3 text-xs font-black text-white bg-green-500 cursor-default";
     if (isOnCooldown) return "rounded-2xl px-5 py-3 text-xs font-black text-stone-500 bg-stone-200 cursor-not-allowed tabular-nums min-w-[120px] text-center";
@@ -247,12 +284,17 @@ export default function ReservationPanel({
 }) {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [paymentNotice, setPaymentNotice] = useState("");
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
   useEffect(() => {
-    if (reservationSuccessNotice) {
-      setPrivacyConsent(false);
-    }
+    if (reservationSuccessNotice) setPrivacyConsent(false);
   }, [reservationSuccessNotice]);
+
+  // 나이스페이 JS 사전 로드
+  useEffect(() => {
+    loadNicepayScript().catch(() => console.warn("나이스페이 스크립트 로드 실패"));
+  }, []);
 
   const safeRemainingSeats = Math.max(0, toSafeNumber(remainingSeats, 0));
   const adultCount = toCount(form.adultCount, 1);
@@ -272,18 +314,142 @@ export default function ReservationPanel({
     hasValidPeopleSelection &&
     hasRequiredPhoneVerification &&
     privacyConsent &&
-    !isSubmitting;
+    !isSubmitting &&
+    !isPaymentProcessing;
 
   function updatePassengerCount(key, nextValue) {
     const nextAdultCount = key === "adultCount" ? nextValue : adultCount;
     const nextChildCount = key === "childCount" ? nextValue : childCount;
     const nextInfantCount = key === "infantCount" ? nextValue : infantCount;
     const nextPeople = nextAdultCount + nextChildCount + nextInfantCount;
-
     if (nextPeople > safeRemainingSeats) return;
-
     onChange?.(key, nextValue);
     onChange?.("people", nextPeople);
+  }
+
+  // 나이스페이 결제창 호출
+  async function handlePayment() {
+    if (!canSubmit) return;
+    setPaymentNotice("");
+    setIsPaymentProcessing(true);
+
+    try {
+      await loadNicepayScript();
+    } catch {
+      setPaymentNotice("결제 모듈 로드에 실패했습니다. 페이지를 새로고침 후 다시 시도해주세요.");
+      setIsPaymentProcessing(false);
+      return;
+    }
+
+    const ediDate = getEdiDate();
+    const moid = generateMoid(form.phone || "");
+    const amt = String(totalAmount);
+
+    let signData;
+    try {
+      signData = await sha256hex(ediDate + NICEPAY_MID + amt + SIGN_KEY);
+    } catch {
+      setPaymentNotice("결제 준비 중 오류가 발생했습니다.");
+      setIsPaymentProcessing(false);
+      return;
+    }
+
+    // 숨김 폼 생성
+    const form_el = document.createElement("form");
+    form_el.name = "nicepayForm";
+    form_el.method = "post";
+    form_el.acceptCharset = "euc-kr";
+    form_el.style.display = "none";
+
+    const fields = {
+      PayMethod: "CARD",
+      GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
+      Amt: amt,
+      MID: NICEPAY_MID,
+      Moid: moid,
+      BuyerName: form.name || "고객",
+      BuyerTel: getPhoneDigits(form.phone || ""),
+      EdiDate: ediDate,
+      SignData: signData,
+      CharSet: "utf-8",
+      GoodsCl: "1",
+      TransType: "0",
+      ReturnURL: `${window.location.origin}/payment-result`,
+      ReqReserved: JSON.stringify({
+        date: selectedDate,
+        people: selectedPeople,
+        adultCount,
+        childCount,
+        infantCount,
+      }),
+    };
+
+    Object.entries(fields).forEach(([k, v]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = k;
+      input.value = v;
+      form_el.appendChild(input);
+    });
+
+    document.body.appendChild(form_el);
+
+    // PC: nicepaySubmit 콜백 등록
+    window.nicepaySubmit = async function () {
+      const authData = {};
+      new FormData(form_el).forEach((v, k) => { authData[k] = v; });
+
+      // form 제거
+      document.body.removeChild(form_el);
+      delete window.nicepaySubmit;
+      delete window.nicepayClose;
+
+      setPaymentNotice("결제 승인 처리 중입니다...");
+
+      try {
+        const approveResp = await fetch(NICEPAY_APPROVE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...authData,
+            expectedAmt: amt,
+          }),
+        });
+
+        const result = await approveResp.json();
+
+        if (result.ok) {
+          setPaymentNotice("");
+          // 결제 성공 → 기존 예약 접수 로직 호출
+          await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
+        } else {
+          setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
+          setIsPaymentProcessing(false);
+        }
+      } catch (err) {
+        console.error("승인 요청 오류:", err);
+        setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        setIsPaymentProcessing(false);
+      }
+    };
+
+    window.nicepayClose = function () {
+      document.body.removeChild(form_el);
+      delete window.nicepaySubmit;
+      delete window.nicepayClose;
+      setPaymentNotice("결제가 취소되었습니다.");
+      setIsPaymentProcessing(false);
+    };
+
+    // 결제창 호출
+    try {
+      window.goPay(form_el);
+    } catch (err) {
+      console.error("goPay 호출 실패:", err);
+      setPaymentNotice("결제창 호출에 실패했습니다. 팝업 차단을 해제해주세요.");
+      document.body.removeChild(form_el);
+      setIsPaymentProcessing(false);
+    }
   }
 
   return (
@@ -320,13 +486,12 @@ export default function ReservationPanel({
         </div>
       </div>
 
+      {/* 결제 수단 안내 */}
       <div className="mt-5 rounded-3xl border border-orange-100 bg-orange-50/70 p-5 text-sm font-bold leading-6 text-stone-700">
-        <p className="font-black text-orange-700">결제 안내</p>
-        <p className="mt-2">
-          카드결제 또는 계좌이체로 간편하게 결제하실 수 있습니다.
-        </p>
+        <p className="font-black text-orange-700">💳 나이스페이 결제 안내</p>
+        <p className="mt-2">신용카드·체크카드·카카오페이·네이버페이·토스페이 등으로 결제하실 수 있습니다.</p>
         <p className="mt-1 text-xs font-black text-stone-500">
-          결제 완료 후 예약이 즉시 확정되며, 예약확정 문자가 자동 발송됩니다.
+          결제 완료 즉시 예약이 확정되며, 예약확정 문자가 자동 발송됩니다.
         </p>
       </div>
 
@@ -452,19 +617,21 @@ export default function ReservationPanel({
           </div>
           <button
             type="button"
-            onClick={canSubmit ? onSubmit : undefined}
+            onClick={handlePayment}
             disabled={!canSubmit}
-            className="rounded-2xl bg-red-500 px-10 py-4 text-sm font-black text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-stone-300"
+            className="rounded-2xl bg-orange-500 px-10 py-4 text-sm font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-stone-300"
           >
-            {isSubmitting
+            {isPaymentProcessing
+              ? "결제 처리 중..."
+              : isSubmitting
               ? "예약 접수 중..."
-              : hasAvailableSeats
-                ? SMS_VERIFICATION_ENABLED && !isPhoneVerified
-                  ? "휴대폰 인증 후 예약"
-                  : !privacyConsent
-                    ? "개인정보 동의 후 예약"
-                    : "예약하기"
-                : "잔여 좌석 없음"}
+              : !hasAvailableSeats
+              ? "잔여 좌석 없음"
+              : SMS_VERIFICATION_ENABLED && !isPhoneVerified
+              ? "휴대폰 인증 후 결제"
+              : !privacyConsent
+              ? "개인정보 동의 후 결제"
+              : "💳 결제하기"}
           </button>
         </div>
 
@@ -476,9 +643,7 @@ export default function ReservationPanel({
 
         {SMS_VERIFICATION_ENABLED && !hasReservationSuccessNotice ? (
           <div className={`mt-4 rounded-2xl px-4 py-3 text-xs font-black ${
-            isPhoneVerified
-              ? "bg-green-50 text-green-700"
-              : "bg-orange-50 text-orange-700"
+            isPhoneVerified ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700"
           }`}>
             {isPhoneVerified
               ? "휴대폰 인증이 완료되었습니다."
@@ -486,6 +651,12 @@ export default function ReservationPanel({
           </div>
         ) : null}
       </div>
+
+      {paymentNotice ? (
+        <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-4 text-sm font-black text-red-700">
+          {paymentNotice}
+        </div>
+      ) : null}
 
       {displayNotice ? (
         <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700">
