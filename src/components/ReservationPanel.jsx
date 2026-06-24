@@ -180,7 +180,6 @@ export default function ReservationPanel({
   const [paymentNotice, setPaymentNotice] = useState("");
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
-  // 결제 성공 메시지가 오면 처리 중 상태 해제
   useEffect(() => {
     if (reservationSuccessNotice) {
       setPrivacyConsent(false);
@@ -249,15 +248,19 @@ export default function ReservationPanel({
       return;
     }
 
-    // ✅ 핵심: form에 onsubmit="return false" 추가하여 나이스페이 자동 submit 차단
     const form_el = document.createElement("form");
     form_el.name = "nicepayForm";
     form_el.method = "post";
-    form_el.action = ""; // 빈 action
     form_el.acceptCharset = "euc-kr";
     form_el.style.display = "none";
-    // 나이스페이 JS가 콜백 후 form.submit()을 호출하는 것을 차단
-    form_el.onsubmit = function() { return false; };
+
+    // ✅ 핵심: form.submit()을 직접 무력화
+    // 나이스페이 JS는 nicepaySubmit() 콜백 후 form.submit()을 직접 호출함
+    // onsubmit 핸들러는 form.submit() 직접 호출을 막지 못하므로
+    // form 인스턴스의 submit 메서드 자체를 빈 함수로 교체
+    form_el.submit = function() {
+      // 아무것도 하지 않음 - 페이지 이동 완전 차단
+    };
 
     const fields = {
       PayMethod: "CARD", GoodsName: signParams.GoodsName,
@@ -275,44 +278,43 @@ export default function ReservationPanel({
     });
     document.body.appendChild(form_el);
 
-    // ✅ 핵심: nicepaySubmit을 동기 함수로 선언
-    // 나이스페이 JS가 nicepaySubmit() 호출 후 동기적으로 form.submit()을 시도하므로
-    // async function이면 Promise가 반환되어 타이밍이 어긋남
-    // 동기 함수로 선언하고 내부에서 비동기 처리를 별도로 시작
+    // ✅ nicepaySubmit: 동기 함수로 선언 (나이스페이 JS가 동기적으로 호출)
+    // 인증 데이터 즉시 수집 후 form 제거, AJAX 승인은 비동기로 실행
     window.nicepaySubmit = function () {
-      // 인증 데이터 즉시 수집 (form이 제거되기 전)
+      // 1. 인증 데이터 즉시 수집 (form 제거 전)
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
 
-      // form 즉시 제거 (나이스페이 dim 해제)
+      // 2. form 즉시 DOM에서 제거 (나이스페이 dim 오버레이 해제)
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       delete window.nicepaySubmit;
       delete window.nicepayClose;
 
+      // 3. 승인 처리 중 표시
       setPaymentNotice("결제 승인 처리 중입니다...");
 
-      // 비동기 승인 처리는 별도 Promise로 실행 (동기 함수 반환 후 실행됨)
-      Promise.resolve().then(async () => {
-        try {
-          const approveResp = await fetch(NICEPAY_APPROVE_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...authData, expectedAmt: amt }),
-          });
-          const result = await approveResp.json();
+      // 4. 비동기 승인 - 동기 함수 반환 후 실행
+      fetch(NICEPAY_APPROVE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...authData, expectedAmt: amt }),
+      })
+        .then((r) => r.json())
+        .then((result) => {
           if (result.ok) {
             setPaymentNotice("");
-            await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
-            setIsPaymentProcessing(false);
+            // onSubmit은 Promise 반환, 완료 후 처리 중 해제
+            Promise.resolve(onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt }))
+              .finally(() => { setIsPaymentProcessing(false); });
           } else {
             setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
             setIsPaymentProcessing(false);
           }
-        } catch {
+        })
+        .catch(() => {
           setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
           setIsPaymentProcessing(false);
-        }
-      });
+        });
     };
 
     window.nicepayClose = function () {
