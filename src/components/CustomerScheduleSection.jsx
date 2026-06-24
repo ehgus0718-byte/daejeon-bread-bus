@@ -21,11 +21,6 @@ function getScheduleLines(scheduleDetail = "") {
     .filter(Boolean);
 }
 
-/**
- * 라벨 | 내용 형식을 파싱합니다.
- * 예: "집결 | 10:00 대전역 동광장" → { label: "집결", content: "10:00 대전역 동광장" }
- * 파이프 없으면 → { label: null, content: 원문 }
- */
 function parseScheduleLine(line = "") {
   const pipeIndex = line.indexOf("|");
 
@@ -180,7 +175,7 @@ export default function CustomerScheduleSection({
             </p>
 
             <h3 className="mt-2 text-3xl font-black">
-              대전 빵버스 여행 일정
+              17인승 미니버스 여행 일정
             </h3>
 
             <p className="mt-2 text-sm font-bold leading-6 text-stone-300">
