@@ -43,7 +43,11 @@ const RESERVATION_REPOSITORY_MODE = getReservationRepositoryMode();
 const USES_REMOTE_RESERVATION_STORAGE =
   RESERVATION_REPOSITORY_MODE !== REPOSITORY_MODE.LOCAL;
 const RESERVATION_RECEIVED_NOTICE =
-  "예약이 접수되었습니다. 카드결제 또는 계좌이체로 결제를 완료해 주시면 예약이 확정됩니다. 결제 관련 문의: 010-4560-6701";
+  "결제가 완료되어 예약이 확정되었습니다. 예약 확정 문자를 확인해주세요. 문의: 010-4560-6701";
+
+// Supabase Edge Function (모바일 ReturnURL 결제 승인)
+const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
+const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
 
 function getErrorMessage(error) {
   return error?.message || String(error || "알 수 없는 오류");
@@ -159,6 +163,120 @@ function isValidUrl(url = "") {
   return s.startsWith("http://") || s.startsWith("https://");
 }
 
+// ── 모바일 결제 완료 처리 페이지 (React 내부 라우팅) ──
+function PaymentResultPage() {
+  const [status, setStatus] = useState("loading"); // loading | success | fail
+  const [message, setMessage] = useState("");
+  const [detail, setDetail] = useState("");
+
+  useEffect(() => {
+    const params = Object.fromEntries(new URLSearchParams(window.location.search));
+
+    if (params.AuthResultCode !== "0000") {
+      setStatus("fail");
+      setMessage("결제 인증에 실패했습니다.");
+      setDetail(params.AuthResultMsg || `코드: ${params.AuthResultCode}`);
+      return;
+    }
+
+    // 승인 요청
+    fetch(NICEPAY_APPROVE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    })
+      .then((r) => r.json())
+      .then(async (result) => {
+        if (!result.ok) {
+          setStatus("fail");
+          setMessage("결제 승인에 실패했습니다.");
+          setDetail(result.message || "알 수 없는 오류");
+          return;
+        }
+
+        // 예약 정보 복원 (ReqReserved에 저장해둔 값)
+        let reservedInfo = {};
+        try { reservedInfo = JSON.parse(params.ReqReserved || "{}"); } catch {}
+
+        // Supabase에 예약 저장
+        if (supabaseClient && reservedInfo.date) {
+          try {
+            const buyerName = params.BuyerName || "";
+            const buyerTel = params.BuyerTel || "";
+            const reservationItem = {
+              id: `pay-${Date.now()}`,
+              date: reservedInfo.date,
+              name: buyerName,
+              phone: buyerTel,
+              people: Number(reservedInfo.people || 1),
+              adultCount: Number(reservedInfo.adultCount || 1),
+              childCount: Number(reservedInfo.childCount || 0),
+              infantCount: Number(reservedInfo.infantCount || 0),
+              price: Number(result.Amt || 0),
+              status: "결제완료",
+              paymentTID: result.TID || "",
+              paymentMethod: result.PayMethod || "CARD",
+              createdAt: new Date().toISOString(),
+            };
+            await reservationRepository.add(reservationItem);
+
+            // 관리자 알림 문자
+            await sendReservationStatusSms({
+              reservation: { ...reservationItem, phone: "01045606701" },
+              status: "예약접수",
+              boardingTime: "10:00"
+            });
+          } catch (err) {
+            console.warn("모바일 결제 예약 저장 실패:", err);
+          }
+        }
+
+        setStatus("success");
+        setMessage("결제가 완료되었습니다!");
+        setDetail(`결제금액: ${Number(result.Amt).toLocaleString()}원 · 승인번호: ${result.AuthCode || "-"}`);
+        // 3초 후 홈으로
+        setTimeout(() => { window.location.href = "/"; }, 3000);
+      })
+      .catch((err) => {
+        setStatus("fail");
+        setMessage("결제 승인 중 오류가 발생했습니다.");
+        setDetail(String(err));
+      });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#fff8ef] flex items-center justify-center px-5">
+      <div className="bg-white rounded-[2rem] p-10 max-w-md w-full text-center shadow-xl shadow-orange-100">
+        {status === "loading" && (
+          <>
+            <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
+            <p className="text-xl font-black text-stone-900">결제 승인 처리 중</p>
+            <p className="mt-2 text-sm font-bold text-stone-500">잠시만 기다려주세요. 창을 닫지 마세요.</p>
+          </>
+        )}
+        {status === "success" && (
+          <>
+            <div className="text-5xl mb-4">🎉</div>
+            <p className="text-2xl font-black text-stone-900">{message}</p>
+            <p className="mt-3 text-sm font-bold text-green-700 bg-green-50 rounded-2xl px-4 py-3">{detail}</p>
+            <p className="mt-4 text-xs font-bold text-stone-400">예약 확정 문자를 확인해주세요. 3초 후 홈으로 이동합니다.</p>
+          </>
+        )}
+        {status === "fail" && (
+          <>
+            <div className="text-5xl mb-4">⚠️</div>
+            <p className="text-2xl font-black text-stone-900">{message}</p>
+            <p className="mt-3 text-sm font-bold text-red-700 bg-red-50 rounded-2xl px-4 py-3">{detail}</p>
+            <a href="/" className="mt-6 inline-block rounded-2xl bg-orange-500 px-8 py-3 text-sm font-black text-white hover:bg-orange-600">
+              홈으로 돌아가기
+            </a>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PolicyModal({ type, onClose }) {
   if (!type) return null;
   const isPrivacy = type === "privacy";
@@ -208,6 +326,10 @@ function PolicyModal({ type, onClose }) {
 
 export default function AppSafe() {
   const savedAdminSettings = useMemo(() => loadAdminSettings(INITIAL_ADMIN_SETTINGS), []);
+
+  // ── 모바일 결제 ReturnURL 처리 ──
+  const isPaymentResultPage = typeof window !== "undefined" && window.location.pathname.startsWith("/payment-result");
+  if (isPaymentResultPage) return <PaymentResultPage />;
 
   const [selectedDate, setSelectedDate] = useState(getInitialSelectedDate);
   const [reservationForm, setReservationForm] = useState(DEFAULT_RESERVATION_FORM);
@@ -487,14 +609,22 @@ export default function AppSafe() {
     }
   }
 
-  async function handleSubmit() {
+  // ── PC 결제 완료 후 예약 저장 (nicepaySubmit 콜백에서 호출) ──
+  async function handleSubmit(paymentInfo = {}) {
     setNotice(""); setReservationSuccessNotice(""); setOperationNotice(""); clearQuickAdminReservations();
     const remainingSeats = remaining(selectedDate);
     const validation = validateReservationForm({ selectedDate, scheduleStatus: selectedScheduleStatus, form: reservationForm, remainingSeats });
     if (!validation.valid) { setNotice(validation.message); return; }
     setIsSubmitting(true);
     try {
-      const reservationItem = createReservation({ selectedDate, form: reservationForm, price: selectedPrice, status: "결제대기" });
+      const reservationItem = createReservation({
+        selectedDate,
+        form: reservationForm,
+        price: selectedPrice,
+        // 결제 완료 시 상태를 결제완료로, 미결제 시 결제대기로
+        status: paymentInfo?.paymentTID ? "결제완료" : "결제대기",
+        ...(paymentInfo?.paymentTID ? { paymentTID: paymentInfo.paymentTID, paymentMethod: "CARD" } : {}),
+      });
       const result = await reservationRepository.add(reservationItem);
       if (!result.ok) { setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(result.error)}`); return; }
       const createdReservations = Array.isArray(result.data) && result.data.length > 0 ? result.data : [reservationItem];
@@ -517,7 +647,6 @@ export default function AppSafe() {
     <div className="min-h-screen bg-[#fff8ef] text-stone-950">
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4">
-          {/* 왼쪽: 로고 */}
           <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
             <div>
@@ -526,7 +655,6 @@ export default function AppSafe() {
             </div>
           </a>
 
-          {/* 중앙: 헤더 링크들 - PC에서만 표시 */}
           <div className="hidden md:flex items-center justify-center gap-3">
             {visibleHeaderLinks.map((link) => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -536,17 +664,13 @@ export default function AppSafe() {
             ))}
           </div>
 
-          {/* 오른쪽: 전화상담 + 관리자 로그아웃 */}
           <div className="flex items-center gap-2">
             {!isAdminPage ? (
-              <a
-                href="tel:01045606701"
-                className="shrink-0 flex items-center gap-2 rounded-full border-2 border-orange-400 bg-orange-50 px-5 py-2.5 text-sm font-black text-orange-700 shadow-sm transition hover:bg-orange-100 hover:border-orange-500"
-              >
+              <a href="tel:01045606701"
+                className="shrink-0 flex items-center gap-2 rounded-full border-2 border-orange-400 bg-orange-50 px-5 py-2.5 text-sm font-black text-orange-700 shadow-sm transition hover:bg-orange-100 hover:border-orange-500">
                 📞 전화상담
               </a>
             ) : null}
-
             {isAdminAuthed ? (
               <button type="button" onClick={handleAdminLogout}
                 className="shrink-0 rounded-full bg-stone-950 px-4 py-2 text-xs font-black text-white">
@@ -556,19 +680,13 @@ export default function AppSafe() {
           </div>
         </div>
 
-        {/* 모바일 전용 이용후기 탭 바 */}
         {!isAdminPage && visibleHeaderLinks.length > 0 && (
           <div className="md:hidden border-t border-orange-100 bg-orange-50 px-4 py-3">
             <p className="mb-2 text-xs font-black text-orange-500 tracking-widest">이용후기</p>
             <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${visibleHeaderLinks.length}, 1fr)` }}>
               {visibleHeaderLinks.map((link) => (
-                <a
-                  key={link.id}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-300 bg-white py-3 text-base font-black text-orange-700 shadow-sm active:bg-orange-100"
-                >
+                <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-300 bg-white py-3 text-base font-black text-orange-700 shadow-sm active:bg-orange-100">
                   ⭐ {link.label}
                 </a>
               ))}
@@ -604,11 +722,11 @@ export default function AppSafe() {
               <p className="text-sm font-black tracking-[0.2em] text-orange-700">BOOKING GUIDE</p>
               <h3 className="mt-2 text-3xl font-black text-stone-950">예약 전 꼭 확인해주세요</h3>
             </div>
-            <p className="max-w-xl text-sm font-bold leading-6 text-stone-600">예약 접수 후 카드결제 또는 계좌이체로 결제를 완료하시면 예약이 확정됩니다.</p>
+            <p className="max-w-xl text-sm font-bold leading-6 text-stone-600">결제 완료 즉시 예약이 확정됩니다.</p>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5"><p className="text-sm font-black text-orange-800">예약 절차</p><p className="mt-3 text-sm font-bold leading-6 text-stone-700">날짜 선택 후 휴대폰 인증과 예약 정보를 입력하면 예약이 접수됩니다.</p></div>
-            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5"><p className="text-sm font-black text-orange-800">결제 안내</p><p className="mt-3 text-sm font-bold leading-6 text-stone-700">카드결제 또는 계좌이체로 간편하게 결제하실 수 있습니다. 결제 완료 즉시 예약이 확정됩니다.</p></div>
+            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5"><p className="text-sm font-black text-orange-800">예약 절차</p><p className="mt-3 text-sm font-bold leading-6 text-stone-700">날짜 선택 후 휴대폰 인증과 예약 정보를 입력하면 결제창이 열립니다.</p></div>
+            <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5"><p className="text-sm font-black text-orange-800">결제 안내</p><p className="mt-3 text-sm font-bold leading-6 text-stone-700">신용카드·체크카드·카카오페이·네이버페이·토스페이로 결제하실 수 있습니다.</p></div>
             <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5"><p className="text-sm font-black text-orange-800">확정 기준</p><p className="mt-3 text-sm font-bold leading-6 text-stone-700">결제 완료 즉시 예약확정 문자가 발송되며, 그때 최종 예약이 완료됩니다.</p></div>
             <div className="rounded-3xl border border-orange-200 bg-orange-50 p-5"><p className="text-sm font-black text-orange-800">출발 안내</p><p className="mt-3 text-sm font-bold leading-6 text-stone-700">출발 장소와 시간은 예약 확정 후 문자로 개별 안내드립니다.</p></div>
           </div>
