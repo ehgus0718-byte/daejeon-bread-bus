@@ -9,7 +9,6 @@ import {
 
 const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
-// Supabase Edge Function URLs (MID/SignKey는 서버에서만 처리)
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
 const NICEPAY_SIGN_URL = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
 const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
@@ -18,17 +17,13 @@ function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : fallbackValue;
 }
-
 function toCount(value, fallbackValue = 0) {
-  const numberValue = toSafeNumber(value, fallbackValue);
-  return Math.max(0, Math.floor(numberValue));
+  return Math.max(0, Math.floor(toSafeNumber(value, fallbackValue)));
 }
-
 function getPhoneDigits(value = "") {
   return String(value || "").replace(/\D/g, "");
 }
 
-// 나이스페이 JS 로드
 function loadNicepayScript() {
   return new Promise((resolve, reject) => {
     if (document.getElementById("nicepay-script")) { resolve(); return; }
@@ -41,17 +36,13 @@ function loadNicepayScript() {
   });
 }
 
-// 주문번호 생성
 function generateMoid(phone) {
   const ts = Date.now().toString().slice(-8);
   const safe = (phone || "").replace(/\D/g, "").slice(-4);
   return `BUS${ts}${safe}`.slice(0, 40);
 }
 
-function PassengerCounter({
-  label, description, priceLabel, value = 0,
-  onDecrease, onIncrease, disableDecrease = false, disableIncrease = false
-}) {
+function PassengerCounter({ label, description, priceLabel, value = 0, onDecrease, onIncrease, disableDecrease = false, disableIncrease = false }) {
   return (
     <div className="grid gap-3 border-stone-100 md:border-r md:pr-6 last:border-r-0 last:pr-0">
       <div>
@@ -60,11 +51,9 @@ function PassengerCounter({
         <div className="mt-3 text-base font-black text-stone-950">{priceLabel}</div>
       </div>
       <div className="grid max-w-[170px] grid-cols-[36px_1fr_36px] border border-stone-200 bg-white text-sm font-black text-stone-800">
-        <button type="button" onClick={onDecrease} disabled={disableDecrease}
-          className="border-r border-stone-200 py-3 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:text-stone-300" aria-label={`${label} 감소`}>-</button>
+        <button type="button" onClick={onDecrease} disabled={disableDecrease} className="border-r border-stone-200 py-3 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:text-stone-300" aria-label={`${label} 감소`}>-</button>
         <div className="flex items-center justify-center px-4 py-3">{value}</div>
-        <button type="button" onClick={onIncrease} disabled={disableIncrease}
-          className="border-l border-stone-200 py-3 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:text-stone-300" aria-label={`${label} 증가`}>+</button>
+        <button type="button" onClick={onIncrease} disabled={disableIncrease} className="border-l border-stone-200 py-3 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:text-stone-300" aria-label={`${label} 증가`}>+</button>
       </div>
     </div>
   );
@@ -86,7 +75,6 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
   const phoneDigits = getPhoneDigits(phone);
   const isOnCooldown = cooldown > 0;
   const canRequest = phoneDigits.length === 11 && phoneDigits.startsWith("010") && !isSending && !isOnCooldown;
-  // 입력된 값에서 숫자만 추출한 길이로 검사
   const canVerify = code.replace(/\D/g, "").length === 6 && !isChecking && !isVerified;
 
   useEffect(() => {
@@ -131,61 +119,74 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
     finally { setIsChecking(false); }
   }
 
-  // 모바일 IME 조합 완료 후 숫자만 추출
   function handleCodeChange(e) {
-    // compositionend 이벤트 전 조합 중인 상태에서는 그대로 두고
-    // 값 자체는 자유롭게 저장 후 canVerify 계산 시 필터링
-    const raw = e.target.value;
-    // 숫자만 허용, 최대 6자리
-    const digitsOnly = raw.replace(/\D/g, "").slice(0, 6);
+    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 6);
     setCode(digitsOnly);
-    // input DOM 값도 맞춰줌 (커서 유지)
     if (inputRef.current && inputRef.current.value !== digitsOnly) {
       inputRef.current.value = digitsOnly;
     }
   }
 
-  function getButtonLabel() {
-    if (isVerified) return "✓ 인증 완료";
-    if (isSending) return "발송 중...";
-    if (isOnCooldown) return `${cooldown}초 후 재요청`;
-    if (hasSent) return "재요청";
-    return "인증번호 받기";
+  // ── 버튼 라벨 / 클래스 ──
+  function getSendButtonContent() {
+    if (isVerified) return { label: "✓ 인증 완료", cls: "rounded-2xl px-4 py-3 text-xs font-black text-white bg-green-500 cursor-default whitespace-nowrap" };
+    if (isSending) return { label: "발송 중...", cls: "rounded-2xl px-4 py-3 text-xs font-black text-white bg-stone-300 cursor-not-allowed whitespace-nowrap" };
+    if (isOnCooldown) return {
+      label: (
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <span className="tabular-nums font-black">{cooldown}초</span>
+          <span className="text-[10px]">후 재요청</span>
+        </span>
+      ),
+      cls: "rounded-2xl px-4 py-3 text-xs font-black text-orange-700 bg-orange-100 border-2 border-orange-300 cursor-not-allowed min-w-[90px] text-center"
+    };
+    if (!canRequest) return { label: "인증번호 받기", cls: "rounded-2xl px-4 py-3 text-xs font-black text-white bg-stone-300 cursor-not-allowed whitespace-nowrap" };
+    return { label: hasSent ? "재요청" : "인증번호 받기", cls: "rounded-2xl px-4 py-3 text-xs font-black text-white bg-orange-500 transition hover:bg-orange-600 whitespace-nowrap" };
   }
 
-  function getButtonClass() {
-    if (isVerified) return "rounded-2xl px-5 py-3 text-xs font-black text-white bg-green-500 cursor-default";
-    if (isOnCooldown) return "rounded-2xl px-5 py-3 text-xs font-black text-stone-500 bg-stone-200 cursor-not-allowed tabular-nums min-w-[120px] text-center";
-    if (!canRequest) return "rounded-2xl px-5 py-3 text-xs font-black text-white bg-stone-300 cursor-not-allowed";
-    return "rounded-2xl px-5 py-3 text-xs font-black text-white bg-orange-500 transition hover:bg-orange-600";
-  }
+  const sendBtn = getSendButtonContent();
 
   return (
     <div className="md:col-span-2 rounded-3xl border border-orange-100 bg-orange-50/60 p-5">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-black text-orange-700">휴대폰 인증</p>
-          <p className="mt-1 text-xs font-bold leading-5 text-stone-500">실제 연락 가능한 번호인지 확인한 뒤 예약이 가능합니다.</p>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-orange-700">휴대폰 인증</p>
+            <p className="mt-1 text-xs font-bold leading-5 text-stone-500">실제 연락 가능한 번호인지 확인한 뒤 예약이 가능합니다.</p>
+          </div>
+          <button type="button" onClick={handleRequestCode} disabled={!canRequest || isVerified || isOnCooldown} className={sendBtn.cls}>
+            {sendBtn.label}
+          </button>
         </div>
-        <button type="button" onClick={handleRequestCode} disabled={!canRequest || isVerified} className={getButtonClass()}>{getButtonLabel()}</button>
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-        <input
-          ref={inputRef}
-          type="tel"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={code}
-          onChange={handleCodeChange}
-          placeholder="인증번호 6자리"
-          disabled={isVerified}
-          autoComplete="one-time-code"
-          className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-400 disabled:text-stone-400"
-        />
-        <button type="button" onClick={handleVerifyCode} disabled={!canVerify}
-          className="rounded-2xl bg-stone-900 px-5 py-3 text-xs font-black text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300">
-          {isChecking ? "확인 중..." : isVerified ? "✓ 완료" : "인증 확인"}
-        </button>
+
+        {/* 쿨다운 진행 바 */}
+        {isOnCooldown && (
+          <div className="w-full rounded-full bg-orange-100 h-1.5 overflow-hidden">
+            <div
+              className="h-full bg-orange-400 transition-all duration-1000"
+              style={{ width: `${(cooldown / COOLDOWN_SECONDS) * 100}%` }}
+            />
+          </div>
+        )}
+
+        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <input
+            ref={inputRef}
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={code}
+            onChange={handleCodeChange}
+            placeholder="인증번호 6자리"
+            disabled={isVerified}
+            autoComplete="one-time-code"
+            className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-400 disabled:text-stone-400"
+          />
+          <button type="button" onClick={handleVerifyCode} disabled={!canVerify}
+            className="rounded-2xl bg-stone-900 px-5 py-3 text-xs font-black text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300 whitespace-nowrap">
+            {isChecking ? "확인 중..." : isVerified ? "✓ 완료" : "인증 확인"}
+          </button>
+        </div>
       </div>
       <p className={`mt-3 text-xs font-black ${isVerified ? "text-green-600" : isOnCooldown ? "text-orange-600" : "text-stone-500"}`}>{message}</p>
     </div>
@@ -202,9 +203,7 @@ export default function ReservationPanel({
   const [paymentNotice, setPaymentNotice] = useState("");
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
-  useEffect(() => { if (reservationSuccessNotice) setPrivacyConsent(false); }, [reservationSuccessNotice]);
-
-  // 나이스페이 JS 사전 로드
+  useEffect(() => { if (reservationSuccessNotice) { setPrivacyConsent(false); setIsPaymentProcessing(false); } }, [reservationSuccessNotice]);
   useEffect(() => { loadNicepayScript().catch(() => console.warn("나이스페이 스크립트 로드 실패")); }, []);
 
   const safeRemainingSeats = Math.max(0, toSafeNumber(remainingSeats, 0));
@@ -215,36 +214,27 @@ export default function ReservationPanel({
   const safePrice = Math.max(0, toSafeNumber(price, 0));
   const childPrice = Math.max(0, safePrice - 10000);
   const totalAmount = adultCount * safePrice + childCount * childPrice;
-  const displayNotice = notice || "";
-  const hasReservationSuccessNotice = Boolean(reservationSuccessNotice);
   const hasAvailableSeats = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
   const canSubmit = hasAvailableSeats && hasValidPeopleSelection && hasRequiredPhoneVerification && privacyConsent && !isSubmitting && !isPaymentProcessing;
 
   function updatePassengerCount(key, nextValue) {
-    const nextAdultCount = key === "adultCount" ? nextValue : adultCount;
-    const nextChildCount = key === "childCount" ? nextValue : childCount;
-    const nextInfantCount = key === "infantCount" ? nextValue : infantCount;
-    const nextPeople = nextAdultCount + nextChildCount + nextInfantCount;
-    if (nextPeople > safeRemainingSeats) return;
+    const nextAdult = key === "adultCount" ? nextValue : adultCount;
+    const nextChild = key === "childCount" ? nextValue : childCount;
+    const nextInfant = key === "infantCount" ? nextValue : infantCount;
+    if (nextAdult + nextChild + nextInfant > safeRemainingSeats) return;
     onChange?.(key, nextValue);
-    onChange?.("people", nextPeople);
+    onChange?.("people", nextAdult + nextChild + nextInfant);
   }
 
-  // 나이스페이 결제창 호출
   async function handlePayment() {
     if (!canSubmit) return;
     setPaymentNotice("");
     setIsPaymentProcessing(true);
 
-    try {
-      await loadNicepayScript();
-    } catch {
-      setPaymentNotice("결제 모듈 로드에 실패했습니다. 페이지를 새로고침 후 다시 시도해주세요.");
-      setIsPaymentProcessing(false);
-      return;
-    }
+    try { await loadNicepayScript(); }
+    catch { setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요."); setIsPaymentProcessing(false); return; }
 
     const moid = generateMoid(form.phone || "");
     const amt = String(totalAmount);
@@ -255,8 +245,7 @@ export default function ReservationPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          Amt: amt,
-          Moid: moid,
+          Amt: amt, Moid: moid,
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
           BuyerName: form.name || "고객",
           BuyerTel: getPhoneDigits(form.phone || ""),
@@ -266,10 +255,9 @@ export default function ReservationPanel({
       });
       signParams = await resp.json();
       if (!signParams.ok) throw new Error(signParams.message || "서명 생성 실패");
-    } catch (err) {
+    } catch {
       setPaymentNotice("결제 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-      setIsPaymentProcessing(false);
-      return;
+      setIsPaymentProcessing(false); return;
     }
 
     const form_el = document.createElement("form");
@@ -279,41 +267,28 @@ export default function ReservationPanel({
     form_el.style.display = "none";
 
     const fields = {
-      PayMethod: "CARD",
-      GoodsName: signParams.GoodsName,
-      Amt: signParams.Amt,
-      MID: signParams.MID,
-      Moid: signParams.Moid,
-      BuyerName: signParams.BuyerName,
-      BuyerTel: signParams.BuyerTel,
-      EdiDate: signParams.EdiDate,
-      SignData: signParams.SignData,
-      CharSet: "utf-8",
-      GoodsCl: "1",
-      TransType: "0",
-      ReturnURL: signParams.ReturnURL,
-      ReqReserved: signParams.ReqReserved,
+      PayMethod: "CARD", GoodsName: signParams.GoodsName,
+      Amt: signParams.Amt, MID: signParams.MID, Moid: signParams.Moid,
+      BuyerName: signParams.BuyerName, BuyerTel: signParams.BuyerTel,
+      EdiDate: signParams.EdiDate, SignData: signParams.SignData,
+      CharSet: "utf-8", GoodsCl: "1", TransType: "0",
+      ReturnURL: signParams.ReturnURL, ReqReserved: signParams.ReqReserved,
     };
-
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = k;
-      input.value = v;
+      input.type = "hidden"; input.name = k; input.value = v;
       form_el.appendChild(input);
     });
-
     document.body.appendChild(form_el);
 
+    // PC 콜백
     window.nicepaySubmit = async function () {
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
-      document.body.removeChild(form_el);
+      if (document.body.contains(form_el)) document.body.removeChild(form_el);
       delete window.nicepaySubmit;
       delete window.nicepayClose;
-
       setPaymentNotice("결제 승인 처리 중입니다...");
-
       try {
         const approveResp = await fetch(NICEPAY_APPROVE_URL, {
           method: "POST",
@@ -321,10 +296,11 @@ export default function ReservationPanel({
           body: JSON.stringify({ ...authData, expectedAmt: amt }),
         });
         const result = await approveResp.json();
-
         if (result.ok) {
           setPaymentNotice("");
           await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
+          // ✅ 핵심: 결제 완료 후 처리 중 상태 해제
+          setIsPaymentProcessing(false);
         } else {
           setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
           setIsPaymentProcessing(false);
@@ -336,16 +312,15 @@ export default function ReservationPanel({
     };
 
     window.nicepayClose = function () {
-      document.body.removeChild(form_el);
+      if (document.body.contains(form_el)) document.body.removeChild(form_el);
       delete window.nicepaySubmit;
       delete window.nicepayClose;
       setPaymentNotice("결제가 취소되었습니다.");
       setIsPaymentProcessing(false);
     };
 
-    try {
-      window.goPay(form_el);
-    } catch {
+    try { window.goPay(form_el); }
+    catch {
       setPaymentNotice("결제창 호출에 실패했습니다. 팝업 차단을 해제해주세요.");
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       setIsPaymentProcessing(false);
@@ -361,18 +336,9 @@ export default function ReservationPanel({
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-3xl bg-stone-50 p-5">
-          <p className="text-xs font-black text-stone-500">선택 날짜</p>
-          <p className="mt-2 text-2xl font-black text-stone-900">{selectedDate || "날짜 선택 대기"}</p>
-        </div>
-        <div className="rounded-3xl bg-stone-50 p-5">
-          <p className="text-xs font-black text-stone-500">잔여 좌석</p>
-          <p className="mt-2 text-2xl font-black text-stone-900">{formatSeatCount(safeRemainingSeats)}</p>
-        </div>
-        <div className="rounded-3xl bg-stone-50 p-5">
-          <p className="text-xs font-black text-stone-500">총 결제 예정금액</p>
-          <p className="mt-2 text-2xl font-black text-orange-600">{formatCurrency(totalAmount)}</p>
-        </div>
+        <div className="rounded-3xl bg-stone-50 p-5"><p className="text-xs font-black text-stone-500">선택 날짜</p><p className="mt-2 text-2xl font-black text-stone-900">{selectedDate || "날짜 선택 대기"}</p></div>
+        <div className="rounded-3xl bg-stone-50 p-5"><p className="text-xs font-black text-stone-500">잔여 좌석</p><p className="mt-2 text-2xl font-black text-stone-900">{formatSeatCount(safeRemainingSeats)}</p></div>
+        <div className="rounded-3xl bg-stone-50 p-5"><p className="text-xs font-black text-stone-500">총 결제 예정금액</p><p className="mt-2 text-2xl font-black text-orange-600">{formatCurrency(totalAmount)}</p></div>
       </div>
 
       <div className="mt-5 rounded-3xl border border-orange-100 bg-orange-50/70 p-5 text-sm font-bold leading-6 text-stone-700">
@@ -448,12 +414,10 @@ export default function ReservationPanel({
         </div>
 
         {!hasValidPeopleSelection ? (
-          <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">
-            예약 인원은 최소 1명 이상이며 잔여 좌석을 초과할 수 없습니다.
-          </div>
+          <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">예약 인원은 최소 1명 이상이며 잔여 좌석을 초과할 수 없습니다.</div>
         ) : null}
 
-        {SMS_VERIFICATION_ENABLED && !hasReservationSuccessNotice ? (
+        {SMS_VERIFICATION_ENABLED && !Boolean(reservationSuccessNotice) ? (
           <div className={`mt-4 rounded-2xl px-4 py-3 text-xs font-black ${isPhoneVerified ? "bg-green-50 text-green-700" : "bg-orange-50 text-orange-700"}`}>
             {isPhoneVerified ? "휴대폰 인증이 완료되었습니다." : "휴대폰 인증을 완료해야 예약 접수가 가능합니다."}
           </div>
@@ -463,8 +427,8 @@ export default function ReservationPanel({
       {paymentNotice ? (
         <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-4 text-sm font-black text-red-700">{paymentNotice}</div>
       ) : null}
-      {displayNotice ? (
-        <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700">{displayNotice}</div>
+      {notice ? (
+        <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-4 text-sm font-black text-orange-700">{notice}</div>
       ) : null}
       {reservationSuccessNotice ? (
         <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-4 text-sm font-black text-green-700">{reservationSuccessNotice}</div>
