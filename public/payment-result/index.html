@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>결제 처리 중 | 대전빵버스</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff8ef;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    .title { font-size: 22px; font-weight: 900; color: #0c0a09; margin-bottom: 8px; }
+    .desc { font-size: 14px; font-weight: 600; color: #78716c; line-height: 1.6; }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #fed7aa;
+      border-top-color: #f97316;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .result-box {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      display: none;
+    }
+    .result-box.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+    .result-box.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 14px 28px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 900;
+      text-decoration: none;
+      background: #f97316;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+    .btn:hover { background: #ea6c0a; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="loading">
+      <div class="spinner"></div>
+      <div class="title">결제 승인 처리 중</div>
+      <div class="desc">잠시만 기다려주세요.<br>창을 닫지 마세요.</div>
+    </div>
+    <div id="result" style="display:none">
+      <div class="icon" id="result-icon"></div>
+      <div class="title" id="result-title"></div>
+      <div class="desc" id="result-desc"></div>
+      <div class="result-box" id="result-box"></div>
+      <a href="/" class="btn" id="result-btn">홈으로 돌아가기</a>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://mnwimnwdilerkktizzqn.supabase.co';
+    const APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
+
+    function getParams() {
+      const p = new URLSearchParams(window.location.search);
+      const result = {};
+      for (const [k, v] of p.entries()) result[k] = v;
+      return result;
+    }
+
+    function showResult({ success, icon, title, desc, detail }) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('result-icon').textContent = icon;
+      document.getElementById('result-title').textContent = title;
+      document.getElementById('result-desc').textContent = desc;
+      if (detail) {
+        const box = document.getElementById('result-box');
+        box.textContent = detail;
+        box.className = `result-box ${success ? 'success' : 'error'}`;
+        box.style.display = 'block';
+      }
+    }
+
+    async function processPayment() {
+      const params = getParams();
+
+      // 인증 실패
+      if (params.AuthResultCode !== '0000') {
+        showResult({
+          success: false,
+          icon: '❌',
+          title: '결제 인증 실패',
+          desc: '결제가 취소되었거나 인증에 실패했습니다.',
+          detail: params.AuthResultMsg || `코드: ${params.AuthResultCode}`
+        });
+        return;
+      }
+
+      // 승인 요청
+      try {
+        const resp = await fetch(APPROVE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(params),
+        });
+        const result = await resp.json();
+
+        if (result.ok) {
+          showResult({
+            success: true,
+            icon: '🎉',
+            title: '결제 완료!',
+            desc: '예약이 확정되었습니다.\n예약 확정 문자를 확인해주세요.',
+            detail: `결제금액: ${Number(result.Amt).toLocaleString()}원 · 승인번호: ${result.AuthCode || '-'}`
+          });
+          // 3초 후 홈으로 자동 이동
+          setTimeout(() => { window.location.href = '/'; }, 3000);
+        } else {
+          showResult({
+            success: false,
+            icon: '⚠️',
+            title: '결제 승인 실패',
+            desc: '결제 승인 중 문제가 발생했습니다.\n고객센터로 문의해주세요.',
+            detail: result.message || '알 수 없는 오류'
+          });
+        }
+      } catch (err) {
+        showResult({
+          success: false,
+          icon: '⚠️',
+          title: '네트워크 오류',
+          desc: '결제 승인 중 통신 오류가 발생했습니다.\n고객센터로 문의해주세요.\n010-4560-6701',
+          detail: String(err)
+        });
+      }
+    }
+
+    processPayment();
+  </script>
+</body>
+</html>
