@@ -11,7 +11,10 @@ const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
 const NICEPAY_SIGN_URL = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
-const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
+
+// ✅ 핵심: PC와 모바일 모두 동일한 ReturnURL 사용 (공식 샘플 구조)
+// 공식 샘플: form.action = '/authReq' (서버 엔드포인트)
+// 우리 구조: form.action = nicepay-return Edge Function (서버 역할)
 const NICEPAY_RETURN_URL = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 
 function toSafeNumber(value, fallbackValue = 0) {
@@ -232,12 +235,21 @@ export default function ReservationPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          Amt: amt, Moid: moid,
+          Amt: amt,
+          Moid: moid,
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
           BuyerName: form.name || "고객",
           BuyerTel: getPhoneDigits(form.phone || ""),
           ReturnURL: NICEPAY_RETURN_URL,
-          ReqReserved: JSON.stringify({ date: selectedDate, people: selectedPeople, adultCount, childCount, infantCount }),
+          ReqReserved: JSON.stringify({
+            date: selectedDate,
+            people: selectedPeople,
+            adultCount,
+            childCount,
+            infantCount,
+            buyerName: form.name || "",
+            buyerTel: getPhoneDigits(form.phone || ""),
+          }),
         }),
       });
       signParams = await resp.json();
@@ -248,85 +260,56 @@ export default function ReservationPanel({
       return;
     }
 
+    // ✅ 공식 샘플과 동일한 구조:
+    // form.action = 서버 엔드포인트 URL (공식샘플: '/authReq', 우리: nicepay-return Edge Function)
+    // nicepaySubmit 재정의 없음 → 나이스페이 JS가 form을 action URL로 자동 submit
+    // → nicepay-return Edge Function이 POST body 수신 → 승인 처리 → 결과 HTML 반환
     const form_el = document.createElement("form");
     form_el.name = "nicepayForm";
     form_el.method = "post";
+    form_el.action = NICEPAY_RETURN_URL; // ✅ form.action에 직접 서버 URL 지정
     form_el.acceptCharset = "euc-kr";
     form_el.style.display = "none";
 
-    // ✅ 핵심: form.submit()을 직접 무력화
-    // 나이스페이 JS는 nicepaySubmit() 콜백 후 form.submit()을 직접 호출함
-    // onsubmit 핸들러는 form.submit() 직접 호출을 막지 못하므로
-    // form 인스턴스의 submit 메서드 자체를 빈 함수로 교체
-    form_el.submit = function() {
-      // 아무것도 하지 않음 - 페이지 이동 완전 차단
-    };
-
     const fields = {
-      PayMethod: "CARD", GoodsName: signParams.GoodsName,
-      Amt: signParams.Amt, MID: signParams.MID, Moid: signParams.Moid,
-      BuyerName: signParams.BuyerName, BuyerTel: signParams.BuyerTel,
-      EdiDate: signParams.EdiDate, SignData: signParams.SignData,
-      CharSet: "utf-8", GoodsCl: "1", TransType: "0",
+      PayMethod: "CARD",
+      GoodsName: signParams.GoodsName,
+      Amt: signParams.Amt,
+      MID: signParams.MID,
+      Moid: signParams.Moid,
+      BuyerName: signParams.BuyerName,
+      BuyerTel: signParams.BuyerTel,
+      EdiDate: signParams.EdiDate,
+      SignData: signParams.SignData,
+      CharSet: "utf-8",
+      GoodsCl: "1",
+      TransType: "0",
       ReturnURL: signParams.ReturnURL,
       ReqReserved: signParams.ReqReserved,
     };
+
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
-      input.type = "hidden"; input.name = k; input.value = v;
+      input.type = "hidden";
+      input.name = k;
+      input.value = v;
       form_el.appendChild(input);
     });
+
     document.body.appendChild(form_el);
 
-    // ✅ nicepaySubmit: 동기 함수로 선언 (나이스페이 JS가 동기적으로 호출)
-    // 인증 데이터 즉시 수집 후 form 제거, AJAX 승인은 비동기로 실행
-    window.nicepaySubmit = function () {
-      // 1. 인증 데이터 즉시 수집 (form 제거 전)
-      const authData = {};
-      new FormData(form_el).forEach((v, k) => { authData[k] = v; });
-
-      // 2. form 즉시 DOM에서 제거 (나이스페이 dim 오버레이 해제)
-      if (document.body.contains(form_el)) document.body.removeChild(form_el);
-      delete window.nicepaySubmit;
-      delete window.nicepayClose;
-
-      // 3. 승인 처리 중 표시
-      setPaymentNotice("결제 승인 처리 중입니다...");
-
-      // 4. 비동기 승인 - 동기 함수 반환 후 실행
-      fetch(NICEPAY_APPROVE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...authData, expectedAmt: amt }),
-      })
-        .then((r) => r.json())
-        .then((result) => {
-          if (result.ok) {
-            setPaymentNotice("");
-            // onSubmit은 Promise 반환, 완료 후 처리 중 해제
-            Promise.resolve(onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt }))
-              .finally(() => { setIsPaymentProcessing(false); });
-          } else {
-            setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
-            setIsPaymentProcessing(false);
-          }
-        })
-        .catch(() => {
-          setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-          setIsPaymentProcessing(false);
-        });
-    };
-
+    // ✅ nicepayClose만 정의 (취소 시 처리)
+    // nicepaySubmit은 재정의하지 않음 → 나이스페이 JS 기본 동작(form.action으로 submit) 사용
     window.nicepayClose = function () {
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
-      delete window.nicepaySubmit;
       delete window.nicepayClose;
       setPaymentNotice("결제가 취소되었습니다.");
       setIsPaymentProcessing(false);
     };
 
-    try { window.goPay(form_el); }
-    catch {
+    try {
+      window.goPay(form_el);
+    } catch {
       setPaymentNotice("결제창 호출에 실패했습니다. 팝업 차단을 해제해주세요.");
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       setIsPaymentProcessing(false);
