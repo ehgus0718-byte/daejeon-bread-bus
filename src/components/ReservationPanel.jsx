@@ -12,7 +12,6 @@ const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
 const NICEPAY_SIGN_URL = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
 const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
-// ✅ 모바일 ReturnURL = Edge Function (POST body 수신 가능한 실제 서버)
 const NICEPAY_RETURN_URL = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 
 function toSafeNumber(value, fallbackValue = 0) {
@@ -181,7 +180,14 @@ export default function ReservationPanel({
   const [paymentNotice, setPaymentNotice] = useState("");
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
-  useEffect(() => { if (reservationSuccessNotice) { setPrivacyConsent(false); setIsPaymentProcessing(false); } }, [reservationSuccessNotice]);
+  // 결제 성공 메시지가 오면 처리 중 상태 해제
+  useEffect(() => {
+    if (reservationSuccessNotice) {
+      setPrivacyConsent(false);
+      setIsPaymentProcessing(false);
+    }
+  }, [reservationSuccessNotice]);
+
   useEffect(() => { loadNicepayScript().catch(() => console.warn("나이스페이 스크립트 로드 실패")); }, []);
 
   const safeRemainingSeats = Math.max(0, toSafeNumber(remainingSeats, 0));
@@ -212,7 +218,11 @@ export default function ReservationPanel({
     setIsPaymentProcessing(true);
 
     try { await loadNicepayScript(); }
-    catch { setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요."); setIsPaymentProcessing(false); return; }
+    catch {
+      setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요.");
+      setIsPaymentProcessing(false);
+      return;
+    }
 
     const moid = generateMoid(form.phone || "");
     const amt = String(totalAmount);
@@ -227,7 +237,6 @@ export default function ReservationPanel({
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
           BuyerName: form.name || "고객",
           BuyerTel: getPhoneDigits(form.phone || ""),
-          // ✅ ReturnURL = Edge Function (모바일 POST 수신 가능)
           ReturnURL: NICEPAY_RETURN_URL,
           ReqReserved: JSON.stringify({ date: selectedDate, people: selectedPeople, adultCount, childCount, infantCount }),
         }),
@@ -236,14 +245,19 @@ export default function ReservationPanel({
       if (!signParams.ok) throw new Error(signParams.message || "서명 생성 실패");
     } catch {
       setPaymentNotice("결제 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-      setIsPaymentProcessing(false); return;
+      setIsPaymentProcessing(false);
+      return;
     }
 
+    // ✅ 핵심: form에 onsubmit="return false" 추가하여 나이스페이 자동 submit 차단
     const form_el = document.createElement("form");
     form_el.name = "nicepayForm";
     form_el.method = "post";
+    form_el.action = ""; // 빈 action
     form_el.acceptCharset = "euc-kr";
     form_el.style.display = "none";
+    // 나이스페이 JS가 콜백 후 form.submit()을 호출하는 것을 차단
+    form_el.onsubmit = function() { return false; };
 
     const fields = {
       PayMethod: "CARD", GoodsName: signParams.GoodsName,
@@ -261,33 +275,44 @@ export default function ReservationPanel({
     });
     document.body.appendChild(form_el);
 
-    // PC 전용 콜백
-    window.nicepaySubmit = async function () {
+    // ✅ 핵심: nicepaySubmit을 동기 함수로 선언
+    // 나이스페이 JS가 nicepaySubmit() 호출 후 동기적으로 form.submit()을 시도하므로
+    // async function이면 Promise가 반환되어 타이밍이 어긋남
+    // 동기 함수로 선언하고 내부에서 비동기 처리를 별도로 시작
+    window.nicepaySubmit = function () {
+      // 인증 데이터 즉시 수집 (form이 제거되기 전)
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
+
+      // form 즉시 제거 (나이스페이 dim 해제)
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       delete window.nicepaySubmit;
       delete window.nicepayClose;
+
       setPaymentNotice("결제 승인 처리 중입니다...");
-      try {
-        const approveResp = await fetch(NICEPAY_APPROVE_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...authData, expectedAmt: amt }),
-        });
-        const result = await approveResp.json();
-        if (result.ok) {
-          setPaymentNotice("");
-          await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
-          setIsPaymentProcessing(false);
-        } else {
-          setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
+
+      // 비동기 승인 처리는 별도 Promise로 실행 (동기 함수 반환 후 실행됨)
+      Promise.resolve().then(async () => {
+        try {
+          const approveResp = await fetch(NICEPAY_APPROVE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...authData, expectedAmt: amt }),
+          });
+          const result = await approveResp.json();
+          if (result.ok) {
+            setPaymentNotice("");
+            await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
+            setIsPaymentProcessing(false);
+          } else {
+            setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
+            setIsPaymentProcessing(false);
+          }
+        } catch {
+          setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
           setIsPaymentProcessing(false);
         }
-      } catch {
-        setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-        setIsPaymentProcessing(false);
-      }
+      });
     };
 
     window.nicepayClose = function () {
