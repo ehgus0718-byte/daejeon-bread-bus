@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import AdminSectionTitle from "./AdminSectionTitle.jsx";
 
 const DEFAULT_SCHEDULE_TEMPLATE = [
-  "10:00 대전역 동광장 (호국철도광장)",
-  "10:30 성심당 DCC점 (도룡동)",
-  "11:20 창억떡집 호박인절미 (장대동)",
-  "12:10 하레하레, 이루미, 바잇첼, 행복한분식 (둔산동)",
-  "13:10 대전역 출발 (대전역 13:30 도착)"
+  "출발 | 10:00 대전역 동광장 (호국철도광장)",
+  "성심당 | 10:30 성심당 DCC점 (튀김소보로,명란바게트,순수롤)",
+  "꾸드뱅 | 11:20 꾸드뱅베이커스하우스 (소금빵,크루아상,앙버터,메아리)",
+  "하레하레 | 12:00 하레하레 (치즈케이크,타르트,치아바타)",
+  "출발 | 13:10 대전역 (호국철도광장 13:30 도착)"
 ].join("\n");
 
 function getTodayInputValue() {
@@ -112,7 +112,7 @@ export default function AdminScheduleDetailEditor({
           value={detail}
           onChange={(event) => setDetail(event.target.value)}
           rows={10}
-          placeholder="예: 10:00 대전역 동광장, 10:30 성심당 DCC점"
+          placeholder="예: 출발 | 10:00 대전역 동광장 (호국철도광장)"
           className="w-full rounded-[1.5rem] border border-stone-200 bg-white px-4 py-4 text-sm font-bold leading-7 text-stone-700 outline-none transition focus:border-orange-400"
         />
 
