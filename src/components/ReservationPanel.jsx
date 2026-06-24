@@ -81,10 +81,12 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
   const [hasSent, setHasSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const timerRef = useRef(null);
+  const inputRef = useRef(null);
 
   const phoneDigits = getPhoneDigits(phone);
   const isOnCooldown = cooldown > 0;
   const canRequest = phoneDigits.length === 11 && phoneDigits.startsWith("010") && !isSending && !isOnCooldown;
+  // 입력된 값에서 숫자만 추출한 길이로 검사
   const canVerify = code.replace(/\D/g, "").length === 6 && !isChecking && !isVerified;
 
   useEffect(() => {
@@ -129,6 +131,20 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
     finally { setIsChecking(false); }
   }
 
+  // 모바일 IME 조합 완료 후 숫자만 추출
+  function handleCodeChange(e) {
+    // compositionend 이벤트 전 조합 중인 상태에서는 그대로 두고
+    // 값 자체는 자유롭게 저장 후 canVerify 계산 시 필터링
+    const raw = e.target.value;
+    // 숫자만 허용, 최대 6자리
+    const digitsOnly = raw.replace(/\D/g, "").slice(0, 6);
+    setCode(digitsOnly);
+    // input DOM 값도 맞춰줌 (커서 유지)
+    if (inputRef.current && inputRef.current.value !== digitsOnly) {
+      inputRef.current.value = digitsOnly;
+    }
+  }
+
   function getButtonLabel() {
     if (isVerified) return "✓ 인증 완료";
     if (isSending) return "발송 중...";
@@ -154,10 +170,18 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
         <button type="button" onClick={handleRequestCode} disabled={!canRequest || isVerified} className={getButtonClass()}>{getButtonLabel()}</button>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-        <input type="text" inputMode="numeric" value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          placeholder="인증번호 6자리" disabled={isVerified}
-          className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-400 disabled:text-stone-400" />
+        <input
+          ref={inputRef}
+          type="tel"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={code}
+          onChange={handleCodeChange}
+          placeholder="인증번호 6자리"
+          disabled={isVerified}
+          autoComplete="one-time-code"
+          className="rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-orange-400 disabled:text-stone-400"
+        />
         <button type="button" onClick={handleVerifyCode} disabled={!canVerify}
           className="rounded-2xl bg-stone-900 px-5 py-3 text-xs font-black text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-300">
           {isChecking ? "확인 중..." : isVerified ? "✓ 완료" : "인증 확인"}
@@ -214,7 +238,6 @@ export default function ReservationPanel({
     setPaymentNotice("");
     setIsPaymentProcessing(true);
 
-    // 1. 나이스페이 JS 로드
     try {
       await loadNicepayScript();
     } catch {
@@ -223,7 +246,6 @@ export default function ReservationPanel({
       return;
     }
 
-    // 2. 서버에서 SignData + EdiDate 받기 (SignKey 서버에서만 처리)
     const moid = generateMoid(form.phone || "");
     const amt = String(totalAmount);
 
@@ -250,7 +272,6 @@ export default function ReservationPanel({
       return;
     }
 
-    // 3. 숨김 폼 생성 (SignKey 없이 서버에서 받은 값만 사용)
     const form_el = document.createElement("form");
     form_el.name = "nicepayForm";
     form_el.method = "post";
@@ -284,7 +305,6 @@ export default function ReservationPanel({
 
     document.body.appendChild(form_el);
 
-    // 4. PC: nicepaySubmit 콜백 → 서버에서 승인 처리
     window.nicepaySubmit = async function () {
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
@@ -323,7 +343,6 @@ export default function ReservationPanel({
       setIsPaymentProcessing(false);
     };
 
-    // 5. 결제창 호출
     try {
       window.goPay(form_el);
     } catch {
