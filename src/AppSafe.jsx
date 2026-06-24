@@ -526,8 +526,8 @@ export default function AppSafe() {
             </div>
           </a>
 
-          {/* 중앙: 헤더 링크들 */}
-          <div className="flex items-center justify-center gap-3 overflow-x-auto">
+          {/* 중앙: 헤더 링크들 - PC에서만 표시 */}
+          <div className="hidden md:flex items-center justify-center gap-3">
             {visibleHeaderLinks.map((link) => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
                 className="shrink-0 rounded-full border-2 border-orange-300 bg-orange-50 px-6 py-2.5 text-sm font-black text-orange-700 shadow-sm transition hover:bg-orange-100 hover:border-orange-400 hover:text-orange-800">
@@ -555,6 +555,26 @@ export default function AppSafe() {
             ) : null}
           </div>
         </div>
+
+        {/* 모바일 전용 이용후기 탭 바 */}
+        {!isAdminPage && visibleHeaderLinks.length > 0 && (
+          <div className="md:hidden border-t border-orange-100 bg-orange-50 px-4 py-3">
+            <p className="mb-2 text-xs font-black text-orange-500 tracking-widest">이용후기</p>
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${visibleHeaderLinks.length}, 1fr)` }}>
+              {visibleHeaderLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 rounded-2xl border-2 border-orange-300 bg-white py-3 text-base font-black text-orange-700 shadow-sm active:bg-orange-100"
+                >
+                  ⭐ {link.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="mx-auto max-w-7xl px-5 py-12">
