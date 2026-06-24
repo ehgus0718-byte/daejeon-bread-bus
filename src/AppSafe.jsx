@@ -45,7 +45,6 @@ const USES_REMOTE_RESERVATION_STORAGE =
 const RESERVATION_RECEIVED_NOTICE =
   "결제가 완료되어 예약이 확정되었습니다. 예약 확정 문자를 확인해주세요. 문의: 010-4560-6701";
 
-// Supabase Edge Function (모바일 ReturnURL 결제 승인)
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
 const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
 
@@ -163,9 +162,9 @@ function isValidUrl(url = "") {
   return s.startsWith("http://") || s.startsWith("https://");
 }
 
-// ── 모바일 결제 완료 처리 페이지 (React 내부 라우팅) ──
+// ── 모바일 결제 완료 처리 페이지 ──
 function PaymentResultPage() {
-  const [status, setStatus] = useState("loading"); // loading | success | fail
+  const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [detail, setDetail] = useState("");
 
@@ -179,7 +178,6 @@ function PaymentResultPage() {
       return;
     }
 
-    // 승인 요청
     fetch(NICEPAY_APPROVE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -194,11 +192,9 @@ function PaymentResultPage() {
           return;
         }
 
-        // 예약 정보 복원 (ReqReserved에 저장해둔 값)
         let reservedInfo = {};
         try { reservedInfo = JSON.parse(params.ReqReserved || "{}"); } catch {}
 
-        // Supabase에 예약 저장
         if (supabaseClient && reservedInfo.date) {
           try {
             const buyerName = params.BuyerName || "";
@@ -220,6 +216,12 @@ function PaymentResultPage() {
             };
             await reservationRepository.add(reservationItem);
 
+            // 고객 확정 문자
+            await sendReservationStatusSms({
+              reservation: reservationItem,
+              status: "결제완료",
+              boardingTime: "10:00"
+            });
             // 관리자 알림 문자
             await sendReservationStatusSms({
               reservation: { ...reservationItem, phone: "01045606701" },
@@ -234,7 +236,6 @@ function PaymentResultPage() {
         setStatus("success");
         setMessage("결제가 완료되었습니다!");
         setDetail(`결제금액: ${Number(result.Amt).toLocaleString()}원 · 승인번호: ${result.AuthCode || "-"}`);
-        // 3초 후 홈으로
         setTimeout(() => { window.location.href = "/"; }, 3000);
       })
       .catch((err) => {
@@ -327,7 +328,6 @@ function PolicyModal({ type, onClose }) {
 export default function AppSafe() {
   const savedAdminSettings = useMemo(() => loadAdminSettings(INITIAL_ADMIN_SETTINGS), []);
 
-  // ── 모바일 결제 ReturnURL 처리 ──
   const isPaymentResultPage = typeof window !== "undefined" && window.location.pathname.startsWith("/payment-result");
   if (isPaymentResultPage) return <PaymentResultPage />;
 
@@ -609,38 +609,76 @@ export default function AppSafe() {
     }
   }
 
-  // ── PC 결제 완료 후 예약 저장 (nicepaySubmit 콜백에서 호출) ──
+  // ── PC 결제 완료 후 예약 저장 ──
+  // ✅ 핵심 수정: 결제완료 시 고객 확정문자 + 관리자 알림 모두 발송
+  // ✅ 핵심 수정: isSubmitting을 사용하지 않고 ReservationPanel에서 isPaymentProcessing으로만 제어
   async function handleSubmit(paymentInfo = {}) {
     setNotice(""); setReservationSuccessNotice(""); setOperationNotice(""); clearQuickAdminReservations();
+
     const remainingSeats = remaining(selectedDate);
-    const validation = validateReservationForm({ selectedDate, scheduleStatus: selectedScheduleStatus, form: reservationForm, remainingSeats });
+    const validation = validateReservationForm({
+      selectedDate,
+      scheduleStatus: selectedScheduleStatus,
+      form: reservationForm,
+      remainingSeats
+    });
     if (!validation.valid) { setNotice(validation.message); return; }
-    setIsSubmitting(true);
+
+    // isSubmitting은 사용하지 않음 (ReservationPanel이 isPaymentProcessing으로 버튼 제어)
     try {
+      const isPaid = Boolean(paymentInfo?.paymentTID);
       const reservationItem = createReservation({
         selectedDate,
         form: reservationForm,
         price: selectedPrice,
-        // 결제 완료 시 상태를 결제완료로, 미결제 시 결제대기로
-        status: paymentInfo?.paymentTID ? "결제완료" : "결제대기",
-        ...(paymentInfo?.paymentTID ? { paymentTID: paymentInfo.paymentTID, paymentMethod: "CARD" } : {}),
+        status: isPaid ? "결제완료" : "결제대기",
       });
+
       const result = await reservationRepository.add(reservationItem);
-      if (!result.ok) { setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(result.error)}`); return; }
-      const createdReservations = Array.isArray(result.data) && result.data.length > 0 ? result.data : [reservationItem];
-      setRecentChangedReservationId(getReservationId(createdReservations[0]) || "");
+      if (!result.ok) {
+        setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(result.error)}`);
+        return;
+      }
+
+      const createdReservations = Array.isArray(result.data) && result.data.length > 0
+        ? result.data
+        : [reservationItem];
+      const savedReservation = createdReservations[0];
+
+      setRecentChangedReservationId(getReservationId(savedReservation) || "");
       setOperationNotice("신규 예약이 접수되었습니다.");
       setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
+
+      if (isPaid) {
+        // ✅ 결제 완료 → 고객에게 확정 문자 발송
+        const customerSmsResult = await sendReservationStatusSms({
+          reservation: {
+            ...savedReservation,
+            amount: paymentInfo.paymentAmt || savedReservation.amount,
+          },
+          status: "결제완료",
+          boardingTime: boardingTime || "10:00"
+        });
+        if (!customerSmsResult.ok) {
+          console.warn("고객 결제완료 문자 발송 실패", customerSmsResult.error);
+        }
+      }
+
+      // ✅ 관리자 알림 문자 (항상 발송)
       const adminSmsResult = await sendReservationStatusSms({
-        reservation: { ...createdReservations[0], phone: "01045606701" },
+        reservation: { ...savedReservation, phone: "01045606701" },
         status: "예약접수",
         boardingTime: boardingTime || "10:00"
       });
-      if (!adminSmsResult.ok) console.warn("관리자 신규 예약 알림 문자 발송 실패", adminSmsResult.error);
+      if (!adminSmsResult.ok) {
+        console.warn("관리자 예약 알림 문자 발송 실패", adminSmsResult.error);
+      }
+
       resetForm();
     } catch (error) {
       setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(error)}`);
-    } finally { setIsSubmitting(false); }
+    }
+    // finally에서 setIsSubmitting(false) 제거 → ReservationPanel이 독립적으로 처리
   }
 
   return (
@@ -711,7 +749,8 @@ export default function AppSafe() {
           <ReservationPanel
             selectedDate={selectedDate} remainingSeats={remaining(selectedDate)} price={selectedPrice}
             form={reservationForm} onChange={handleFormChange} onSubmit={handleSubmit}
-            notice={notice} reservationSuccessNotice={reservationSuccessNotice} isSubmitting={isSubmitting}
+            notice={notice} reservationSuccessNotice={reservationSuccessNotice}
+            isSubmitting={false}
             onOpenPrivacyPolicy={() => setActivePolicyModal("privacy")}
           />
         </section>
