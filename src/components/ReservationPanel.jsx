@@ -12,7 +12,6 @@ const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
 const NICEPAY_SIGN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
 const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
-// 모바일 전용: 나이스페이가 POST로 직접 호출하는 서버 엔드포인트
 const NICEPAY_RETURN_URL = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 
 function toSafeNumber(value, fallbackValue = 0) {
@@ -185,8 +184,12 @@ export default function ReservationPanel({
   const [paymentNotice, setPaymentNotice] = useState("");
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
+  // reservationSuccessNotice가 세팅되면 무조건 스피너 해제
   useEffect(() => {
-    if (reservationSuccessNotice) { setPrivacyConsent(false); setIsPaymentProcessing(false); }
+    if (reservationSuccessNotice) {
+      setPrivacyConsent(false);
+      setIsPaymentProcessing(false);
+    }
   }, [reservationSuccessNotice]);
 
   useEffect(() => { loadNicepayScript().catch(() => {}); }, []);
@@ -235,8 +238,6 @@ export default function ReservationPanel({
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
           BuyerName: form.name || "고객",
           BuyerTel: getPhoneDigits(form.phone || ""),
-          // 모바일: nicepay-return Edge Function (POST 수신 가능한 서버)
-          // PC: 사용 안 함 (nicepaySubmit AJAX로 처리)
           ReturnURL: NICEPAY_RETURN_URL,
           ReqReserved: JSON.stringify({
             date: selectedDate, people: selectedPeople,
@@ -253,19 +254,15 @@ export default function ReservationPanel({
       setIsPaymentProcessing(false); return;
     }
 
-    // form 생성
     const form_el = document.createElement("form");
     form_el.name = "nicepayForm";
     form_el.method = "post";
     form_el.acceptCharset = "euc-kr";
     form_el.style.display = "none";
 
-    // ✅ PC: form.action을 비워둠 → nicepaySubmit AJAX로 처리
-    // ✅ 모바일: form.action = nicepay-return → 나이스페이가 직접 POST
     if (mobile) {
       form_el.action = NICEPAY_RETURN_URL;
     }
-    // PC는 action 없음 (nicepaySubmit 콜백에서 AJAX 처리)
 
     const fields = {
       PayMethod: "CARD",
@@ -290,22 +287,16 @@ export default function ReservationPanel({
     });
     document.body.appendChild(form_el);
 
-    // ✅ PC 전용: nicepaySubmit 콜백 → AJAX 승인
-    // 나이스페이 JS가 nicepaySubmit()을 동기로 호출 → 우리가 동기함수로 선언
-    // 내부 비동기 처리는 Promise.resolve().then(async)로 실행
     window.nicepaySubmit = function () {
-      // 인증 데이터 즉시 수집
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
 
-      // form 즉시 제거
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       delete window.nicepaySubmit;
       delete window.nicepayClose;
 
       setPaymentNotice("결제 승인 처리 중입니다...");
 
-      // 비동기 승인 처리
       Promise.resolve().then(async () => {
         try {
           const approveResp = await fetch(NICEPAY_APPROVE_URL, {
@@ -314,10 +305,17 @@ export default function ReservationPanel({
             body: JSON.stringify({ ...authData, expectedAmt: amt }),
           });
           const result = await approveResp.json();
+
           if (result.ok) {
             setPaymentNotice("");
-            await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
-            setIsPaymentProcessing(false);
+            // ✅ 핵심 수정: onSubmit 성공/실패/예외 모든 경우에 finally로 스피너 해제 보장
+            try {
+              await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
+            } catch (submitErr) {
+              console.error("onSubmit 오류:", submitErr);
+            } finally {
+              setIsPaymentProcessing(false);
+            }
           } else {
             setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
             setIsPaymentProcessing(false);
