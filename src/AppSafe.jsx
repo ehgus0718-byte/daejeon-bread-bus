@@ -162,7 +162,7 @@ function isValidUrl(url = "") {
   return s.startsWith("http://") || s.startsWith("https://");
 }
 
-// ── 모바일 결제 완료 처리 페이지 ──
+// ── 모바일 결제 완료 처리 페이지 (사용 안 함 - nicepay-return Edge Function으로 처리) ──
 function PaymentResultPage() {
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
@@ -170,69 +170,25 @@ function PaymentResultPage() {
 
   useEffect(() => {
     const params = Object.fromEntries(new URLSearchParams(window.location.search));
-
     if (params.AuthResultCode !== "0000") {
       setStatus("fail");
       setMessage("결제 인증에 실패했습니다.");
       setDetail(params.AuthResultMsg || `코드: ${params.AuthResultCode}`);
       return;
     }
-
     fetch(NICEPAY_APPROVE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     })
       .then((r) => r.json())
-      .then(async (result) => {
+      .then((result) => {
         if (!result.ok) {
           setStatus("fail");
           setMessage("결제 승인에 실패했습니다.");
           setDetail(result.message || "알 수 없는 오류");
           return;
         }
-
-        let reservedInfo = {};
-        try { reservedInfo = JSON.parse(params.ReqReserved || "{}"); } catch {}
-
-        if (supabaseClient && reservedInfo.date) {
-          try {
-            const buyerName = params.BuyerName || "";
-            const buyerTel = params.BuyerTel || "";
-            const reservationItem = {
-              id: `pay-${Date.now()}`,
-              date: reservedInfo.date,
-              name: buyerName,
-              phone: buyerTel,
-              people: Number(reservedInfo.people || 1),
-              adultCount: Number(reservedInfo.adultCount || 1),
-              childCount: Number(reservedInfo.childCount || 0),
-              infantCount: Number(reservedInfo.infantCount || 0),
-              price: Number(result.Amt || 0),
-              status: "결제완료",
-              paymentTID: result.TID || "",
-              paymentMethod: result.PayMethod || "CARD",
-              createdAt: new Date().toISOString(),
-            };
-            await reservationRepository.add(reservationItem);
-
-            // 고객 확정 문자
-            await sendReservationStatusSms({
-              reservation: reservationItem,
-              status: "결제완료",
-              boardingTime: "10:00"
-            });
-            // 관리자 알림 문자
-            await sendReservationStatusSms({
-              reservation: { ...reservationItem, phone: "01045606701" },
-              status: "예약접수",
-              boardingTime: "10:00"
-            });
-          } catch (err) {
-            console.warn("모바일 결제 예약 저장 실패:", err);
-          }
-        }
-
         setStatus("success");
         setMessage("결제가 완료되었습니다!");
         setDetail(`결제금액: ${Number(result.Amt).toLocaleString()}원 · 승인번호: ${result.AuthCode || "-"}`);
@@ -252,7 +208,7 @@ function PaymentResultPage() {
           <>
             <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
             <p className="text-xl font-black text-stone-900">결제 승인 처리 중</p>
-            <p className="mt-2 text-sm font-bold text-stone-500">잠시만 기다려주세요. 창을 닫지 마세요.</p>
+            <p className="mt-2 text-sm font-bold text-stone-500">잠시만 기다려주세요.</p>
           </>
         )}
         {status === "success" && (
@@ -260,7 +216,7 @@ function PaymentResultPage() {
             <div className="text-5xl mb-4">🎉</div>
             <p className="text-2xl font-black text-stone-900">{message}</p>
             <p className="mt-3 text-sm font-bold text-green-700 bg-green-50 rounded-2xl px-4 py-3">{detail}</p>
-            <p className="mt-4 text-xs font-bold text-stone-400">예약 확정 문자를 확인해주세요. 3초 후 홈으로 이동합니다.</p>
+            <p className="mt-4 text-xs font-bold text-stone-400">3초 후 홈으로 이동합니다.</p>
           </>
         )}
         {status === "fail" && (
@@ -268,9 +224,7 @@ function PaymentResultPage() {
             <div className="text-5xl mb-4">⚠️</div>
             <p className="text-2xl font-black text-stone-900">{message}</p>
             <p className="mt-3 text-sm font-bold text-red-700 bg-red-50 rounded-2xl px-4 py-3">{detail}</p>
-            <a href="/" className="mt-6 inline-block rounded-2xl bg-orange-500 px-8 py-3 text-sm font-black text-white hover:bg-orange-600">
-              홈으로 돌아가기
-            </a>
+            <a href="/" className="mt-6 inline-block rounded-2xl bg-orange-500 px-8 py-3 text-sm font-black text-white">홈으로 돌아가기</a>
           </>
         )}
       </div>
@@ -282,7 +236,6 @@ function PolicyModal({ type, onClose }) {
   if (!type) return null;
   const isPrivacy = type === "privacy";
   const title = isPrivacy ? "개인정보처리방침" : "이용약관";
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">
       <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl md:p-8">
@@ -293,7 +246,6 @@ function PolicyModal({ type, onClose }) {
           </div>
           <button type="button" onClick={onClose} className="rounded-full bg-stone-100 px-4 py-2 text-sm font-black text-stone-700">닫기</button>
         </div>
-
         {isPrivacy ? (
           <div className="mt-5 space-y-5 text-sm font-bold leading-7 text-stone-700">
             <p className="text-xs font-black text-stone-400">시행일: 2026년 6월 22일</p>
@@ -301,23 +253,22 @@ function PolicyModal({ type, onClose }) {
             <div><p className="font-black text-stone-900">2. 개인정보 수집·이용 목적</p><p className="mt-2">예약 접수 및 확인, 결제 처리 안내, 예약 확정·취소 문자 발송, 고객 문의 응대</p></div>
             <div><p className="font-black text-stone-900">3. 보유 및 이용 기간</p><p className="mt-2">예약 서비스 이용 완료 후 관련 법령에 따라 보관합니다.</p><p className="mt-1">전자상거래법에 따라 계약·청약철회 기록 5년, 소비자 불만·분쟁 처리 기록 3년, 표시·광고 기록 6개월을 보관하며, 이후 지체 없이 파기합니다.</p></div>
             <div><p className="font-black text-stone-900">4. 개인정보의 제3자 제공</p><p className="mt-2">소망투어는 법령에 따른 경우를 제외하고 고객의 동의 없이 개인정보를 외부에 제공하지 않습니다.</p></div>
-            <div><p className="font-black text-stone-900">5. 개인정보 처리 위탁</p><p className="mt-2">소망투어는 예약 안내 문자 발송을 위해 문자 발송 서비스 업체에 최소한의 개인정보(휴대폰 번호)를 위탁할 수 있으며, 향후 전자결제 서비스 도입 시 PG사(결제대행업체)에도 결제에 필요한 정보를 위탁할 수 있습니다.</p></div>
-            <div><p className="font-black text-stone-900">6. 정보주체의 권리</p><p className="mt-2">고객은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다. 요청은 아래 개인정보보호책임자에게 연락해 주시면 지체 없이 처리합니다.</p></div>
-            <div><p className="font-black text-stone-900">7. 개인정보 파기</p><p className="mt-2">보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 즉시 파기합니다. 전자 파일은 복구 불가능한 방법으로 영구 삭제하며, 출력물은 분쇄 또는 소각합니다.</p></div>
-            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 전훈</p><p>소속: 소망투어</p><p>연락처: 010-4560-6701 / ehgus0718@naver.com</p></div>
+            <div><p className="font-black text-stone-900">5. 개인정보 처리 위탁</p><p className="mt-2">소망투어는 예약 안내 문자 발송을 위해 문자 발송 서비스 업체에 최소한의 개인정보(휴대폰 번호)를 위탁할 수 있습니다.</p></div>
+            <div><p className="font-black text-stone-900">6. 정보주체의 권리</p><p className="mt-2">고객은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다.</p></div>
+            <div><p className="font-black text-stone-900">7. 개인정보 파기</p><p className="mt-2">보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 즉시 파기합니다.</p></div>
+            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 전훈 | 소속: 소망투어 | 연락처: 010-4560-6701 / ehgus0718@naver.com</p></div>
             <div><p className="font-black text-stone-900">9. 권익침해 구제 방법</p><p className="mt-2">개인정보 침해 신고·상담: 개인정보보호위원회(privacy.go.kr, 182) 또는 한국인터넷진흥원(kisa.or.kr, 118)</p></div>
           </div>
         ) : (
           <div className="mt-5 space-y-5 text-sm font-bold leading-7 text-stone-700">
             <p className="text-xs font-black text-stone-400">시행일: 2026년 6월 22일</p>
             <div><p className="font-black text-stone-900">제1조 (목적)</p><p className="mt-2">본 약관은 소망투어(이하 "회사")가 운영하는 대전빵셔틀 빵버스 예약 서비스의 이용 조건 및 절차에 관한 사항을 규정합니다.</p></div>
-            <div><p className="font-black text-stone-900">제2조 (예약 접수)</p><p className="mt-2">고객은 날짜 선택, 휴대폰 인증, 예약 정보 입력을 통해 예약을 접수할 수 있습니다. 예약 접수 후 카드결제 또는 계좌이체로 결제를 완료하시면 최종 확정됩니다.</p></div>
-            <div><p className="font-black text-stone-900">제3조 (결제)</p><p className="mt-2">카드결제 또는 계좌이체로 결제를 완료하시면 예약확정 문자가 자동 발송되며, 이 시점에 예약이 최종 확정됩니다.</p></div>
-            <div><p className="font-black text-stone-900">제4조 (청약철회 및 취소·환불)</p><p className="mt-2">여행 서비스의 특성상 출발일 기준으로 아래와 같이 환불이 적용됩니다.</p><ul className="mt-2 list-disc pl-5 space-y-1"><li>출발 5일 전까지 취소: 전액 환불</li><li>출발 3~4일 전 취소: 결제 금액의 50% 환불</li><li>출발 1~2일 전 및 당일 취소: 환불 불가</li><li>회사 사정으로 취소 시: 전액 환불</li></ul><p className="mt-2">단, 소비자보호법 등 관련 법령에 따라 고객에게 더 유리한 경우 해당 법령이 우선 적용됩니다.</p></div>
-            <div><p className="font-black text-stone-900">제5조 (운영 변경)</p><p className="mt-2">최소 출발 인원 미달, 기상 악화, 차량 사정 등으로 일정이 변경되거나 취소될 수 있습니다. 회사 귀책 사유로 취소 시 전액 환불됩니다.</p></div>
+            <div><p className="font-black text-stone-900">제2조 (예약 접수)</p><p className="mt-2">고객은 날짜 선택, 휴대폰 인증, 예약 정보 입력을 통해 예약을 접수할 수 있습니다.</p></div>
+            <div><p className="font-black text-stone-900">제3조 (결제)</p><p className="mt-2">카드결제로 결제를 완료하시면 예약확정 문자가 자동 발송되며, 이 시점에 예약이 최종 확정됩니다.</p></div>
+            <div><p className="font-black text-stone-900">제4조 (청약철회 및 취소·환불)</p><ul className="mt-2 list-disc pl-5 space-y-1"><li>출발 5일 전까지 취소: 전액 환불</li><li>출발 3~4일 전 취소: 결제 금액의 50% 환불</li><li>출발 1~2일 전 및 당일 취소: 환불 불가</li><li>회사 사정으로 취소 시: 전액 환불</li></ul></div>
+            <div><p className="font-black text-stone-900">제5조 (운영 변경)</p><p className="mt-2">최소 출발 인원 미달, 기상 악화, 차량 사정 등으로 일정이 변경되거나 취소될 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">제6조 (면책)</p><p className="mt-2">고객의 귀책 사유로 인한 취소·변경, 또는 천재지변으로 인한 운행 불가 시 회사는 책임을 지지 않습니다.</p></div>
-            <div><p className="font-black text-stone-900">제7조 (분쟁 해결 및 관할)</p><p className="mt-2">분쟁 발생 시 대전지방법원을 전속 관할법원으로 합니다.</p></div>
-            <div><p className="font-black text-stone-900">제8조 (문의)</p><p className="mt-2">예약 및 이용 문의: 010-4560-6701 / ehgus0718@naver.com</p><p>운영시간: 09:00 ~ 18:00 (연중무휴)</p></div>
+            <div><p className="font-black text-stone-900">제7조 (문의)</p><p className="mt-2">예약 및 이용 문의: 010-4560-6701 / ehgus0718@naver.com | 운영시간: 09:00 ~ 18:00 (연중무휴)</p></div>
           </div>
         )}
       </div>
@@ -610,8 +561,8 @@ export default function AppSafe() {
   }
 
   // ── PC 결제 완료 후 예약 저장 ──
-  // ✅ 핵심 수정: 결제완료 시 고객 확정문자 + 관리자 알림 모두 발송
-  // ✅ 핵심 수정: isSubmitting을 사용하지 않고 ReservationPanel에서 isPaymentProcessing으로만 제어
+  // ✅ 최종 수정: DB 저장 완료 즉시 성공 메시지 + resetForm → 스피너 해제
+  // ✅ 문자 발송은 await 없이 백그라운드 실행 (스피너에 영향 없음)
   async function handleSubmit(paymentInfo = {}) {
     setNotice(""); setReservationSuccessNotice(""); setOperationNotice(""); clearQuickAdminReservations();
 
@@ -624,7 +575,6 @@ export default function AppSafe() {
     });
     if (!validation.valid) { setNotice(validation.message); return; }
 
-    // isSubmitting은 사용하지 않음 (ReservationPanel이 isPaymentProcessing으로 버튼 제어)
     try {
       const isPaid = Boolean(paymentInfo?.paymentTID);
       const reservationItem = createReservation({
@@ -641,44 +591,34 @@ export default function AppSafe() {
       }
 
       const createdReservations = Array.isArray(result.data) && result.data.length > 0
-        ? result.data
-        : [reservationItem];
+        ? result.data : [reservationItem];
       const savedReservation = createdReservations[0];
 
       setRecentChangedReservationId(getReservationId(savedReservation) || "");
       setOperationNotice("신규 예약이 접수되었습니다.");
+
+      // ✅ 즉시 성공 메시지 세팅 + 폼 초기화 → ReservationPanel useEffect가 스피너 해제
       setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
+      resetForm();
 
+      // ✅ 문자 발송은 await 없이 백그라운드 (블로킹 없음)
+      const bt = boardingTime || "10:00";
       if (isPaid) {
-        // ✅ 결제 완료 → 고객에게 확정 문자 발송
-        const customerSmsResult = await sendReservationStatusSms({
-          reservation: {
-            ...savedReservation,
-            amount: paymentInfo.paymentAmt || savedReservation.amount,
-          },
+        sendReservationStatusSms({
+          reservation: { ...savedReservation, amount: paymentInfo.paymentAmt || savedReservation.amount },
           status: "결제완료",
-          boardingTime: boardingTime || "10:00"
-        });
-        if (!customerSmsResult.ok) {
-          console.warn("고객 결제완료 문자 발송 실패", customerSmsResult.error);
-        }
+          boardingTime: bt
+        }).catch((e) => console.warn("고객 결제완료 문자 발송 실패", e));
       }
-
-      // ✅ 관리자 알림 문자 (항상 발송)
-      const adminSmsResult = await sendReservationStatusSms({
+      sendReservationStatusSms({
         reservation: { ...savedReservation, phone: "01045606701" },
         status: "예약접수",
-        boardingTime: boardingTime || "10:00"
-      });
-      if (!adminSmsResult.ok) {
-        console.warn("관리자 예약 알림 문자 발송 실패", adminSmsResult.error);
-      }
+        boardingTime: bt
+      }).catch((e) => console.warn("관리자 예약 알림 문자 발송 실패", e));
 
-      resetForm();
     } catch (error) {
       setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(error)}`);
     }
-    // finally에서 setIsSubmitting(false) 제거 → ReservationPanel이 독립적으로 처리
   }
 
   return (
@@ -692,7 +632,6 @@ export default function AppSafe() {
               <p className="text-xs font-bold text-stone-500">2026 Reservation Platform</p>
             </div>
           </a>
-
           <div className="hidden md:flex items-center justify-center gap-3">
             {visibleHeaderLinks.map((link) => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
@@ -701,7 +640,6 @@ export default function AppSafe() {
               </a>
             ))}
           </div>
-
           <div className="flex items-center gap-2">
             {!isAdminPage ? (
               <a href="tel:01045606701"
@@ -717,7 +655,6 @@ export default function AppSafe() {
             ) : null}
           </div>
         </div>
-
         {!isAdminPage && visibleHeaderLinks.length > 0 && (
           <div className="md:hidden border-t border-orange-100 bg-orange-50 px-4 py-3">
             <p className="mb-2 text-xs font-black text-orange-500 tracking-widest">이용후기</p>
