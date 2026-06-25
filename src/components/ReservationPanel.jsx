@@ -253,6 +253,17 @@ export default function ReservationPanel({
       setIsPaymentProcessing(false); return;
     }
 
+    // ✅ PC 전용: 나이스페이 dim 해제를 위한 숨김 iframe
+    // 나이스페이 JS는 nicepaySubmit 후 form.action으로 submit하고 응답을 받아야 dim을 해제함
+    // form.target을 숨김 iframe으로 지정 → 현재 페이지는 이동하지 않고 dim만 해제됨
+    let hiddenIframe = null;
+    if (!mobile) {
+      hiddenIframe = document.createElement("iframe");
+      hiddenIframe.name = "nicepay-iframe";
+      hiddenIframe.style.cssText = "display:none;width:0;height:0;border:none;position:absolute;";
+      document.body.appendChild(hiddenIframe);
+    }
+
     const form_el = document.createElement("form");
     form_el.name = "nicepayForm";
     form_el.method = "post";
@@ -260,7 +271,14 @@ export default function ReservationPanel({
     form_el.style.display = "none";
 
     if (mobile) {
+      // 모바일: nicepay-return이 POST 수신 → 승인 → HTML 반환
       form_el.action = NICEPAY_RETURN_URL;
+    } else {
+      // PC: action = nicepay-return, target = 숨김 iframe
+      // → 나이스페이가 form submit 후 응답 받아 dim 해제
+      // → iframe 안에서 처리되므로 현재 페이지 이동 없음
+      form_el.action = NICEPAY_RETURN_URL;
+      form_el.target = "nicepay-iframe";
     }
 
     const fields = {
@@ -286,15 +304,19 @@ export default function ReservationPanel({
     });
     document.body.appendChild(form_el);
 
+    // PC: nicepaySubmit 콜백 → AJAX 승인 (dim 해제 후)
     window.nicepaySubmit = function () {
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
-      if (document.body.contains(form_el)) document.body.removeChild(form_el);
+
+      // form은 나이스페이 JS가 action target(iframe)으로 자동 submit함
+      // 별도로 removeChild 하지 않음 (나이스페이 dim 해제 메커니즘 유지)
       delete window.nicepaySubmit;
       delete window.nicepayClose;
 
       setPaymentNotice("결제 승인 처리 중입니다...");
 
+      // AJAX로 승인 처리
       Promise.resolve().then(async () => {
         try {
           const approveResp = await fetch(NICEPAY_APPROVE_URL, {
@@ -304,12 +326,17 @@ export default function ReservationPanel({
           });
           const result = await approveResp.json();
 
+          // iframe 정리
+          if (hiddenIframe && document.body.contains(hiddenIframe)) {
+            document.body.removeChild(hiddenIframe);
+          }
+          if (document.body.contains(form_el)) {
+            document.body.removeChild(form_el);
+          }
+
           if (result.ok) {
-            // ✅ 최종 해결: 승인 성공 즉시 스피너 해제 + 성공 메시지
-            // onSubmit(DB저장+문자)은 await 없이 백그라운드 실행
             setPaymentNotice("");
-            setIsPaymentProcessing(false);  // ← 여기서 즉시 해제
-            // DB 저장 + 문자는 백그라운드 (스피너와 완전히 분리)
+            setIsPaymentProcessing(false);
             onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt })
               .catch((e) => console.error("onSubmit 백그라운드 오류:", e));
           } else {
@@ -317,6 +344,8 @@ export default function ReservationPanel({
             setIsPaymentProcessing(false);
           }
         } catch {
+          if (hiddenIframe && document.body.contains(hiddenIframe)) document.body.removeChild(hiddenIframe);
+          if (document.body.contains(form_el)) document.body.removeChild(form_el);
           setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
           setIsPaymentProcessing(false);
         }
@@ -325,6 +354,7 @@ export default function ReservationPanel({
 
     window.nicepayClose = function () {
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
+      if (hiddenIframe && document.body.contains(hiddenIframe)) document.body.removeChild(hiddenIframe);
       delete window.nicepaySubmit;
       delete window.nicepayClose;
       setPaymentNotice("결제가 취소되었습니다.");
@@ -335,6 +365,7 @@ export default function ReservationPanel({
     catch {
       setPaymentNotice("결제창 호출에 실패했습니다. 팝업 차단을 해제해주세요.");
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
+      if (hiddenIframe && document.body.contains(hiddenIframe)) document.body.removeChild(hiddenIframe);
       setIsPaymentProcessing(false);
     }
   }
