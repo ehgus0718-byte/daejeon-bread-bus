@@ -10,16 +10,14 @@ import {
 const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
-const NICEPAY_SIGN_URL = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
-
-// ✅ 핵심: PC와 모바일 모두 동일한 ReturnURL 사용 (공식 샘플 구조)
-// 공식 샘플: form.action = '/authReq' (서버 엔드포인트)
-// 우리 구조: form.action = nicepay-return Edge Function (서버 역할)
+const NICEPAY_SIGN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
+const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
+// 모바일 전용: 나이스페이가 POST로 직접 호출하는 서버 엔드포인트
 const NICEPAY_RETURN_URL = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 
 function toSafeNumber(value, fallbackValue = 0) {
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : fallbackValue;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallbackValue;
 }
 function toCount(value, fallbackValue = 0) {
   return Math.max(0, Math.floor(toSafeNumber(value, fallbackValue)));
@@ -31,12 +29,12 @@ function getPhoneDigits(value = "") {
 function loadNicepayScript() {
   return new Promise((resolve, reject) => {
     if (document.getElementById("nicepay-script")) { resolve(); return; }
-    const script = document.createElement("script");
-    script.id = "nicepay-script";
-    script.src = "https://pg-web.nicepay.co.kr/v3/common/js/nicepay-pgweb.js";
-    script.onload = resolve;
-    script.onerror = reject;
-    document.head.appendChild(script);
+    const s = document.createElement("script");
+    s.id = "nicepay-script";
+    s.src = "https://pg-web.nicepay.co.kr/v3/common/js/nicepay-pgweb.js";
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
   });
 }
 
@@ -44,6 +42,10 @@ function generateMoid(phone) {
   const ts = Date.now().toString().slice(-8);
   const safe = (phone || "").replace(/\D/g, "").slice(-4);
   return `BUS${ts}${safe}`.slice(0, 40);
+}
+
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
 function PassengerCounter({ label, description, priceLabel, value = 0, onDecrease, onIncrease, disableDecrease = false, disableIncrease = false }) {
@@ -124,9 +126,9 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
   }
 
   function handleCodeChange(e) {
-    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 6);
-    setCode(digitsOnly);
-    if (inputRef.current && inputRef.current.value !== digitsOnly) inputRef.current.value = digitsOnly;
+    const d = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setCode(d);
+    if (inputRef.current && inputRef.current.value !== d) inputRef.current.value = d;
   }
 
   function getSendButtonContent() {
@@ -184,34 +186,31 @@ export default function ReservationPanel({
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
   useEffect(() => {
-    if (reservationSuccessNotice) {
-      setPrivacyConsent(false);
-      setIsPaymentProcessing(false);
-    }
+    if (reservationSuccessNotice) { setPrivacyConsent(false); setIsPaymentProcessing(false); }
   }, [reservationSuccessNotice]);
 
-  useEffect(() => { loadNicepayScript().catch(() => console.warn("나이스페이 스크립트 로드 실패")); }, []);
+  useEffect(() => { loadNicepayScript().catch(() => {}); }, []);
 
   const safeRemainingSeats = Math.max(0, toSafeNumber(remainingSeats, 0));
-  const adultCount = toCount(form.adultCount, 1);
-  const childCount = toCount(form.childCount, 0);
+  const adultCount  = toCount(form.adultCount, 1);
+  const childCount  = toCount(form.childCount, 0);
   const infantCount = toCount(form.infantCount, 0);
   const selectedPeople = adultCount + childCount + infantCount;
-  const safePrice = Math.max(0, toSafeNumber(price, 0));
-  const childPrice = Math.max(0, safePrice - 10000);
+  const safePrice   = Math.max(0, toSafeNumber(price, 0));
+  const childPrice  = Math.max(0, safePrice - 10000);
   const totalAmount = adultCount * safePrice + childCount * childPrice;
-  const hasAvailableSeats = safeRemainingSeats > 0;
+  const hasAvailableSeats       = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
   const canSubmit = hasAvailableSeats && hasValidPeopleSelection && hasRequiredPhoneVerification && privacyConsent && !isSubmitting && !isPaymentProcessing;
 
   function updatePassengerCount(key, nextValue) {
-    const nextAdult = key === "adultCount" ? nextValue : adultCount;
-    const nextChild = key === "childCount" ? nextValue : childCount;
-    const nextInfant = key === "infantCount" ? nextValue : infantCount;
-    if (nextAdult + nextChild + nextInfant > safeRemainingSeats) return;
+    const a = key === "adultCount"  ? nextValue : adultCount;
+    const c = key === "childCount"  ? nextValue : childCount;
+    const i = key === "infantCount" ? nextValue : infantCount;
+    if (a + c + i > safeRemainingSeats) return;
     onChange?.(key, nextValue);
-    onChange?.("people", nextAdult + nextChild + nextInfant);
+    onChange?.("people", a + c + i);
   }
 
   async function handlePayment() {
@@ -220,14 +219,11 @@ export default function ReservationPanel({
     setIsPaymentProcessing(true);
 
     try { await loadNicepayScript(); }
-    catch {
-      setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요.");
-      setIsPaymentProcessing(false);
-      return;
-    }
+    catch { setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요."); setIsPaymentProcessing(false); return; }
 
     const moid = generateMoid(form.phone || "");
-    const amt = String(totalAmount);
+    const amt  = String(totalAmount);
+    const mobile = isMobileDevice();
 
     let signParams;
     try {
@@ -235,18 +231,16 @@ export default function ReservationPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          Amt: amt,
-          Moid: moid,
+          Amt: amt, Moid: moid,
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
           BuyerName: form.name || "고객",
           BuyerTel: getPhoneDigits(form.phone || ""),
+          // 모바일: nicepay-return Edge Function (POST 수신 가능한 서버)
+          // PC: 사용 안 함 (nicepaySubmit AJAX로 처리)
           ReturnURL: NICEPAY_RETURN_URL,
           ReqReserved: JSON.stringify({
-            date: selectedDate,
-            people: selectedPeople,
-            adultCount,
-            childCount,
-            infantCount,
+            date: selectedDate, people: selectedPeople,
+            adultCount, childCount, infantCount,
             buyerName: form.name || "",
             buyerTel: getPhoneDigits(form.phone || ""),
           }),
@@ -256,20 +250,22 @@ export default function ReservationPanel({
       if (!signParams.ok) throw new Error(signParams.message || "서명 생성 실패");
     } catch {
       setPaymentNotice("결제 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-      setIsPaymentProcessing(false);
-      return;
+      setIsPaymentProcessing(false); return;
     }
 
-    // ✅ 공식 샘플과 동일한 구조:
-    // form.action = 서버 엔드포인트 URL (공식샘플: '/authReq', 우리: nicepay-return Edge Function)
-    // nicepaySubmit 재정의 없음 → 나이스페이 JS가 form을 action URL로 자동 submit
-    // → nicepay-return Edge Function이 POST body 수신 → 승인 처리 → 결과 HTML 반환
+    // form 생성
     const form_el = document.createElement("form");
     form_el.name = "nicepayForm";
     form_el.method = "post";
-    form_el.action = NICEPAY_RETURN_URL; // ✅ form.action에 직접 서버 URL 지정
     form_el.acceptCharset = "euc-kr";
     form_el.style.display = "none";
+
+    // ✅ PC: form.action을 비워둠 → nicepaySubmit AJAX로 처리
+    // ✅ 모바일: form.action = nicepay-return → 나이스페이가 직접 POST
+    if (mobile) {
+      form_el.action = NICEPAY_RETURN_URL;
+    }
+    // PC는 action 없음 (nicepaySubmit 콜백에서 AJAX 처리)
 
     const fields = {
       PayMethod: "CARD",
@@ -287,29 +283,62 @@ export default function ReservationPanel({
       ReturnURL: signParams.ReturnURL,
       ReqReserved: signParams.ReqReserved,
     };
-
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = k;
-      input.value = v;
+      input.type = "hidden"; input.name = k; input.value = v;
       form_el.appendChild(input);
     });
-
     document.body.appendChild(form_el);
 
-    // ✅ nicepayClose만 정의 (취소 시 처리)
-    // nicepaySubmit은 재정의하지 않음 → 나이스페이 JS 기본 동작(form.action으로 submit) 사용
+    // ✅ PC 전용: nicepaySubmit 콜백 → AJAX 승인
+    // 나이스페이 JS가 nicepaySubmit()을 동기로 호출 → 우리가 동기함수로 선언
+    // 내부 비동기 처리는 Promise.resolve().then(async)로 실행
+    window.nicepaySubmit = function () {
+      // 인증 데이터 즉시 수집
+      const authData = {};
+      new FormData(form_el).forEach((v, k) => { authData[k] = v; });
+
+      // form 즉시 제거
+      if (document.body.contains(form_el)) document.body.removeChild(form_el);
+      delete window.nicepaySubmit;
+      delete window.nicepayClose;
+
+      setPaymentNotice("결제 승인 처리 중입니다...");
+
+      // 비동기 승인 처리
+      Promise.resolve().then(async () => {
+        try {
+          const approveResp = await fetch(NICEPAY_APPROVE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...authData, expectedAmt: amt }),
+          });
+          const result = await approveResp.json();
+          if (result.ok) {
+            setPaymentNotice("");
+            await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
+            setIsPaymentProcessing(false);
+          } else {
+            setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
+            setIsPaymentProcessing(false);
+          }
+        } catch {
+          setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+          setIsPaymentProcessing(false);
+        }
+      });
+    };
+
     window.nicepayClose = function () {
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
+      delete window.nicepaySubmit;
       delete window.nicepayClose;
       setPaymentNotice("결제가 취소되었습니다.");
       setIsPaymentProcessing(false);
     };
 
-    try {
-      window.goPay(form_el);
-    } catch {
+    try { window.goPay(form_el); }
+    catch {
       setPaymentNotice("결제창 호출에 실패했습니다. 팝업 차단을 해제해주세요.");
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       setIsPaymentProcessing(false);
