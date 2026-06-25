@@ -186,8 +186,10 @@ export default function ReservationPanel({
 
   useEffect(() => {
     if (reservationSuccessNotice) {
+      console.log("[STEP-6] reservationSuccessNotice 변경 감지 → setIsPaymentProcessing(false) 호출");
       setPrivacyConsent(false);
       setIsPaymentProcessing(false);
+      console.log("[STEP-6] setIsPaymentProcessing(false) 완료");
     }
   }, [reservationSuccessNotice]);
 
@@ -217,18 +219,26 @@ export default function ReservationPanel({
 
   async function handlePayment() {
     if (!canSubmit) return;
+    console.log("[STEP-1] 결제하기 버튼 클릭 → handlePayment 시작");
     setPaymentNotice("");
     setIsPaymentProcessing(true);
 
     try { await loadNicepayScript(); }
-    catch { setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요."); setIsPaymentProcessing(false); return; }
+    catch {
+      console.log("[STEP-1-ERR] 나이스페이 스크립트 로드 실패");
+      setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요.");
+      setIsPaymentProcessing(false); return;
+    }
+    console.log("[STEP-1] 나이스페이 스크립트 로드 완료");
 
     const moid = generateMoid(form.phone || "");
     const amt  = String(totalAmount);
     const mobile = isMobileDevice();
+    console.log("[STEP-1] 디바이스 판별:", mobile ? "모바일" : "PC", "| 금액:", amt);
 
     let signParams;
     try {
+      console.log("[STEP-2] nicepay-sign Edge Function 호출 시작");
       const resp = await fetch(NICEPAY_SIGN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -248,20 +258,21 @@ export default function ReservationPanel({
       });
       signParams = await resp.json();
       if (!signParams.ok) throw new Error(signParams.message || "서명 생성 실패");
-    } catch {
+      console.log("[STEP-2] nicepay-sign 응답 완료. ok:", signParams.ok);
+    } catch (e) {
+      console.log("[STEP-2-ERR] nicepay-sign 실패:", e);
       setPaymentNotice("결제 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
       setIsPaymentProcessing(false); return;
     }
 
-    // ✅ PC 전용: 나이스페이 dim 해제를 위한 숨김 iframe
-    // 나이스페이 JS는 nicepaySubmit 후 form.action으로 submit하고 응답을 받아야 dim을 해제함
-    // form.target을 숨김 iframe으로 지정 → 현재 페이지는 이동하지 않고 dim만 해제됨
+    // PC 전용 숨김 iframe
     let hiddenIframe = null;
     if (!mobile) {
       hiddenIframe = document.createElement("iframe");
       hiddenIframe.name = "nicepay-iframe";
       hiddenIframe.style.cssText = "display:none;width:0;height:0;border:none;position:absolute;";
       document.body.appendChild(hiddenIframe);
+      console.log("[STEP-3] PC: 숨김 iframe 생성 완료 (name=nicepay-iframe)");
     }
 
     const form_el = document.createElement("form");
@@ -271,31 +282,21 @@ export default function ReservationPanel({
     form_el.style.display = "none";
 
     if (mobile) {
-      // 모바일: nicepay-return이 POST 수신 → 승인 → HTML 반환
       form_el.action = NICEPAY_RETURN_URL;
+      console.log("[STEP-3] 모바일: form.action =", NICEPAY_RETURN_URL);
     } else {
-      // PC: action = nicepay-return, target = 숨김 iframe
-      // → 나이스페이가 form submit 후 응답 받아 dim 해제
-      // → iframe 안에서 처리되므로 현재 페이지 이동 없음
       form_el.action = NICEPAY_RETURN_URL;
       form_el.target = "nicepay-iframe";
+      console.log("[STEP-3] PC: form.action =", NICEPAY_RETURN_URL, "| form.target = nicepay-iframe");
     }
 
     const fields = {
-      PayMethod: "CARD",
-      GoodsName: signParams.GoodsName,
-      Amt: signParams.Amt,
-      MID: signParams.MID,
-      Moid: signParams.Moid,
-      BuyerName: signParams.BuyerName,
-      BuyerTel: signParams.BuyerTel,
-      EdiDate: signParams.EdiDate,
-      SignData: signParams.SignData,
-      CharSet: "utf-8",
-      GoodsCl: "1",
-      TransType: "0",
-      ReturnURL: signParams.ReturnURL,
-      ReqReserved: signParams.ReqReserved,
+      PayMethod: "CARD", GoodsName: signParams.GoodsName,
+      Amt: signParams.Amt, MID: signParams.MID, Moid: signParams.Moid,
+      BuyerName: signParams.BuyerName, BuyerTel: signParams.BuyerTel,
+      EdiDate: signParams.EdiDate, SignData: signParams.SignData,
+      CharSet: "utf-8", GoodsCl: "1", TransType: "0",
+      ReturnURL: signParams.ReturnURL, ReqReserved: signParams.ReqReserved,
     };
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
@@ -303,21 +304,28 @@ export default function ReservationPanel({
       form_el.appendChild(input);
     });
     document.body.appendChild(form_el);
+    console.log("[STEP-3] form 생성 완료. goPay() 호출 직전");
 
-    // PC: nicepaySubmit 콜백 → AJAX 승인 (dim 해제 후)
+    // PC 전용 nicepaySubmit 콜백
     window.nicepaySubmit = function () {
+      console.log("[STEP-4] ★★★ nicepaySubmit 콜백 호출됨 ★★★");
+      console.log("[STEP-4] window.deleteLayer 존재 여부:", typeof window.deleteLayer);
+      console.log("[STEP-4] window.nicepayEnd 존재 여부:", typeof window.nicepayEnd);
+      console.log("[STEP-4] window.layerRemove 존재 여부:", typeof window.layerRemove);
+
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
+      console.log("[STEP-4] 인증 데이터 수집 완료. AuthResultCode:", authData.AuthResultCode, "| TxTid:", authData.TxTid);
 
-      // form은 나이스페이 JS가 action target(iframe)으로 자동 submit함
-      // 별도로 removeChild 하지 않음 (나이스페이 dim 해제 메커니즘 유지)
       delete window.nicepaySubmit;
       delete window.nicepayClose;
+      console.log("[STEP-4] nicepaySubmit 함수 동기 실행 완료 → return 직전 (dim 해제 예상 시점)");
 
       setPaymentNotice("결제 승인 처리 중입니다...");
 
-      // AJAX로 승인 처리
+      // 비동기 승인 처리
       Promise.resolve().then(async () => {
+        console.log("[STEP-5] AJAX 승인 시작 → nicepay-approve 호출");
         try {
           const approveResp = await fetch(NICEPAY_APPROVE_URL, {
             method: "POST",
@@ -325,34 +333,39 @@ export default function ReservationPanel({
             body: JSON.stringify({ ...authData, expectedAmt: amt }),
           });
           const result = await approveResp.json();
+          console.log("[STEP-5] nicepay-approve 응답. ok:", result.ok, "| ResultCode:", result.ResultCode);
 
-          // iframe 정리
-          if (hiddenIframe && document.body.contains(hiddenIframe)) {
-            document.body.removeChild(hiddenIframe);
-          }
-          if (document.body.contains(form_el)) {
-            document.body.removeChild(form_el);
-          }
+          // 정리
+          if (hiddenIframe && document.body.contains(hiddenIframe)) document.body.removeChild(hiddenIframe);
+          if (document.body.contains(form_el)) document.body.removeChild(form_el);
 
           if (result.ok) {
+            console.log("[STEP-5] 승인 성공. setIsPaymentProcessing(false) 호출");
             setPaymentNotice("");
             setIsPaymentProcessing(false);
+            console.log("[STEP-5] onSubmit 백그라운드 호출 시작");
             onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt })
-              .catch((e) => console.error("onSubmit 백그라운드 오류:", e));
+              .catch((e) => console.error("[STEP-5-ERR] onSubmit 오류:", e));
           } else {
+            console.log("[STEP-5-ERR] 승인 실패:", result.message);
             setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
             setIsPaymentProcessing(false);
           }
-        } catch {
+        } catch (e) {
+          console.log("[STEP-5-ERR] 승인 중 예외:", e);
           if (hiddenIframe && document.body.contains(hiddenIframe)) document.body.removeChild(hiddenIframe);
           if (document.body.contains(form_el)) document.body.removeChild(form_el);
           setPaymentNotice("결제 승인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
           setIsPaymentProcessing(false);
         }
       });
+
+      // nicepaySubmit은 여기서 return됨
+      console.log("[STEP-4] nicepaySubmit return 완료");
     };
 
     window.nicepayClose = function () {
+      console.log("[DEBUG] nicepayClose 호출됨 (사용자가 결제창 닫음)");
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       if (hiddenIframe && document.body.contains(hiddenIframe)) document.body.removeChild(hiddenIframe);
       delete window.nicepaySubmit;
@@ -361,8 +374,11 @@ export default function ReservationPanel({
       setIsPaymentProcessing(false);
     };
 
-    try { window.goPay(form_el); }
-    catch {
+    try {
+      window.goPay(form_el);
+      console.log("[STEP-3] goPay() 호출 완료 (결제창 팝업 표시됨)");
+    } catch (e) {
+      console.log("[STEP-3-ERR] goPay() 호출 실패:", e);
       setPaymentNotice("결제창 호출에 실패했습니다. 팝업 차단을 해제해주세요.");
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       if (hiddenIframe && document.body.contains(hiddenIframe)) document.body.removeChild(hiddenIframe);
