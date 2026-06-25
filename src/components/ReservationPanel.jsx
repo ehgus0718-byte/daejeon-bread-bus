@@ -184,7 +184,6 @@ export default function ReservationPanel({
   const [paymentNotice, setPaymentNotice] = useState("");
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
-  // reservationSuccessNotice가 세팅되면 무조건 스피너 해제
   useEffect(() => {
     if (reservationSuccessNotice) {
       setPrivacyConsent(false);
@@ -290,7 +289,6 @@ export default function ReservationPanel({
     window.nicepaySubmit = function () {
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
-
       if (document.body.contains(form_el)) document.body.removeChild(form_el);
       delete window.nicepaySubmit;
       delete window.nicepayClose;
@@ -307,15 +305,13 @@ export default function ReservationPanel({
           const result = await approveResp.json();
 
           if (result.ok) {
+            // ✅ 최종 해결: 승인 성공 즉시 스피너 해제 + 성공 메시지
+            // onSubmit(DB저장+문자)은 await 없이 백그라운드 실행
             setPaymentNotice("");
-            // ✅ 핵심 수정: onSubmit 성공/실패/예외 모든 경우에 finally로 스피너 해제 보장
-            try {
-              await onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt });
-            } catch (submitErr) {
-              console.error("onSubmit 오류:", submitErr);
-            } finally {
-              setIsPaymentProcessing(false);
-            }
+            setIsPaymentProcessing(false);  // ← 여기서 즉시 해제
+            // DB 저장 + 문자는 백그라운드 (스피너와 완전히 분리)
+            onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt })
+              .catch((e) => console.error("onSubmit 백그라운드 오류:", e));
           } else {
             setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
             setIsPaymentProcessing(false);
