@@ -16,7 +16,6 @@ const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
 const NICEPAY_RETURN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 const RESERVATIONS_URL    = `${SUPABASE_URL}/rest/v1/reservations`;
 
-// ✅ status 한글값 URL 인코딩 상수
 const STATUS_PENDING = encodeURIComponent("결제대기");
 
 function toSafeNumber(value, fallbackValue = 0) {
@@ -52,13 +51,8 @@ function safeRemoveChild(parent, child) {
   } catch {}
 }
 
-// pending 예약 생성 → reservation_id(uuid) 반환
-// 실패 시 null 반환 (결제창은 계속 열림)
 async function createPendingReservation({ reservationDate, name, phone, people, amount }) {
-  if (!reservationDate || !name || people < 1) {
-    console.warn("createPendingReservation: 유효하지 않은 파라미터", { reservationDate, name, people });
-    return null;
-  }
+  if (!reservationDate || !name || people < 1) return null;
 
   const DB_HEADERS = {
     "Content-Type": "application/json",
@@ -67,7 +61,6 @@ async function createPendingReservation({ reservationDate, name, phone, people, 
   };
 
   try {
-    // ① INSERT
     const insertResp = await fetch(RESERVATIONS_URL, {
       method: "POST",
       headers: { ...DB_HEADERS, "Prefer": "return=minimal" },
@@ -87,24 +80,16 @@ async function createPendingReservation({ reservationDate, name, phone, people, 
       return null;
     }
 
-    // ② SELECT로 id 조회 — ✅ 한글 status 값을 encodeURIComponent로 인코딩
     const safePhone = encodeURIComponent(phone || "");
     const selectResp = await fetch(
       `${RESERVATIONS_URL}?reservation_date=eq.${reservationDate}&phone=eq.${safePhone}&status=eq.${STATUS_PENDING}&order=created_at.desc&limit=1&select=id`,
       { headers: DB_HEADERS }
     );
 
-    if (!selectResp.ok) {
-      console.warn("pending SELECT 실패:", selectResp.status);
-      return null;
-    }
+    if (!selectResp.ok) return null;
 
     const rows = await selectResp.json();
-
-    if (!Array.isArray(rows) || rows.length === 0) {
-      console.warn("pending SELECT 결과 없음");
-      return null;
-    }
+    if (!Array.isArray(rows) || rows.length === 0) return null;
 
     return rows[0].id;
   } catch (e) {
@@ -300,6 +285,15 @@ export default function ReservationPanel({
 
     const moid = reservationId || `BUS${Date.now().toString().slice(-10)}${phone.slice(-4)}`.slice(0, 40);
 
+    // ✅ ReqReserved에 항상 날짜와 전화번호 포함 (nicepay-sign fallback INSERT용)
+    const reqReserved = JSON.stringify({
+      reservationId: reservationId || "",
+      date: selectedDate,
+      buyerTel: phone,
+      buyerName: form.name || "고객",
+      people: selectedPeople,
+    });
+
     let signParams;
     try {
       const resp = await fetch(NICEPAY_SIGN_URL, {
@@ -312,7 +306,7 @@ export default function ReservationPanel({
           BuyerName: form.name || "고객",
           BuyerTel: phone,
           ReturnURL: NICEPAY_RETURN_URL,
-          ReqReserved: reservationId || "",
+          ReqReserved: reqReserved,
         }),
       });
       signParams = await resp.json();
@@ -356,7 +350,7 @@ export default function ReservationPanel({
       GoodsCl: "1",
       TransType: "0",
       ReturnURL: signParams.ReturnURL,
-      ReqReserved: reservationId || "",
+      ReqReserved: reqReserved,
     };
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
