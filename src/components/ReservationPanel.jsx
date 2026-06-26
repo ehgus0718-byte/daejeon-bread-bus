@@ -10,9 +10,11 @@ import {
 const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
-const NICEPAY_SIGN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ud2ltbndkaWxlcmtrdGl6enFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxNzM2MjMsImV4cCI6MjA2Mzc0OTYyM30.pFCnb6G3BuFiQ72H-eCbMaEJFVy0KJHD-IFsTqCqGgg";
+const NICEPAY_SIGN_URL    = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
 const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
-const NICEPAY_RETURN_URL = `${SUPABASE_URL}/functions/v1/nicepay-return`;
+const NICEPAY_RETURN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-return`;
+const RESERVATIONS_URL    = `${SUPABASE_URL}/rest/v1/reservations`;
 
 function toSafeNumber(value, fallbackValue = 0) {
   const n = Number(value);
@@ -37,12 +39,6 @@ function loadNicepayScript() {
   });
 }
 
-function generateMoid(phone) {
-  const ts = Date.now().toString().slice(-8);
-  const safe = (phone || "").replace(/\D/g, "").slice(-4);
-  return `BUS${ts}${safe}`.slice(0, 40);
-}
-
 function isMobileDevice() {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
@@ -50,7 +46,32 @@ function isMobileDevice() {
 function safeRemoveChild(parent, child) {
   try {
     if (parent && child && parent.contains(child)) parent.removeChild(child);
-  } catch (e) { /* 나이스페이 JS가 먼저 제거한 경우 무시 */ }
+  } catch {}
+}
+
+// ✅ 결제 전 pending 예약 DB 생성 → reservation_id 반환
+async function createPendingReservation({ reservationDate, name, phone, people, amount }) {
+  const resp = await fetch(RESERVATIONS_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "Prefer": "return=representation",
+    },
+    body: JSON.stringify({
+      reservation_date: reservationDate,
+      name: name || "고객",
+      phone: phone || "",
+      people: people || 1,
+      amount: amount || 0,
+      status: "결제대기",
+    }),
+  });
+  if (!resp.ok) throw new Error(`예약 생성 실패: ${resp.status}`);
+  const rows = await resp.json();
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error("예약 생성 응답 없음");
+  return rows[0].id; // uuid
 }
 
 function PassengerCounter({ label, description, priceLabel, value = 0, onDecrease, onIncrease, disableDecrease = false, disableIncrease = false }) {
@@ -191,10 +212,7 @@ export default function ReservationPanel({
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
   useEffect(() => {
-    if (reservationSuccessNotice) {
-      setPrivacyConsent(false);
-      setIsPaymentProcessing(false);
-    }
+    if (reservationSuccessNotice) { setPrivacyConsent(false); setIsPaymentProcessing(false); }
   }, [reservationSuccessNotice]);
 
   useEffect(() => { loadNicepayScript().catch(() => {}); }, []);
@@ -229,27 +247,43 @@ export default function ReservationPanel({
     try { await loadNicepayScript(); }
     catch { setPaymentNotice("결제 모듈 로드에 실패했습니다. 새로고침 후 다시 시도해주세요."); setIsPaymentProcessing(false); return; }
 
-    const moid = generateMoid(form.phone || "");
-    const amt  = String(totalAmount);
+    const amt    = String(totalAmount);
     const mobile = isMobileDevice();
+    const phone  = getPhoneDigits(form.phone || "");
+
+    // ✅ 1단계: 결제 전 pending 예약 DB 생성
+    let reservationId;
+    try {
+      setPaymentNotice("예약을 준비하는 중입니다...");
+      reservationId = await createPendingReservation({
+        reservationDate: selectedDate,
+        name: form.name || "고객",
+        phone,
+        people: selectedPeople,
+        amount: totalAmount,
+      });
+    } catch (e) {
+      setPaymentNotice("예약 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      setIsPaymentProcessing(false); return;
+    }
+
+    // ✅ 2단계: Moid = reservation_id (UUID)
+    const moid = reservationId;
 
     let signParams;
     try {
+      setPaymentNotice("");
       const resp = await fetch(NICEPAY_SIGN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          Amt: amt, Moid: moid,
+          Amt: amt,
+          Moid: moid,
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
           BuyerName: form.name || "고객",
-          BuyerTel: getPhoneDigits(form.phone || ""),
+          BuyerTel: phone,
           ReturnURL: NICEPAY_RETURN_URL,
-          ReqReserved: JSON.stringify({
-            date: selectedDate, people: selectedPeople,
-            adultCount, childCount, infantCount,
-            buyerName: form.name || "",
-            buyerTel: getPhoneDigits(form.phone || ""),
-          }),
+          ReqReserved: reservationId, // 단순 id만 (참고용)
         }),
       });
       signParams = await resp.json();
@@ -259,7 +293,6 @@ export default function ReservationPanel({
       setIsPaymentProcessing(false); return;
     }
 
-    // PC 전용 숨김 iframe (나이스페이 form submit target)
     let hiddenIframe = null;
     if (!mobile) {
       hiddenIframe = document.createElement("iframe");
@@ -281,12 +314,20 @@ export default function ReservationPanel({
     }
 
     const fields = {
-      PayMethod: "CARD", GoodsName: signParams.GoodsName,
-      Amt: signParams.Amt, MID: signParams.MID, Moid: signParams.Moid,
-      BuyerName: signParams.BuyerName, BuyerTel: signParams.BuyerTel,
-      EdiDate: signParams.EdiDate, SignData: signParams.SignData,
-      CharSet: "utf-8", GoodsCl: "1", TransType: "0",
-      ReturnURL: signParams.ReturnURL, ReqReserved: signParams.ReqReserved,
+      PayMethod: "CARD",
+      GoodsName: signParams.GoodsName,
+      Amt: signParams.Amt,
+      MID: signParams.MID,
+      Moid: moid,               // ✅ reservation_id
+      BuyerName: signParams.BuyerName,
+      BuyerTel: signParams.BuyerTel,
+      EdiDate: signParams.EdiDate,
+      SignData: signParams.SignData,
+      CharSet: "utf-8",
+      GoodsCl: "1",
+      TransType: "0",
+      ReturnURL: signParams.ReturnURL,
+      ReqReserved: reservationId, // ✅ 참고용 id
     };
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
@@ -296,12 +337,9 @@ export default function ReservationPanel({
     document.body.appendChild(form_el);
 
     window.nicepaySubmit = function () {
-      // 나이스페이 dim 레이어 수동 제거
       window.deleteLayer?.();
-
       const authData = {};
       new FormData(form_el).forEach((v, k) => { authData[k] = v; });
-
       delete window.nicepaySubmit;
       delete window.nicepayClose;
       setPaymentNotice("결제 승인 처리 중입니다...");
@@ -311,18 +349,16 @@ export default function ReservationPanel({
           const approveResp = await fetch(NICEPAY_APPROVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...authData, expectedAmt: amt }),
+            body: JSON.stringify({ ...authData, expectedAmt: amt, reservationId }),
           });
           const result = await approveResp.json();
-
-          // ✅ safeRemoveChild로 이중 제거 에러 방어
           safeRemoveChild(document.body, hiddenIframe);
           safeRemoveChild(document.body, form_el);
 
           if (result.ok) {
             setPaymentNotice("");
             setIsPaymentProcessing(false);
-            onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt })
+            onSubmit?.({ paymentTID: result.TID, paymentAmt: result.Amt, reservationId })
               .catch((e) => console.error("onSubmit 오류:", e));
           } else {
             setPaymentNotice(`결제 실패: ${result.message || "알 수 없는 오류"}`);
