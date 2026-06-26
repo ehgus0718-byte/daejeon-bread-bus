@@ -49,12 +49,13 @@ function safeRemoveChild(parent, child) {
   } catch {}
 }
 
-// ✅ pending 예약 생성 → reservation_id 반환
-// Prefer:return=representation 제거 → INSERT 후 별도 SELECT로 id 조회
-// 실패 시 null 반환 (결제창은 계속 열림)
+// ✅ pending 예약 생성 → reservation_id(uuid) 반환
+// 실패 시 null 반환 (결제창은 계속 열림 — nicepay-return에서 BuyerTel fallback 사용)
 async function createPendingReservation({ reservationDate, name, phone, people, amount }) {
-  // RLS 조건 사전 검증: reservation_date, people, status
-  if (!reservationDate || !name || people < 1) return null;
+  if (!reservationDate || !name || people < 1) {
+    console.warn("createPendingReservation: 유효하지 않은 파라미터", { reservationDate, name, people });
+    return null;
+  }
 
   const DB_HEADERS = {
     "Content-Type": "application/json",
@@ -63,7 +64,7 @@ async function createPendingReservation({ reservationDate, name, phone, people, 
   };
 
   try {
-    // ① INSERT (return=minimal — 빈 body 반환, RLS SELECT 불필요)
+    // ① INSERT (return=minimal)
     const insertResp = await fetch(RESERVATIONS_URL, {
       method: "POST",
       headers: { ...DB_HEADERS, "Prefer": "return=minimal" },
@@ -77,29 +78,37 @@ async function createPendingReservation({ reservationDate, name, phone, people, 
       }),
     });
 
+    console.log("pending INSERT status:", insertResp.status);
+
     if (!insertResp.ok) {
-      console.warn("pending 예약 INSERT 실패:", insertResp.status);
+      const errText = await insertResp.text().catch(() => "");
+      console.warn("pending INSERT 실패:", insertResp.status, errText);
       return null;
     }
 
-    // ② INSERT 성공 후 방금 생성된 row SELECT (phone + reservation_date 기준)
-    // SELECT RLS 정책(true)이 추가되어 있으므로 가능
+    // ② INSERT 성공 후 SELECT로 id 조회
+    const safePhone = encodeURIComponent(phone || "");
     const selectResp = await fetch(
-      `${RESERVATIONS_URL}?reservation_date=eq.${reservationDate}&phone=eq.${encodeURIComponent(phone)}&status=eq.결제대기&order=created_at.desc&limit=1&select=id`,
+      `${RESERVATIONS_URL}?reservation_date=eq.${reservationDate}&phone=eq.${safePhone}&status=eq.결제대기&order=created_at.desc&limit=1&select=id`,
       { headers: DB_HEADERS }
     );
 
+    console.log("pending SELECT status:", selectResp.status);
+
     if (!selectResp.ok) {
-      console.warn("pending 예약 SELECT 실패:", selectResp.status);
+      console.warn("pending SELECT 실패:", selectResp.status);
       return null;
     }
 
     const rows = await selectResp.json();
+    console.log("pending SELECT rows:", JSON.stringify(rows));
+
     if (!Array.isArray(rows) || rows.length === 0) {
-      console.warn("pending 예약 SELECT 결과 없음");
+      console.warn("pending SELECT 결과 없음");
       return null;
     }
 
+    console.log("pending reservation_id:", rows[0].id);
     return rows[0].id;
   } catch (e) {
     console.warn("createPendingReservation 예외:", e);
@@ -284,7 +293,7 @@ export default function ReservationPanel({
     const mobile = isMobileDevice();
     const phone  = getPhoneDigits(form.phone || "");
 
-    // ✅ pending 예약 생성 시도 (실패해도 결제창은 열림 - null 반환)
+    // pending 예약 생성 시도 (실패해도 결제창은 열림 - nicepay-return에서 BuyerTel fallback)
     const reservationId = await createPendingReservation({
       reservationDate: selectedDate,
       name: form.name || "고객",
@@ -293,7 +302,9 @@ export default function ReservationPanel({
       amount: totalAmount,
     });
 
-    // Moid: reservationId가 있으면 사용, 없으면 타임스탬프 기반 fallback
+    console.log("reservationId:", reservationId, "| phone:", phone);
+
+    // Moid: reservationId(uuid)가 있으면 사용, 없으면 타임스탬프 fallback
     const moid = reservationId || `BUS${Date.now().toString().slice(-10)}${phone.slice(-4)}`.slice(0, 40);
 
     let signParams;
