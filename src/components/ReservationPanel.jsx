@@ -49,29 +49,62 @@ function safeRemoveChild(parent, child) {
   } catch {}
 }
 
-// ✅ 결제 전 pending 예약 DB 생성 → reservation_id 반환
+// ✅ pending 예약 생성 → reservation_id 반환
+// Prefer:return=representation 제거 → INSERT 후 별도 SELECT로 id 조회
+// 실패 시 null 반환 (결제창은 계속 열림)
 async function createPendingReservation({ reservationDate, name, phone, people, amount }) {
-  const resp = await fetch(RESERVATIONS_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "apikey": SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-      "Prefer": "return=representation",
-    },
-    body: JSON.stringify({
-      reservation_date: reservationDate,
-      name: name || "고객",
-      phone: phone || "",
-      people: people || 1,
-      amount: amount || 0,
-      status: "결제대기",
-    }),
-  });
-  if (!resp.ok) throw new Error(`예약 생성 실패: ${resp.status}`);
-  const rows = await resp.json();
-  if (!Array.isArray(rows) || rows.length === 0) throw new Error("예약 생성 응답 없음");
-  return rows[0].id; // uuid
+  // RLS 조건 사전 검증: reservation_date, people, status
+  if (!reservationDate || !name || people < 1) return null;
+
+  const DB_HEADERS = {
+    "Content-Type": "application/json",
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+  };
+
+  try {
+    // ① INSERT (return=minimal — 빈 body 반환, RLS SELECT 불필요)
+    const insertResp = await fetch(RESERVATIONS_URL, {
+      method: "POST",
+      headers: { ...DB_HEADERS, "Prefer": "return=minimal" },
+      body: JSON.stringify({
+        reservation_date: reservationDate,
+        name: name || "고객",
+        phone: phone || "",
+        people: people || 1,
+        amount: amount || 0,
+        status: "결제대기",
+      }),
+    });
+
+    if (!insertResp.ok) {
+      console.warn("pending 예약 INSERT 실패:", insertResp.status);
+      return null;
+    }
+
+    // ② INSERT 성공 후 방금 생성된 row SELECT (phone + reservation_date 기준)
+    // SELECT RLS 정책(true)이 추가되어 있으므로 가능
+    const selectResp = await fetch(
+      `${RESERVATIONS_URL}?reservation_date=eq.${reservationDate}&phone=eq.${encodeURIComponent(phone)}&status=eq.결제대기&order=created_at.desc&limit=1&select=id`,
+      { headers: DB_HEADERS }
+    );
+
+    if (!selectResp.ok) {
+      console.warn("pending 예약 SELECT 실패:", selectResp.status);
+      return null;
+    }
+
+    const rows = await selectResp.json();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      console.warn("pending 예약 SELECT 결과 없음");
+      return null;
+    }
+
+    return rows[0].id;
+  } catch (e) {
+    console.warn("createPendingReservation 예외:", e);
+    return null;
+  }
 }
 
 function PassengerCounter({ label, description, priceLabel, value = 0, onDecrease, onIncrease, disableDecrease = false, disableIncrease = false }) {
@@ -251,28 +284,20 @@ export default function ReservationPanel({
     const mobile = isMobileDevice();
     const phone  = getPhoneDigits(form.phone || "");
 
-    // ✅ 1단계: 결제 전 pending 예약 DB 생성
-    let reservationId;
-    try {
-      setPaymentNotice("예약을 준비하는 중입니다...");
-      reservationId = await createPendingReservation({
-        reservationDate: selectedDate,
-        name: form.name || "고객",
-        phone,
-        people: selectedPeople,
-        amount: totalAmount,
-      });
-    } catch (e) {
-      setPaymentNotice("예약 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-      setIsPaymentProcessing(false); return;
-    }
+    // ✅ pending 예약 생성 시도 (실패해도 결제창은 열림 - null 반환)
+    const reservationId = await createPendingReservation({
+      reservationDate: selectedDate,
+      name: form.name || "고객",
+      phone,
+      people: selectedPeople,
+      amount: totalAmount,
+    });
 
-    // ✅ 2단계: Moid = reservation_id (UUID)
-    const moid = reservationId;
+    // Moid: reservationId가 있으면 사용, 없으면 타임스탬프 기반 fallback
+    const moid = reservationId || `BUS${Date.now().toString().slice(-10)}${phone.slice(-4)}`.slice(0, 40);
 
     let signParams;
     try {
-      setPaymentNotice("");
       const resp = await fetch(NICEPAY_SIGN_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -283,7 +308,7 @@ export default function ReservationPanel({
           BuyerName: form.name || "고객",
           BuyerTel: phone,
           ReturnURL: NICEPAY_RETURN_URL,
-          ReqReserved: reservationId, // 단순 id만 (참고용)
+          ReqReserved: reservationId || "",
         }),
       });
       signParams = await resp.json();
@@ -318,7 +343,7 @@ export default function ReservationPanel({
       GoodsName: signParams.GoodsName,
       Amt: signParams.Amt,
       MID: signParams.MID,
-      Moid: moid,               // ✅ reservation_id
+      Moid: moid,
       BuyerName: signParams.BuyerName,
       BuyerTel: signParams.BuyerTel,
       EdiDate: signParams.EdiDate,
@@ -327,7 +352,7 @@ export default function ReservationPanel({
       GoodsCl: "1",
       TransType: "0",
       ReturnURL: signParams.ReturnURL,
-      ReqReserved: reservationId, // ✅ 참고용 id
+      ReqReserved: reservationId || "",
     };
     Object.entries(fields).forEach(([k, v]) => {
       const input = document.createElement("input");
