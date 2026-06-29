@@ -625,13 +625,23 @@ export default function AppSafe() {
     <div className="min-h-screen bg-[#fff8ef] text-stone-950">
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4">
-          <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
-            <div>
-              <h1 className="text-xl font-black">대전빵버스 빵셔틀</h1>
-              <p className="text-xs font-bold text-stone-500">2026 Reservation Platform</p>
-            </div>
-          </a>
+          {isAdminPage ? (
+            <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
+              <div>
+                <h1 className="text-xl font-black">대전빵버스 빵셔틀</h1>
+                <p className="text-xs font-bold text-orange-500">↗ 고객화면 새 탭으로 보기</p>
+              </div>
+            </a>
+          ) : (
+            <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
+              <div>
+                <h1 className="text-xl font-black">대전빵버스 빵셔틀</h1>
+                <p className="text-xs font-bold text-stone-500">2026 Reservation Platform</p>
+              </div>
+            </a>
+          )}
           <div className="hidden md:flex items-center justify-center gap-3">
             {visibleHeaderLinks.map((link) => (
               <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer"
