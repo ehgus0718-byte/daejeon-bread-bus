@@ -10,7 +10,7 @@ import {
 const SMS_VERIFICATION_ENABLED = isSmsVerificationEnabled();
 
 const SUPABASE_URL = "https://mnwimnwdilerkktizzqn.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ud2ltbndkaWxlcmtrdGl6enFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxNzM2MjMsImV4cCI6MjA2Mzc0OTYyM30.pFCnb6G3BuFiQ72H-eCbMaEJFVy0KJHD-IFsTqCqGgg";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ud2ltbndkaWxlcmtrdGl6enFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTA0MTAsImV4cCI6MjA5NTI4NjQxMH0.tb7WTaDft-VX45yLxx9W4Nl7ChpVWuvU3-55nPQ30xs";
 const NICEPAY_SIGN_URL    = `${SUPABASE_URL}/functions/v1/nicepay-sign`;
 const NICEPAY_APPROVE_URL = `${SUPABASE_URL}/functions/v1/nicepay-approve`;
 const NICEPAY_RETURN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-return`;
