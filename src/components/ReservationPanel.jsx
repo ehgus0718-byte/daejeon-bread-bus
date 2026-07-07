@@ -17,8 +17,6 @@ const NICEPAY_RETURN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 const RESERVATIONS_URL    = `${SUPABASE_URL}/rest/v1/reservations`;
 
 const STATUS_PENDING = encodeURIComponent("결제대기");
-// ✅ 중복예약 체크 시 "이미 진행중"으로 볼 상태 목록 (취소 제외 전부)
-const ACTIVE_STATUS_NOT_IN = encodeURIComponent("(취소,예약취소)");
 
 function toSafeNumber(value, fallbackValue = 0) {
   const n = Number(value);
@@ -55,30 +53,6 @@ function safeRemoveChild(parent, child) {
   try {
     if (parent && child && parent.contains(child)) parent.removeChild(child);
   } catch {}
-}
-
-// ✅ 중복예약 방지: 같은 날짜 + 같은 연락처로 이미 진행중인(취소 아닌) 예약이 있는지 확인
-async function findExistingActiveReservation({ reservationDate, phone }) {
-  if (!reservationDate || !phone) return null;
-
-  const DB_HEADERS = {
-    "apikey": SUPABASE_ANON_KEY,
-    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-  };
-
-  try {
-    const safePhone = encodeURIComponent(phone);
-    const resp = await fetch(
-      `${RESERVATIONS_URL}?reservation_date=eq.${reservationDate}&phone=eq.${safePhone}&status=not.in.${ACTIVE_STATUS_NOT_IN}&select=id&limit=1`,
-      { headers: DB_HEADERS }
-    );
-    if (!resp.ok) return null;
-    const rows = await resp.json();
-    return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
-  } catch (e) {
-    console.warn("중복예약 확인 실패(무시하고 진행):", e);
-    return null;
-  }
 }
 
 async function createPendingReservation({ reservationDate, name, phone, people, amount, adminNote }) {
@@ -306,14 +280,6 @@ export default function ReservationPanel({
     const amt    = String(totalAmount);
     const mobile = isMobileDevice();
     const phone  = getPhoneDigits(form.phone || "");
-
-    // ✅ 중복예약 방지: 같은 날짜 + 같은 연락처로 이미 진행중인 예약이 있으면 결제 진행 전에 막음
-    const duplicate = await findExistingActiveReservation({ reservationDate: selectedDate, phone });
-    if (duplicate) {
-      setPaymentNotice("이미 같은 날짜·연락처로 접수된 예약이 있습니다. 중복 결제를 방지하기 위해 진행이 취소되었습니다. 확인이 필요하시면 010-4560-6701로 문의해주세요.");
-      setIsPaymentProcessing(false);
-      return;
-    }
 
     const passengerSummary = buildPassengerSummary({ adultCount, childCount, infantCount });
 
