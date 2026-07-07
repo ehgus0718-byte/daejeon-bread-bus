@@ -3,7 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const MID = Deno.env.get('NICEPAY_MID') || 'somangt01m';
 const SIGN_KEY = Deno.env.get('NICEPAY_SIGN_KEY') || 'IOSbs3hgPu8HH1oe3Ykz6gTVTxlG/aXGFtqj15WBH7yuGBAC9gwcYyN9oqurG65esabKt7VR09bN4pqtgFCkzg==';
 const SUPABASE_URL = 'https://mnwimnwdilerkktizzqn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ud2ltbndkaWxlcmtrdGl6enFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxNzM2MjMsImV4cCI6MjA2Mzc0OTYyM30.pFCnb6G3BuFiQ72H-eCbMaEJFVy0KJHD-IFsTqCqGgg';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ud2ltbndkaWxlcmtrdGl6enFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTA0MTAsImV4cCI6MjA5NTI4NjQxMH0.tb7WTaDft-VX45yLxx9W4Nl7ChpVWuvU3-55nPQ30xs';
 
 async function sha256hex(str: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
       let reservedInfo: Record<string, string> = {};
       try { reservedInfo = JSON.parse(ReqReserved || '{}'); } catch {}
       const reservationDate = reservedInfo['date'] || '';
-      // ✅ 인원 구성(성인/아동/유아)이 함께 왔으면 관리자 메모에 남김 (PC 예약과 동일 포맷)
+      // 인원 구성(성인/아동/유아)이 함께 왔으면 관리자 메모에 남김 (PC 예약과 동일 포맷)
       const adultCount  = reservedInfo['adultCount'] !== undefined ? Number(reservedInfo['adultCount']) : null;
       const childCount  = reservedInfo['childCount'] !== undefined ? Number(reservedInfo['childCount']) : null;
       const infantCount = reservedInfo['infantCount'] !== undefined ? Number(reservedInfo['infantCount']) : null;
