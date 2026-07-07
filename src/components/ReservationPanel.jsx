@@ -17,6 +17,8 @@ const NICEPAY_RETURN_URL  = `${SUPABASE_URL}/functions/v1/nicepay-return`;
 const RESERVATIONS_URL    = `${SUPABASE_URL}/rest/v1/reservations`;
 
 const STATUS_PENDING = encodeURIComponent("결제대기");
+// ✅ 중복예약 체크 시 "이미 진행중"으로 볼 상태 목록 (취소 제외 전부)
+const ACTIVE_STATUS_NOT_IN = encodeURIComponent("(취소,예약취소)");
 
 function toSafeNumber(value, fallbackValue = 0) {
   const n = Number(value);
@@ -27,6 +29,10 @@ function toCount(value, fallbackValue = 0) {
 }
 function getPhoneDigits(value = "") {
   return String(value || "").replace(/\D/g, "");
+}
+// ✅ 관리자 메모용 인원 구성 텍스트 (PC 예약과 동일한 포맷 유지)
+function buildPassengerSummary({ adultCount = 0, childCount = 0, infantCount = 0 }) {
+  return `성인 ${adultCount}명 / 아동 ${childCount}명 / 유아 ${infantCount}명`;
 }
 
 function loadNicepayScript() {
@@ -51,7 +57,31 @@ function safeRemoveChild(parent, child) {
   } catch {}
 }
 
-async function createPendingReservation({ reservationDate, name, phone, people, amount }) {
+// ✅ 중복예약 방지: 같은 날짜 + 같은 연락처로 이미 진행중인(취소 아닌) 예약이 있는지 확인
+async function findExistingActiveReservation({ reservationDate, phone }) {
+  if (!reservationDate || !phone) return null;
+
+  const DB_HEADERS = {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+  };
+
+  try {
+    const safePhone = encodeURIComponent(phone);
+    const resp = await fetch(
+      `${RESERVATIONS_URL}?reservation_date=eq.${reservationDate}&phone=eq.${safePhone}&status=not.in.${ACTIVE_STATUS_NOT_IN}&select=id&limit=1`,
+      { headers: DB_HEADERS }
+    );
+    if (!resp.ok) return null;
+    const rows = await resp.json();
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  } catch (e) {
+    console.warn("중복예약 확인 실패(무시하고 진행):", e);
+    return null;
+  }
+}
+
+async function createPendingReservation({ reservationDate, name, phone, people, amount, adminNote }) {
   if (!reservationDate || !name || people < 1) return null;
 
   const DB_HEADERS = {
@@ -71,6 +101,8 @@ async function createPendingReservation({ reservationDate, name, phone, people, 
         people: people || 1,
         amount: amount || 0,
         status: "결제대기",
+        // ✅ PC 예약과 동일하게 인원 구성(성인/아동/유아)을 관리자 메모에 남김
+        admin_note: adminNote || "",
       }),
     });
 
@@ -275,23 +307,38 @@ export default function ReservationPanel({
     const mobile = isMobileDevice();
     const phone  = getPhoneDigits(form.phone || "");
 
+    // ✅ 중복예약 방지: 같은 날짜 + 같은 연락처로 이미 진행중인 예약이 있으면 결제 진행 전에 막음
+    const duplicate = await findExistingActiveReservation({ reservationDate: selectedDate, phone });
+    if (duplicate) {
+      setPaymentNotice("이미 같은 날짜·연락처로 접수된 예약이 있습니다. 중복 결제를 방지하기 위해 진행이 취소되었습니다. 확인이 필요하시면 010-4560-6701로 문의해주세요.");
+      setIsPaymentProcessing(false);
+      return;
+    }
+
+    const passengerSummary = buildPassengerSummary({ adultCount, childCount, infantCount });
+
     const reservationId = await createPendingReservation({
       reservationDate: selectedDate,
       name: form.name || "고객",
       phone,
       people: selectedPeople,
       amount: totalAmount,
+      adminNote: passengerSummary,
     });
 
     const moid = reservationId || `BUS${Date.now().toString().slice(-10)}${phone.slice(-4)}`.slice(0, 40);
 
     // ✅ ReqReserved에 항상 날짜와 전화번호 포함 (nicepay-sign fallback INSERT용)
+    // ✅ 인원 구성(adultCount/childCount/infantCount)도 함께 실어 fallback INSERT 시 관리자 메모에 반영
     const reqReserved = JSON.stringify({
       reservationId: reservationId || "",
       date: selectedDate,
       buyerTel: phone,
       buyerName: form.name || "고객",
       people: selectedPeople,
+      adultCount,
+      childCount,
+      infantCount,
     });
 
     let signParams;
