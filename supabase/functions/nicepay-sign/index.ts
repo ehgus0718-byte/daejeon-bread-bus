@@ -61,6 +61,13 @@ Deno.serve(async (req: Request) => {
       let reservedInfo: Record<string, string> = {};
       try { reservedInfo = JSON.parse(ReqReserved || '{}'); } catch {}
       const reservationDate = reservedInfo['date'] || '';
+      // ✅ 인원 구성(성인/아동/유아)이 함께 왔으면 관리자 메모에 남김 (PC 예약과 동일 포맷)
+      const adultCount  = reservedInfo['adultCount'] !== undefined ? Number(reservedInfo['adultCount']) : null;
+      const childCount  = reservedInfo['childCount'] !== undefined ? Number(reservedInfo['childCount']) : null;
+      const infantCount = reservedInfo['infantCount'] !== undefined ? Number(reservedInfo['infantCount']) : null;
+      const passengerSummary = (adultCount !== null && childCount !== null && infantCount !== null)
+        ? `성인 ${adultCount}명 / 아동 ${childCount}명 / 유아 ${infantCount}명 · `
+        : '';
       if (reservationDate) {
         await fetch(`${SUPABASE_URL}/rest/v1/reservations`, {
           method: 'POST',
@@ -72,7 +79,7 @@ Deno.serve(async (req: Request) => {
             people: 1,
             amount: Number(Amt) || 0,
             status: '결제대기',
-            admin_note: `MOID:${Moid}`,
+            admin_note: `${passengerSummary}MOID:${Moid}`,
           }),
           signal: AbortSignal.timeout(3000),
         }).catch(() => {});
