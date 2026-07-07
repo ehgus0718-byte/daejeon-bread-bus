@@ -60,7 +60,7 @@ async function sendSms(phone: string, status: string, name: string, date: string
 const DB_HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` };
 
 async function getReservationById(id: string): Promise<Record<string,unknown>|null> {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/reservations?id=eq.${id}&select=id,reservation_date,name,phone,people,status`, { headers: DB_HEADERS, signal: AbortSignal.timeout(5000) });
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/reservations?id=eq.${id}&select=id,reservation_date,name,phone,people,status,admin_note`, { headers: DB_HEADERS, signal: AbortSignal.timeout(5000) });
   const rows = await r.json();
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
@@ -203,13 +203,22 @@ Deno.serve(async (req: Request) => {
 
   // DB 업데이트 또는 INSERT
   if (reservation?.['id']) {
+    // 기존 admin_note(예: "성인 1명 / 아동 0명 / 유아 0명" 인원구성 메모)를 덮어쓰지 않고 TID를 이어붙임
+    const existingNote = String(reservation?.['admin_note'] || '').trim();
+    const mergedNote = existingNote ? `${existingNote} · TID:${tid}` : `TID:${tid}`;
     await updateReservation(String(reservation['id']), {
       status: '결제완료',
       amount: amtNum,
-      admin_note: `TID:${tid}`,
+      admin_note: mergedNote,
     }).catch(e => console.warn('update fail:', e));
   } else {
     if (finalDate) {
+      const reservedAdult  = reservedInfo['adultCount'] !== undefined ? Number(reservedInfo['adultCount']) : null;
+      const reservedChild  = reservedInfo['childCount'] !== undefined ? Number(reservedInfo['childCount']) : null;
+      const reservedInfant = reservedInfo['infantCount'] !== undefined ? Number(reservedInfo['infantCount']) : null;
+      const passengerSummary = (reservedAdult !== null && reservedChild !== null && reservedInfant !== null)
+        ? `성인 ${reservedAdult}명 / 아동 ${reservedChild}명 / 유아 ${reservedInfant}명`
+        : '';
       await insertReservation({
         reservation_date: finalDate,
         name:             finalName || '고객',
@@ -217,7 +226,7 @@ Deno.serve(async (req: Request) => {
         people:           reservedPeople || 1,
         amount:           amtNum,
         status:           '결제완료',
-        admin_note:       `TID:${tid}`,
+        admin_note:       passengerSummary ? `${passengerSummary} · TID:${tid}` : `TID:${tid}`,
       });
     } else {
       console.warn('finalDate 없음 — INSERT 스킵');
