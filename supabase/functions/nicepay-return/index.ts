@@ -3,7 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const MID = Deno.env.get('NICEPAY_MID') || 'somangt01m';
 const SIGN_KEY = Deno.env.get('NICEPAY_SIGN_KEY') || 'IOSbs3hgPu8HH1oe3Ykz6gTVTxlG/aXGFtqj15WBH7yuGBAC9gwcYyN9oqurG65esabKt7VR09bN4pqtgFCkzg==';
 const SUPABASE_URL = 'https://mnwimnwdilerkktizzqn.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ud2ltbndkaWxlcmtrdGl6enFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgxNzM2MjMsImV4cCI6MjA2Mzc0OTYyM30.pFCnb6G3BuFiQ72H-eCbMaEJFVy0KJHD-IFsTqCqGgg';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ud2ltbndkaWxlcmtrdGl6enFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTA0MTAsImV4cCI6MjA5NTI4NjQxMH0.tb7WTaDft-VX45yLxx9W4Nl7ChpVWuvU3-55nPQ30xs';
 const SITE_URL = 'https://xn--vk1bm4puqbp6gr2h.com';
 const SMS_URL = `${SUPABASE_URL}/functions/v1/send-reservation-status-sms`;
 const ADMIN_PHONE = '01045606701';
@@ -65,12 +65,17 @@ async function getReservationById(id: string): Promise<Record<string,unknown>|nu
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 async function updateReservation(id: string, patch: Record<string,unknown>) {
-  await fetch(`${SUPABASE_URL}/rest/v1/reservations?id=eq.${id}`, {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/reservations?id=eq.${id}`, {
     method: 'PATCH',
     headers: { ...DB_HEADERS, 'Prefer': 'return=minimal' },
     body: JSON.stringify(patch),
     signal: AbortSignal.timeout(5000),
   });
+  if (!r.ok) {
+    const t = await r.text().catch(() => '');
+    console.warn('reservations UPDATE 실패:', r.status, t);
+    await logDebug('update_fail', `id=${id} status=${r.status} body=${t} patch=${JSON.stringify(patch)}`);
+  }
 }
 async function insertReservation(data: Record<string,unknown>): Promise<void> {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/reservations`, {
@@ -82,8 +87,22 @@ async function insertReservation(data: Record<string,unknown>): Promise<void> {
   if (!r.ok) {
     const t = await r.text().catch(() => '');
     console.warn('reservations INSERT 실패:', r.status, t);
+    await logDebug('insert_fail', `status=${r.status} body=${t} data=${JSON.stringify(data)}`);
   } else {
     console.log('reservations INSERT 성공');
+  }
+}
+// 임시 디버그: debug_logs 테이블에 실패 원인을 남겨 관리자가 직접 조회 가능하게 함
+async function logDebug(label: string, content: string): Promise<void> {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/debug_logs`, {
+      method: 'POST',
+      headers: { ...DB_HEADERS, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ label, content: content.slice(0, 4000) }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch (e) {
+    console.warn('debug log 기록 실패:', e);
   }
 }
 
@@ -200,6 +219,7 @@ Deno.serve(async (req: Request) => {
   const finalDate  = dbDate || reservedDate || goodsNameDate;
 
   console.log(`[final] phone="${finalPhone}", name="${finalName}", date="${finalDate}" (goodsNameDate="${goodsNameDate}")`);
+  await logDebug('flow', `moid=${moid} lookupId=${lookupId} foundReservation=${!!reservation} finalDate=${finalDate} finalPhone=${finalPhone} finalName=${finalName}`);
 
   // DB 업데이트 또는 INSERT
   if (reservation?.['id']) {
