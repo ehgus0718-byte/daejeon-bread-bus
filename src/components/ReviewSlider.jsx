@@ -113,18 +113,24 @@ export default function ReviewSlider({ previewMode = false }) {
     let alive = true;
     (async () => {
       try {
+        console.log("[ReviewSlider] fetch start");
         const [reviewResult, settingsResult] = await Promise.all([
           reviewsClient.listVisible(),
           reviewsClient.getSettings()
         ]);
+        console.log("[ReviewSlider] reviewResult", reviewResult);
+        console.log("[ReviewSlider] settingsResult", settingsResult);
         if (!alive) return;
         if (!reviewResult.ok) {
+          console.warn("[ReviewSlider] reviewResult not ok, rendering nothing", reviewResult.error);
           setLoadFailed(true);
           return;
         }
         setSettings({ ...DEFAULT_REVIEW_SETTINGS, ...(settingsResult.data || {}) });
         setReviews(reviewResult.data || []);
+        console.log("[ReviewSlider] state set, review count =", (reviewResult.data || []).length);
       } catch (error) {
+        console.error("[ReviewSlider] exception during fetch", error);
         if (alive) setLoadFailed(true);
       }
     })();
@@ -236,6 +242,7 @@ export default function ReviewSlider({ previewMode = false }) {
     [goNext, goPrev, loopEnabled, perView]
   );
 
+  console.log("[ReviewSlider] render check", { loadFailed, reviewsIsNull: reviews === null, count, perView, settings });
   if (loadFailed || reviews === null || count === 0) return null;
 
   const theme = THEME_STYLES[settings.theme] || THEME_STYLES.light;
