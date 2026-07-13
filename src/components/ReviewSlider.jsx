@@ -113,24 +113,18 @@ export default function ReviewSlider({ previewMode = false }) {
     let alive = true;
     (async () => {
       try {
-        console.log("[ReviewSlider] fetch start");
         const [reviewResult, settingsResult] = await Promise.all([
           reviewsClient.listVisible(),
           reviewsClient.getSettings()
         ]);
-        console.log("[ReviewSlider] reviewResult", reviewResult);
-        console.log("[ReviewSlider] settingsResult", settingsResult);
         if (!alive) return;
         if (!reviewResult.ok) {
-          console.warn("[ReviewSlider] reviewResult not ok, rendering nothing", reviewResult.error);
           setLoadFailed(true);
           return;
         }
         setSettings({ ...DEFAULT_REVIEW_SETTINGS, ...(settingsResult.data || {}) });
         setReviews(reviewResult.data || []);
-        console.log("[ReviewSlider] state set, review count =", (reviewResult.data || []).length);
       } catch (error) {
-        console.error("[ReviewSlider] exception during fetch", error);
         if (alive) setLoadFailed(true);
       }
     })();
@@ -167,7 +161,6 @@ export default function ReviewSlider({ previewMode = false }) {
   const [index, setIndex] = useState(clones);
   const [transitionOn, setTransitionOn] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
-  const [autoplayOn, setAutoplayOn] = useState(true);
   const [dragOffsetPx, setDragOffsetPx] = useState(0);
   const [detailReview, setDetailReview] = useState(null);
   const trackRef = useRef(null);
@@ -207,13 +200,13 @@ export default function ReviewSlider({ previewMode = false }) {
   }, [transitionOn]);
 
   useEffect(() => {
-    if (!settings.autoplay || !autoplayOn || isPaused || !loopEnabled || detailReview) return undefined;
+    if (!settings.autoplay || isPaused || !loopEnabled || detailReview) return undefined;
     const timer = setInterval(() => {
       setTransitionOn(true);
       setIndex((prev) => prev + 1);
     }, Math.max(1500, settings.autoplay_speed_ms));
     return () => clearInterval(timer);
-  }, [settings.autoplay, settings.autoplay_speed_ms, autoplayOn, isPaused, loopEnabled, detailReview]);
+  }, [settings.autoplay, settings.autoplay_speed_ms, isPaused, loopEnabled, detailReview]);
 
   const handlePointerDown = useCallback((event) => {
     dragState.current = { dragging: true, startX: event.clientX, moved: false };
@@ -242,7 +235,6 @@ export default function ReviewSlider({ previewMode = false }) {
     [goNext, goPrev, loopEnabled, perView]
   );
 
-  console.log("[ReviewSlider] render check", { loadFailed, reviewsIsNull: reviews === null, count, perView, settings });
   if (loadFailed || reviews === null || count === 0) return null;
 
   const theme = THEME_STYLES[settings.theme] || THEME_STYLES.light;
@@ -266,17 +258,6 @@ export default function ReviewSlider({ previewMode = false }) {
           <h3 className={`mt-2 text-3xl font-black ${theme.title}`}>고객님들의 생생한 후기</h3>
         </div>
         <div className="flex items-center gap-2">
-          {settings.autoplay ? (
-            <button
-              type="button"
-              onClick={() => setAutoplayOn((prev) => !prev)}
-              className={`rounded-full border px-4 py-2 text-xs font-black transition ${theme.control}`}
-              aria-pressed={autoplayOn}
-              aria-label={autoplayOn ? "자동재생 끄기" : "자동재생 켜기"}
-            >
-              {autoplayOn ? "⏸ 자동재생 끄기" : "▶ 자동재생 켜기"}
-            </button>
-          ) : null}
           {loopEnabled ? (
             <>
               <button
@@ -319,7 +300,7 @@ export default function ReviewSlider({ previewMode = false }) {
             marginRight: `-${gapPx / 2}px`
           }}
           onTransitionEnd={handleTransitionEnd}
-          aria-live={settings.autoplay && autoplayOn ? "off" : "polite"}
+          aria-live={settings.autoplay ? "off" : "polite"}
         >
           {extendedSlides.map((review, slideIdx) => (
             <div
