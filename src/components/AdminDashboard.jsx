@@ -9,6 +9,7 @@ import AdminHealthReport from "./AdminHealthReport.jsx";
 import AdminOperationGuide from "./AdminOperationGuide.jsx";
 import AdminDateSettingsForm from "./AdminDateSettingsForm.jsx";
 import AdminScheduleDetailEditor from "./AdminScheduleDetailEditor.jsx";
+import AdminReviewManager from "./AdminReviewManager.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
@@ -410,6 +411,8 @@ export default function AdminDashboard({
           scheduleStatus={scheduleStatus}
           onChangeStatus={onChangeScheduleStatus}
         />
+
+        <AdminReviewManager />
       </div>
     </section>
   );
