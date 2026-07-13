@@ -4,6 +4,7 @@ import ReservationPanel from "./components/ReservationPanel.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import CustomerScheduleSection from "./components/CustomerScheduleSection.jsx";
+import ReviewSlider from "./components/ReviewSlider.jsx";
 import { buildDateSettings } from "./core/dateSettingsBuilder.js";
 import {
   updateCapacityOverride,
@@ -721,6 +722,8 @@ export default function AppSafe() {
             <div className="rounded-3xl border border-green-100 bg-green-50 p-5"><p className="text-sm font-black text-green-700">운영 안내</p><ul className="mt-3 space-y-2 text-sm font-bold leading-6 text-stone-700"><li>최소 출발 인원 미달 시 일정이 조정되거나 취소될 수 있습니다.</li><li>예약 변경은 잔여 좌석이 있는 경우에 한해 가능합니다.</li><li>문의가 필요한 경우 예약자 연락처로 안내드립니다.</li><li>예약 상태 변경 시 안내 문자가 자동 발송됩니다.</li></ul></div>
           </div>
         </section>
+
+        {!isAdminPage ? <ReviewSlider /> : null}
 
         {!isAdminPage ? (
           <footer className="mt-12 rounded-[2rem] border border-orange-100 bg-white/95 px-5 py-6 text-xs font-bold leading-6 text-stone-600 shadow-sm md:px-8">
