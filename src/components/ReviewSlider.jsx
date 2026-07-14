@@ -244,7 +244,7 @@ export default function ReviewSlider({ previewMode = false }) {
 
   return (
     <section
-      className={`mt-10 rounded-[2rem] border p-6 shadow-xl shadow-orange-100/60 md:p-8 ${theme.section}`}
+      className={`mt-10 min-w-0 rounded-[2rem] border p-6 shadow-xl shadow-orange-100/60 md:p-8 ${theme.section}`}
       aria-roledescription="carousel"
       aria-label="고객 후기 슬라이더"
       onMouseEnter={() => setIsPaused(true)}
@@ -282,7 +282,7 @@ export default function ReviewSlider({ previewMode = false }) {
       </div>
 
       <div
-        className="mt-6 overflow-hidden"
+        className="mt-6 w-full min-w-0 overflow-hidden"
         ref={trackRef}
         style={{ touchAction: "pan-y" }}
         onPointerDown={handlePointerDown}
@@ -292,7 +292,7 @@ export default function ReviewSlider({ previewMode = false }) {
         onPointerCancel={endDrag}
       >
         <div
-          className="flex select-none"
+          className="flex w-full min-w-0 select-none"
           style={{
             transform: `translateX(calc(-${index * slidePercent}% + ${dragOffsetPx}px))`,
             transition: transitionOn && dragOffsetPx === 0 ? "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)" : "none",
