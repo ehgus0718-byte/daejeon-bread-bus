@@ -188,7 +188,7 @@ export default function AdminReviewManager() {
   };
 
   return (
-    <section className="rounded-[2rem] border border-stone-200 bg-white p-6">
+    <section className="min-w-0 rounded-[2rem] border border-stone-200 bg-white p-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-black tracking-[0.25em] text-orange-600">CUSTOMER REVIEWS</p>
@@ -212,7 +212,7 @@ export default function AdminReviewManager() {
       ) : null}
 
       {showPreview ? (
-        <div className="mt-4 rounded-[2rem] border border-dashed border-orange-300 bg-orange-50/40 p-3">
+        <div className="mt-4 min-w-0 overflow-hidden rounded-[2rem] border border-dashed border-orange-300 bg-orange-50/40 p-3">
           <ReviewSlider key={previewKey} previewMode />
         </div>
       ) : null}
