@@ -38,7 +38,37 @@ function sanitizePopupInput(input = {}) {
   };
 }
 
+const POPUP_IMAGE_BUCKET = "popup-images";
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+function extFromFile(file) {
+  const fromName = String(file?.name || "").split(".").pop();
+  if (fromName && fromName.length <= 5) return fromName.toLowerCase();
+  const fromType = String(file?.type || "").split("/").pop();
+  return fromType || "jpg";
+}
+
 export const popupClient = {
+  async uploadPopupImage(file) {
+    if (!hasSupabaseConfig() || !supabaseClient) return notConfigured();
+    if (!file) return fail("업로드할 이미지 파일을 선택해주세요.", 400);
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      return fail("이미지 파일(JPG, PNG, WEBP, GIF)만 업로드할 수 있습니다.", 400);
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      return fail("이미지 용량은 5MB 이하만 업로드할 수 있습니다.", 400);
+    }
+    const path = `popup-${Date.now()}.${extFromFile(file)}`;
+    const { error: uploadError } = await supabaseClient.storage
+      .from(POPUP_IMAGE_BUCKET)
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+    if (uploadError) return fail(uploadError, 0);
+    const { data } = supabaseClient.storage.from(POPUP_IMAGE_BUCKET).getPublicUrl(path);
+    if (!data?.publicUrl) return fail("업로드는 되었지만 공개 URL을 가져오지 못했습니다.", 0);
+    return ok({ url: data.publicUrl, path });
+  },
+
   async getPopup() {
     if (!hasSupabaseConfig() || !supabaseClient) return ok({ ...DEFAULT_POPUP });
     const { data, error, status } = await supabaseClient
