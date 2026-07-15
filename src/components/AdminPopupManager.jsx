@@ -13,6 +13,7 @@ export default function AdminPopupManager() {
   const [notice, setNotice] = useState("");
   const [errorNotice, setErrorNotice] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -45,6 +46,23 @@ export default function AdminPopupManager() {
   };
 
   const handleToggleEnabled = () => handleSave({ enabled: !form.enabled });
+
+  const handleImageFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploading(true);
+    setNotice("");
+    setErrorNotice("");
+    const result = await popupClient.uploadPopupImage(file);
+    setIsUploading(false);
+    if (!result.ok) {
+      setErrorNotice(`이미지 업로드 실패: ${result.error}`);
+      return;
+    }
+    setField("image_url", result.data.url);
+    setNotice("이미지가 업로드되었습니다. 하단의 '팝업 저장' 버튼을 눌러 반영하세요.");
+  };
 
   if (isLoading) {
     return (
@@ -141,12 +159,36 @@ export default function AdminPopupManager() {
               />
             </>
           ) : null}
-          <input
-            className={fieldClass()}
-            placeholder={form.display_mode === "image" ? "팝업 이미지 URL (필수)" : "이미지 URL (선택)"}
-            value={form.image_url || ""}
-            onChange={(e) => setField("image_url", e.target.value)}
-          />
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                className={`${fieldClass()} flex-1`}
+                placeholder={form.display_mode === "image" ? "팝업 이미지 URL (필수)" : "이미지 URL (선택)"}
+                value={form.image_url || ""}
+                onChange={(e) => setField("image_url", e.target.value)}
+              />
+              <label className="cursor-pointer rounded-2xl border border-orange-300 bg-orange-50 px-4 py-2.5 text-xs font-black text-orange-700 hover:bg-orange-100">
+                {isUploading ? "업로드 중..." : "파일에서 업로드"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleImageFileChange}
+                  disabled={isUploading}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            {form.image_url ? (
+              <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-2">
+                <img
+                  src={form.image_url}
+                  alt="팝업 이미지 미리보기"
+                  className="h-16 w-16 rounded-xl object-cover"
+                />
+                <p className="truncate text-[11px] font-bold text-stone-400">{form.image_url}</p>
+              </div>
+            ) : null}
+          </div>
           <input
             className={fieldClass()}
             placeholder="클릭 시 이동할 링크 URL (선택, https://로 시작)"
