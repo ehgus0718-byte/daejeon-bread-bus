@@ -10,6 +10,7 @@ import AdminOperationGuide from "./AdminOperationGuide.jsx";
 import AdminDateSettingsForm from "./AdminDateSettingsForm.jsx";
 import AdminScheduleDetailEditor from "./AdminScheduleDetailEditor.jsx";
 import AdminReviewManager from "./AdminReviewManager.jsx";
+import AdminPopupManager from "./AdminPopupManager.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
@@ -413,6 +414,8 @@ export default function AdminDashboard({
         />
 
         <AdminReviewManager />
+
+        <AdminPopupManager />
       </div>
     </section>
   );
