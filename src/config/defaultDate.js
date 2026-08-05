@@ -1,1 +1,0 @@
-export const DEFAULT_SELECTED_DATE = "2026-05-30";
