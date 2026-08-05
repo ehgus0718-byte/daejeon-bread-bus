@@ -25,6 +25,7 @@ import {
   saveAdminSettings
 } from "./services/storageIndex.js";
 import { loadSiteSettings, saveSiteSettings } from "./api/siteSettingsClient.js";
+import { normalizeCalendarSettings, resolveCalendarStartDate } from "./core/calendarSettings.js";
 import {
   sendReservationStatusSms,
   shouldSendReservationStatusSms
@@ -77,12 +78,9 @@ async function fetchReservationCounts() {
 function getInitialSelectedDate() {
   const today = new Date();
   const year = today.getFullYear();
-  const month = today.getMonth();
-  const date = today.getDate();
-  if (year === 2026 && (month === 5 || month === 6)) {
-    return `${year}-${String(month + 1).padStart(2, "0")}-${String(date).padStart(2, "0")}`;
-  }
-  return "2026-06-01";
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const date = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${date}`;
 }
 
 function getInitialAdminAccessCode() {
@@ -141,6 +139,7 @@ function normalizeAdminSettings(settings = {}) {
     priceOverrides: settings.priceOverrides || {},
     scheduleStatus: settings.scheduleStatus || {},
     scheduleDetails: settings.scheduleDetails || {},
+    calendarSettings: normalizeCalendarSettings(settings.calendarSettings),
     headerLinks: Array.isArray(settings.headerLinks) ? settings.headerLinks : [],
     boardingTime: String(settings.boardingTime || "10:00").trim() || "10:00"
   };
@@ -293,6 +292,7 @@ export default function AppSafe() {
   const [priceOverrides, setPriceOverrides] = useState(savedAdminSettings.priceOverrides);
   const [scheduleStatus, setScheduleStatus] = useState(savedAdminSettings.scheduleStatus);
   const [scheduleDetails, setScheduleDetails] = useState(savedAdminSettings.scheduleDetails || {});
+  const [calendarSettings, setCalendarSettings] = useState(normalizeCalendarSettings(savedAdminSettings.calendarSettings));
   const [headerLinks, setHeaderLinks] = useState(Array.isArray(savedAdminSettings.headerLinks) ? savedAdminSettings.headerLinks : []);
   const [boardingTime, setBoardingTime] = useState(String(savedAdminSettings.boardingTime || "10:00").trim() || "10:00");
   const [notice, setNotice] = useState("");
@@ -361,6 +361,7 @@ export default function AppSafe() {
       setPriceOverrides(nextSettings.priceOverrides);
       setScheduleStatus(nextSettings.scheduleStatus);
       setScheduleDetails(nextSettings.scheduleDetails);
+      setCalendarSettings(nextSettings.calendarSettings);
       setHeaderLinks(nextSettings.headerLinks);
       setBoardingTime(nextSettings.boardingTime);
       saveAdminSettings(nextSettings);
@@ -371,7 +372,7 @@ export default function AppSafe() {
   }, []);
 
   useEffect(() => {
-    const nextSettings = { capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, headerLinks, boardingTime };
+    const nextSettings = { capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, headerLinks, boardingTime };
     saveAdminSettings(nextSettings);
     if (!USES_REMOTE_RESERVATION_STORAGE || !isAdminSettingsReady) return;
     let isCancelled = false;
@@ -383,11 +384,16 @@ export default function AppSafe() {
     }
     saveRemoteSettings();
     return () => { isCancelled = true; };
-  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, headerLinks, boardingTime, isAdminSettingsReady]);
+  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, headerLinks, boardingTime, isAdminSettingsReady]);
 
   const managedDateSettings = useMemo(
     () => buildDateSettings({ capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails }),
     [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails]
+  );
+
+  const calendarStartDate = useMemo(
+    () => resolveCalendarStartDate(calendarSettings, new Date()),
+    [calendarSettings]
   );
 
   const visibleAdminReservations = adminReservations || reservations;
@@ -459,6 +465,7 @@ export default function AppSafe() {
     setScheduleDetails((prev) => removeDateKey(prev, date));
     setNotice("선택한 날짜 설정이 삭제되었습니다.");
   }
+  function handleUpdateCalendarSettings(nextSettings) { setCalendarSettings(normalizeCalendarSettings(nextSettings)); }
   function handleUpdateHeaderLinks(nextLinks) { setHeaderLinks(Array.isArray(nextLinks) ? nextLinks : []); }
   function handleUpdateBoardingTime(nextTime) { setBoardingTime(String(nextTime || "").trim() || "10:00"); }
 
@@ -690,7 +697,7 @@ export default function AppSafe() {
 
         <section className="mt-10">
           <CustomerScheduleSection selectedDate={selectedDate} scheduleDetail={selectedScheduleDetail} scheduleStatus={selectedScheduleStatus} />
-          <TwoMonthCalendar currentDate={new Date(2026, 5, 1)} dateSettings={managedDateSettings} getRemainingSeats={remaining} selectedDate={selectedDate} onSelectDate={handleSelectDate} />
+          <TwoMonthCalendar currentDate={calendarStartDate} monthCount={calendarSettings.monthCount} dateSettings={managedDateSettings} getRemainingSeats={remaining} selectedDate={selectedDate} onSelectDate={handleSelectDate} />
         </section>
 
         <section className="mt-10">
@@ -757,6 +764,7 @@ export default function AppSafe() {
             isQuickReservationView={isQuickReservationView} quickReservationLimit={ADMIN_QUICK_REFRESH_LIMIT}
             recentChangedReservationId={recentChangedReservationId} operationNotice={operationNotice}
             headerLinks={headerLinks} boardingTime={boardingTime}
+            calendarSettings={calendarSettings}
             onRefreshReservations={handleRefreshReservations}
             onClearQuickReservations={handleClearQuickReservations}
             onChangeReservationStatus={handleReservationStatusChange}
@@ -770,6 +778,7 @@ export default function AppSafe() {
             onClearReservationNote={handleClearReservationNote}
             onUpdateHeaderLinks={handleUpdateHeaderLinks}
             onUpdateBoardingTime={handleUpdateBoardingTime}
+            onUpdateCalendarSettings={handleUpdateCalendarSettings}
           />
         ) : isAdminPage ? (
           <AdminLogin password={adminPassword} error={adminError} onChangePassword={setAdminPassword} onSubmit={handleAdminLogin} />

@@ -1,5 +1,19 @@
 import React from "react";
 import { formatSeatCount } from "../core/formatters.js";
+import { DEFAULT_MONTH_COUNT, MAX_MONTH_COUNT, MIN_MONTH_COUNT } from "../core/calendarSettings.js";
+
+function isValidDate(value) {
+  return value instanceof Date && !Number.isNaN(value.getTime());
+}
+
+function safeMonthCount(value) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return DEFAULT_MONTH_COUNT;
+  const rounded = Math.round(numberValue);
+  if (rounded < MIN_MONTH_COUNT) return MIN_MONTH_COUNT;
+  if (rounded > MAX_MONTH_COUNT) return MAX_MONTH_COUNT;
+  return rounded;
+}
 
 function toSafeNumber(value, fallbackValue = 0) {
   const numberValue = Number(value);
@@ -40,7 +54,7 @@ function CalendarCard({
   selectedDate,
   onSelectDate
 }) {
-  const safeMonthDate = Number.isNaN(monthDate?.getTime?.()) ? new Date() : monthDate;
+  const safeMonthDate = isValidDate(monthDate) ? monthDate : new Date();
   const year = safeMonthDate.getFullYear();
   const month = safeMonthDate.getMonth();
   const days = buildMonth(year, month);
@@ -154,32 +168,31 @@ function CalendarCard({
 
 export default function TwoMonthCalendar({
   currentDate = new Date(),
+  monthCount = DEFAULT_MONTH_COUNT,
   dateSettings = {},
   getRemainingSeats,
   selectedDate,
   onSelectDate
 }) {
-  const safeCurrentDate = Number.isNaN(currentDate?.getTime?.()) ? new Date() : currentDate;
-  const firstMonth = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth(), 1);
-  const secondMonth = new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth() + 1, 1);
+  const safeCurrentDate = isValidDate(currentDate) ? currentDate : new Date();
+  const visibleMonthCount = safeMonthCount(monthCount);
+
+  const months = Array.from({ length: visibleMonthCount }, (unused, index) =>
+    new Date(safeCurrentDate.getFullYear(), safeCurrentDate.getMonth() + index, 1)
+  );
 
   return (
     <section className="bb-calendar-section grid gap-6 lg:grid-cols-2">
-      <CalendarCard
-        monthDate={firstMonth}
-        dateSettings={dateSettings}
-        getRemainingSeats={getRemainingSeats}
-        selectedDate={selectedDate}
-        onSelectDate={onSelectDate}
-      />
-
-      <CalendarCard
-        monthDate={secondMonth}
-        dateSettings={dateSettings}
-        getRemainingSeats={getRemainingSeats}
-        selectedDate={selectedDate}
-        onSelectDate={onSelectDate}
-      />
+      {months.map((monthDate) => (
+        <CalendarCard
+          key={`${monthDate.getFullYear()}-${monthDate.getMonth()}`}
+          monthDate={monthDate}
+          dateSettings={dateSettings}
+          getRemainingSeats={getRemainingSeats}
+          selectedDate={selectedDate}
+          onSelectDate={onSelectDate}
+        />
+      ))}
 
       <div className="bb-calendar-legend" aria-label="달력 상태 안내" hidden>
         <span className="bb-legend-item bb-legend-open">예약가능</span>

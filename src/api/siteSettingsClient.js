@@ -1,10 +1,12 @@
 import { hasSupabaseConfig, supabaseClient } from "./supabaseClient.js";
+import { normalizeCalendarSettings } from "../core/calendarSettings.js";
 
 const TABLE_NAME = ["admin", "settings"].join("_");
 const ROW_ID = "default";
 const BASE_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,header_links,boarding_time,updated_at";
-const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,header_links,boarding_time,updated_at";
+const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,calendar_settings,header_links,boarding_time,updated_at";
 const SCHEDULE_DETAILS_FALLBACK_KEY = "__schedule_details__";
+const CALENDAR_SETTINGS_FALLBACK_KEY = "__calendar_settings__";
 
 function ok(data = null, status = 200) {
   return { ok: true, data, error: null, status };
@@ -31,37 +33,53 @@ function safeBoardingTime(value) {
   return s || "10:00";
 }
 
-function isMissingScheduleDetailsColumnError(error) {
+function isMissingOptionalColumnError(error) {
   const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
-  return message.includes("schedule_details") || message.includes("column");
+  return (
+    message.includes("schedule_details") ||
+    message.includes("calendar_settings") ||
+    message.includes("column")
+  );
 }
 
-function splitScheduleStatusAndDetails(scheduleStatus = {}, explicitScheduleDetails = {}) {
+function splitScheduleStatusAndDetails(
+  scheduleStatus = {},
+  explicitScheduleDetails = {},
+  explicitCalendarSettings = {}
+) {
   const sourceStatus = record(scheduleStatus);
   const fallbackScheduleDetails = record(sourceStatus[SCHEDULE_DETAILS_FALLBACK_KEY]);
+  const fallbackCalendarSettings = record(sourceStatus[CALENDAR_SETTINGS_FALLBACK_KEY]);
   const nextScheduleStatus = { ...sourceStatus };
   delete nextScheduleStatus[SCHEDULE_DETAILS_FALLBACK_KEY];
+  delete nextScheduleStatus[CALENDAR_SETTINGS_FALLBACK_KEY];
+
+  const explicitCalendar = record(explicitCalendarSettings);
+  const hasExplicitCalendar = Object.keys(explicitCalendar).length > 0;
 
   return {
     scheduleStatus: nextScheduleStatus,
     scheduleDetails: {
       ...fallbackScheduleDetails,
       ...record(explicitScheduleDetails)
-    }
+    },
+    calendarSettings: hasExplicitCalendar ? explicitCalendar : fallbackCalendarSettings
   };
 }
 
 function mergeScheduleDetailsIntoStatus(settings = {}) {
   return {
     ...record(settings.scheduleStatus),
-    [SCHEDULE_DETAILS_FALLBACK_KEY]: record(settings.scheduleDetails)
+    [SCHEDULE_DETAILS_FALLBACK_KEY]: record(settings.scheduleDetails),
+    [CALENDAR_SETTINGS_FALLBACK_KEY]: normalizeCalendarSettings(settings.calendarSettings)
   };
 }
 
 function fromRow(row = {}) {
   const splitSchedule = splitScheduleStatusAndDetails(
     row.schedule_status,
-    row.schedule_details
+    row.schedule_details,
+    row.calendar_settings
   );
 
   return {
@@ -69,6 +87,7 @@ function fromRow(row = {}) {
     priceOverrides: record(row.price_overrides),
     scheduleStatus: splitSchedule.scheduleStatus,
     scheduleDetails: splitSchedule.scheduleDetails,
+    calendarSettings: normalizeCalendarSettings(splitSchedule.calendarSettings),
     headerLinks: safeArray(row.header_links),
     boardingTime: safeBoardingTime(row.boarding_time),
     updatedAt: row.updated_at || ""
@@ -82,6 +101,7 @@ function toExtendedRow(settings = {}) {
     price_overrides: record(settings.priceOverrides),
     schedule_status: record(settings.scheduleStatus),
     schedule_details: record(settings.scheduleDetails),
+    calendar_settings: normalizeCalendarSettings(settings.calendarSettings),
     header_links: safeArray(settings.headerLinks),
     boarding_time: safeBoardingTime(settings.boardingTime)
   };
@@ -127,7 +147,7 @@ export async function loadSiteSettings() {
     return ok(fromRow(extendedResult.data), extendedResult.status);
   }
 
-  if (!isMissingScheduleDetailsColumnError(extendedResult.error)) {
+  if (!isMissingOptionalColumnError(extendedResult.error)) {
     return fail(extendedResult.error, extendedResult.status);
   }
 
@@ -152,7 +172,7 @@ export async function saveSiteSettings(settings = {}) {
     return ok(fromRow(extendedResult.data), extendedResult.status);
   }
 
-  if (!isMissingScheduleDetailsColumnError(extendedResult.error)) {
+  if (!isMissingOptionalColumnError(extendedResult.error)) {
     return fail(extendedResult.error, extendedResult.status);
   }
 
