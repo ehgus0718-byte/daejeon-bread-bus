@@ -12,6 +12,7 @@ import AdminScheduleDetailEditor from "./AdminScheduleDetailEditor.jsx";
 import AdminReviewManager from "./AdminReviewManager.jsx";
 import AdminPopupManager from "./AdminPopupManager.jsx";
 import AdminCalendarControl from "./AdminCalendarControl.jsx";
+import AdminPricingControl from "./AdminPricingControl.jsx";
 import {
   createAdminDashboardSummary,
   getAdminDashboardSummaryCards
@@ -258,6 +259,7 @@ export default function AdminDashboard({
   headerLinks = [],
   boardingTime = "10:00",
   calendarSettings = {},
+  pricingSettings = {},
   onRefreshReservations,
   onClearQuickReservations,
   onChangeReservationStatus,
@@ -272,7 +274,8 @@ export default function AdminDashboard({
   onClearReservationNote,
   onUpdateHeaderLinks,
   onUpdateBoardingTime,
-  onUpdateCalendarSettings
+  onUpdateCalendarSettings,
+  onUpdatePricingSettings
 }) {
   const localNotes = useReservationNotes(reservations);
   const usesExternalNoteStorage =
@@ -409,6 +412,12 @@ export default function AdminDashboard({
         <AdminCapacityControl
           capacityOverrides={capacityOverrides}
           onChangeCapacity={onChangeCapacity}
+        />
+
+        <AdminPricingControl
+          pricingSettings={pricingSettings}
+          priceOverrides={priceOverrides}
+          onUpdatePricingSettings={onUpdatePricingSettings}
         />
 
         <AdminPriceControl

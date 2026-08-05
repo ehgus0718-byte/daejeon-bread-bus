@@ -26,6 +26,7 @@ import {
 } from "./services/storageIndex.js";
 import { loadSiteSettings, saveSiteSettings } from "./api/siteSettingsClient.js";
 import { normalizeCalendarSettings, resolveCalendarStartDate } from "./core/calendarSettings.js";
+import { calculateChildPrice, calculateInfantPrice, normalizePricingSettings } from "./core/pricingSettings.js";
 import {
   sendReservationStatusSms,
   shouldSendReservationStatusSms
@@ -140,6 +141,7 @@ function normalizeAdminSettings(settings = {}) {
     scheduleStatus: settings.scheduleStatus || {},
     scheduleDetails: settings.scheduleDetails || {},
     calendarSettings: normalizeCalendarSettings(settings.calendarSettings),
+    pricingSettings: normalizePricingSettings(settings.pricingSettings),
     headerLinks: Array.isArray(settings.headerLinks) ? settings.headerLinks : [],
     boardingTime: String(settings.boardingTime || "10:00").trim() || "10:00"
   };
@@ -293,6 +295,7 @@ export default function AppSafe() {
   const [scheduleStatus, setScheduleStatus] = useState(savedAdminSettings.scheduleStatus);
   const [scheduleDetails, setScheduleDetails] = useState(savedAdminSettings.scheduleDetails || {});
   const [calendarSettings, setCalendarSettings] = useState(normalizeCalendarSettings(savedAdminSettings.calendarSettings));
+  const [pricingSettings, setPricingSettings] = useState(normalizePricingSettings(savedAdminSettings.pricingSettings));
   const [headerLinks, setHeaderLinks] = useState(Array.isArray(savedAdminSettings.headerLinks) ? savedAdminSettings.headerLinks : []);
   const [boardingTime, setBoardingTime] = useState(String(savedAdminSettings.boardingTime || "10:00").trim() || "10:00");
   const [notice, setNotice] = useState("");
@@ -362,6 +365,7 @@ export default function AppSafe() {
       setScheduleStatus(nextSettings.scheduleStatus);
       setScheduleDetails(nextSettings.scheduleDetails);
       setCalendarSettings(nextSettings.calendarSettings);
+      setPricingSettings(nextSettings.pricingSettings);
       setHeaderLinks(nextSettings.headerLinks);
       setBoardingTime(nextSettings.boardingTime);
       saveAdminSettings(nextSettings);
@@ -372,7 +376,7 @@ export default function AppSafe() {
   }, []);
 
   useEffect(() => {
-    const nextSettings = { capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, headerLinks, boardingTime };
+    const nextSettings = { capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, pricingSettings, headerLinks, boardingTime };
     saveAdminSettings(nextSettings);
     if (!USES_REMOTE_RESERVATION_STORAGE || !isAdminSettingsReady) return;
     let isCancelled = false;
@@ -384,7 +388,7 @@ export default function AppSafe() {
     }
     saveRemoteSettings();
     return () => { isCancelled = true; };
-  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, headerLinks, boardingTime, isAdminSettingsReady]);
+  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, pricingSettings, headerLinks, boardingTime, isAdminSettingsReady]);
 
   const managedDateSettings = useMemo(
     () => buildDateSettings({ capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails }),
@@ -394,6 +398,15 @@ export default function AppSafe() {
   const calendarStartDate = useMemo(
     () => resolveCalendarStartDate(calendarSettings, new Date()),
     [calendarSettings]
+  );
+
+  const selectedChildPrice = useMemo(
+    () => calculateChildPrice(selectedPrice, pricingSettings),
+    [selectedPrice, pricingSettings]
+  );
+  const selectedInfantPrice = useMemo(
+    () => calculateInfantPrice(pricingSettings),
+    [pricingSettings]
   );
 
   const visibleAdminReservations = adminReservations || reservations;
@@ -466,6 +479,7 @@ export default function AppSafe() {
     setNotice("선택한 날짜 설정이 삭제되었습니다.");
   }
   function handleUpdateCalendarSettings(nextSettings) { setCalendarSettings(normalizeCalendarSettings(nextSettings)); }
+  function handleUpdatePricingSettings(nextSettings) { setPricingSettings(normalizePricingSettings(nextSettings)); }
   function handleUpdateHeaderLinks(nextLinks) { setHeaderLinks(Array.isArray(nextLinks) ? nextLinks : []); }
   function handleUpdateBoardingTime(nextTime) { setBoardingTime(String(nextTime || "").trim() || "10:00"); }
 
@@ -703,6 +717,7 @@ export default function AppSafe() {
         <section className="mt-10">
           <ReservationPanel
             selectedDate={selectedDate} remainingSeats={remaining(selectedDate)} price={selectedPrice}
+            childPrice={selectedChildPrice} infantPrice={selectedInfantPrice}
             form={reservationForm} onChange={handleFormChange} onSubmit={handleSubmit}
             notice={notice} reservationSuccessNotice={reservationSuccessNotice}
             isSubmitting={false}
@@ -764,7 +779,7 @@ export default function AppSafe() {
             isQuickReservationView={isQuickReservationView} quickReservationLimit={ADMIN_QUICK_REFRESH_LIMIT}
             recentChangedReservationId={recentChangedReservationId} operationNotice={operationNotice}
             headerLinks={headerLinks} boardingTime={boardingTime}
-            calendarSettings={calendarSettings}
+            calendarSettings={calendarSettings} pricingSettings={pricingSettings}
             onRefreshReservations={handleRefreshReservations}
             onClearQuickReservations={handleClearQuickReservations}
             onChangeReservationStatus={handleReservationStatusChange}
@@ -779,6 +794,7 @@ export default function AppSafe() {
             onUpdateHeaderLinks={handleUpdateHeaderLinks}
             onUpdateBoardingTime={handleUpdateBoardingTime}
             onUpdateCalendarSettings={handleUpdateCalendarSettings}
+            onUpdatePricingSettings={handleUpdatePricingSettings}
           />
         ) : isAdminPage ? (
           <AdminLogin password={adminPassword} error={adminError} onChangePassword={setAdminPassword} onSubmit={handleAdminLogin} />

@@ -232,7 +232,7 @@ function SmsVerificationBox({ phone = "", onVerifiedChange }) {
 }
 
 export default function ReservationPanel({
-  selectedDate, remainingSeats = 0, price = 0, form = {},
+  selectedDate, remainingSeats = 0, price = 0, childPrice = null, infantPrice = 0, form = {},
   onChange, onSubmit, notice, reservationSuccessNotice = "",
   isSubmitting = false, onOpenPrivacyPolicy
 }) {
@@ -253,8 +253,14 @@ export default function ReservationPanel({
   const infantCount = toCount(form.infantCount, 0);
   const selectedPeople = adultCount + childCount + infantCount;
   const safePrice   = Math.max(0, toSafeNumber(price, 0));
-  const childPrice  = Math.max(0, safePrice - 10000);
-  const totalAmount = adultCount * safePrice + childCount * childPrice;
+  // 아동/유아 요금은 관리자 설정에서 계산되어 내려옵니다.
+  // 값이 전달되지 않은 경우에만 기존 규칙(성인가 - 10,000원)으로 폴백합니다.
+  const safeChildPrice = Number.isFinite(Number(childPrice))
+    ? Math.max(0, Math.round(Number(childPrice)))
+    : Math.max(0, safePrice - 10000);
+  const safeInfantPrice = Math.max(0, Math.round(toSafeNumber(infantPrice, 0)));
+  const totalAmount =
+    adultCount * safePrice + childCount * safeChildPrice + infantCount * safeInfantPrice;
   const hasAvailableSeats       = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
@@ -477,11 +483,11 @@ export default function ReservationPanel({
             onDecrease={() => updatePassengerCount("adultCount", Math.max(0, adultCount - 1))}
             onIncrease={() => updatePassengerCount("adultCount", adultCount + 1)}
             disableDecrease={adultCount <= 0} disableIncrease={selectedPeople >= safeRemainingSeats} />
-          <PassengerCounter label="아동" description="만 12세 미만" priceLabel={formatCurrency(childPrice)} value={childCount}
+          <PassengerCounter label="아동" description="만 12세 미만" priceLabel={formatCurrency(safeChildPrice)} value={childCount}
             onDecrease={() => updatePassengerCount("childCount", Math.max(0, childCount - 1))}
             onIncrease={() => updatePassengerCount("childCount", childCount + 1)}
             disableDecrease={childCount <= 0} disableIncrease={selectedPeople >= safeRemainingSeats} />
-          <PassengerCounter label="유아" description="만 24개월 미만" priceLabel="0원" value={infantCount}
+          <PassengerCounter label="유아" description="만 24개월 미만" priceLabel={formatCurrency(safeInfantPrice)} value={infantCount}
             onDecrease={() => updatePassengerCount("infantCount", Math.max(0, infantCount - 1))}
             onIncrease={() => updatePassengerCount("infantCount", infantCount + 1)}
             disableDecrease={infantCount <= 0} disableIncrease={selectedPeople >= safeRemainingSeats} />

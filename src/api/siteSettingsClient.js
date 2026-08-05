@@ -1,12 +1,14 @@
 import { hasSupabaseConfig, supabaseClient } from "./supabaseClient.js";
 import { normalizeCalendarSettings } from "../core/calendarSettings.js";
+import { normalizePricingSettings } from "../core/pricingSettings.js";
 
 const TABLE_NAME = ["admin", "settings"].join("_");
 const ROW_ID = "default";
 const BASE_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,header_links,boarding_time,updated_at";
-const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,calendar_settings,header_links,boarding_time,updated_at";
+const EXTENDED_COLUMNS = "id,capacity_overrides,price_overrides,schedule_status,schedule_details,calendar_settings,pricing_settings,header_links,boarding_time,updated_at";
 const SCHEDULE_DETAILS_FALLBACK_KEY = "__schedule_details__";
 const CALENDAR_SETTINGS_FALLBACK_KEY = "__calendar_settings__";
+const PRICING_SETTINGS_FALLBACK_KEY = "__pricing_settings__";
 
 function ok(data = null, status = 200) {
   return { ok: true, data, error: null, status };
@@ -38,6 +40,7 @@ function isMissingOptionalColumnError(error) {
   return (
     message.includes("schedule_details") ||
     message.includes("calendar_settings") ||
+    message.includes("pricing_settings") ||
     message.includes("column")
   );
 }
@@ -45,17 +48,22 @@ function isMissingOptionalColumnError(error) {
 function splitScheduleStatusAndDetails(
   scheduleStatus = {},
   explicitScheduleDetails = {},
-  explicitCalendarSettings = {}
+  explicitCalendarSettings = {},
+  explicitPricingSettings = {}
 ) {
   const sourceStatus = record(scheduleStatus);
   const fallbackScheduleDetails = record(sourceStatus[SCHEDULE_DETAILS_FALLBACK_KEY]);
   const fallbackCalendarSettings = record(sourceStatus[CALENDAR_SETTINGS_FALLBACK_KEY]);
+  const fallbackPricingSettings = record(sourceStatus[PRICING_SETTINGS_FALLBACK_KEY]);
   const nextScheduleStatus = { ...sourceStatus };
   delete nextScheduleStatus[SCHEDULE_DETAILS_FALLBACK_KEY];
   delete nextScheduleStatus[CALENDAR_SETTINGS_FALLBACK_KEY];
+  delete nextScheduleStatus[PRICING_SETTINGS_FALLBACK_KEY];
 
   const explicitCalendar = record(explicitCalendarSettings);
   const hasExplicitCalendar = Object.keys(explicitCalendar).length > 0;
+  const explicitPricing = record(explicitPricingSettings);
+  const hasExplicitPricing = Object.keys(explicitPricing).length > 0;
 
   return {
     scheduleStatus: nextScheduleStatus,
@@ -63,7 +71,8 @@ function splitScheduleStatusAndDetails(
       ...fallbackScheduleDetails,
       ...record(explicitScheduleDetails)
     },
-    calendarSettings: hasExplicitCalendar ? explicitCalendar : fallbackCalendarSettings
+    calendarSettings: hasExplicitCalendar ? explicitCalendar : fallbackCalendarSettings,
+    pricingSettings: hasExplicitPricing ? explicitPricing : fallbackPricingSettings
   };
 }
 
@@ -71,7 +80,8 @@ function mergeScheduleDetailsIntoStatus(settings = {}) {
   return {
     ...record(settings.scheduleStatus),
     [SCHEDULE_DETAILS_FALLBACK_KEY]: record(settings.scheduleDetails),
-    [CALENDAR_SETTINGS_FALLBACK_KEY]: normalizeCalendarSettings(settings.calendarSettings)
+    [CALENDAR_SETTINGS_FALLBACK_KEY]: normalizeCalendarSettings(settings.calendarSettings),
+    [PRICING_SETTINGS_FALLBACK_KEY]: normalizePricingSettings(settings.pricingSettings)
   };
 }
 
@@ -79,7 +89,8 @@ function fromRow(row = {}) {
   const splitSchedule = splitScheduleStatusAndDetails(
     row.schedule_status,
     row.schedule_details,
-    row.calendar_settings
+    row.calendar_settings,
+    row.pricing_settings
   );
 
   return {
@@ -88,6 +99,7 @@ function fromRow(row = {}) {
     scheduleStatus: splitSchedule.scheduleStatus,
     scheduleDetails: splitSchedule.scheduleDetails,
     calendarSettings: normalizeCalendarSettings(splitSchedule.calendarSettings),
+    pricingSettings: normalizePricingSettings(splitSchedule.pricingSettings),
     headerLinks: safeArray(row.header_links),
     boardingTime: safeBoardingTime(row.boarding_time),
     updatedAt: row.updated_at || ""
@@ -102,6 +114,7 @@ function toExtendedRow(settings = {}) {
     schedule_status: record(settings.scheduleStatus),
     schedule_details: record(settings.scheduleDetails),
     calendar_settings: normalizeCalendarSettings(settings.calendarSettings),
+    pricing_settings: normalizePricingSettings(settings.pricingSettings),
     header_links: safeArray(settings.headerLinks),
     boarding_time: safeBoardingTime(settings.boardingTime)
   };
