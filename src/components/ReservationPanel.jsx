@@ -264,7 +264,16 @@ export default function ReservationPanel({
   const hasAvailableSeats       = safeRemainingSeats > 0;
   const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
-  const canSubmit = hasAvailableSeats && hasValidPeopleSelection && hasRequiredPhoneVerification && privacyConsent && !isSubmitting && !isPaymentProcessing;
+
+  // 예약자명과 연락처는 결제 전 반드시 입력되어야 한다.
+  // (누락되면 예약은 잡히는데 누구인지도, 연락할 방법도 없는 예약이 생긴다)
+  const trimmedName = String(form.name || "").trim();
+  const phoneDigitsInput = getPhoneDigits(form.phone || "");
+  const hasValidName = trimmedName.length >= 2;
+  const hasValidPhone = /^01[016789]\d{7,8}$/.test(phoneDigitsInput);
+
+  const canSubmit = hasAvailableSeats && hasValidPeopleSelection && hasValidName && hasValidPhone
+    && hasRequiredPhoneVerification && privacyConsent && !isSubmitting && !isPaymentProcessing;
 
   function updatePassengerCount(key, nextValue) {
     const a = key === "adultCount"  ? nextValue : adultCount;
@@ -277,6 +286,10 @@ export default function ReservationPanel({
 
   async function handlePayment() {
     if (!canSubmit) return;
+    if (!hasValidName || !hasValidPhone) {
+      setPaymentNotice("예약자명과 연락처를 정확히 입력해주세요.");
+      return;
+    }
     setPaymentNotice("");
     setIsPaymentProcessing(true);
 
@@ -291,7 +304,7 @@ export default function ReservationPanel({
 
     const reservationId = await createPendingReservation({
       reservationDate: selectedDate,
-      name: form.name || "고객",
+      name: trimmedName,
       phone,
       people: selectedPeople,
       amount: totalAmount,
@@ -306,7 +319,7 @@ export default function ReservationPanel({
       reservationId: reservationId || "",
       date: selectedDate,
       buyerTel: phone,
-      buyerName: form.name || "고객",
+      buyerName: trimmedName,
       people: selectedPeople,
       adultCount,
       childCount,
@@ -322,7 +335,7 @@ export default function ReservationPanel({
           Amt: amt,
           Moid: moid,
           GoodsName: `대전빵버스 ${selectedDate} (${selectedPeople}명)`,
-          BuyerName: form.name || "고객",
+          BuyerName: trimmedName,
           BuyerTel: phone,
           ReturnURL: NICEPAY_RETURN_URL,
           ReqReserved: reqReserved,
@@ -514,6 +527,8 @@ export default function ReservationPanel({
             {isPaymentProcessing ? "결제 처리 중..."
               : isSubmitting ? "예약 접수 중..."
               : !hasAvailableSeats ? "잔여 좌석 없음"
+              : !hasValidName ? "예약자명 입력 후 결제"
+              : !hasValidPhone ? "연락처 입력 후 결제"
               : SMS_VERIFICATION_ENABLED && !isPhoneVerified ? "휴대폰 인증 후 결제"
               : !privacyConsent ? "개인정보 동의 후 결제"
               : "💳 결제하기"}
@@ -522,6 +537,14 @@ export default function ReservationPanel({
 
         {!hasValidPeopleSelection ? (
           <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">예약 인원은 최소 1명 이상이며 잔여 좌석을 초과할 수 없습니다.</div>
+        ) : null}
+
+        {trimmedName.length > 0 && !hasValidName ? (
+          <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">예약자명을 2글자 이상 입력해주세요.</div>
+        ) : null}
+
+        {phoneDigitsInput.length > 0 && !hasValidPhone ? (
+          <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">휴대폰 번호 형식이 올바르지 않습니다. 예) 010-1234-5678</div>
         ) : null}
 
         {SMS_VERIFICATION_ENABLED && !Boolean(reservationSuccessNotice) ? (
