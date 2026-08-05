@@ -400,15 +400,6 @@ export default function AppSafe() {
     [calendarSettings]
   );
 
-  const selectedChildPrice = useMemo(
-    () => calculateChildPrice(selectedPrice, pricingSettings),
-    [selectedPrice, pricingSettings]
-  );
-  const selectedInfantPrice = useMemo(
-    () => calculateInfantPrice(pricingSettings),
-    [pricingSettings]
-  );
-
   const visibleAdminReservations = adminReservations || reservations;
   const isQuickReservationView = Array.isArray(adminReservations);
 
@@ -427,7 +418,15 @@ export default function AppSafe() {
   }
 
   const selectedPrice = useMemo(() => Number(managedDateSettings[selectedDate]?.price || 30000), [managedDateSettings, selectedDate]);
-  const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "closed";
+  const selectedChildPrice = useMemo(
+    () => calculateChildPrice(selectedPrice, pricingSettings),
+    [selectedPrice, pricingSettings]
+  );
+  const selectedInfantPrice = useMemo(
+    () => calculateInfantPrice(pricingSettings),
+    [pricingSettings]
+  );
+const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "closed";
   const selectedScheduleDetail = managedDateSettings[selectedDate]?.detail || "";
 
   function handleSelectDate(date) { setSelectedDate(date); setReservationSuccessNotice(""); }
