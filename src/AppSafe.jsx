@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import TwoMonthCalendar from "./components/TwoMonthCalendar.jsx";
 import ReservationPanel from "./components/ReservationPanel.jsx";
 import AdminLogin from "./components/AdminLogin.jsx";
@@ -307,6 +307,11 @@ export default function AppSafe() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState("");
   const [isAdminSettingsReady, setIsAdminSettingsReady] = useState(!USES_REMOTE_RESERVATION_STORAGE);
+  // 원격 설정을 "성공적으로" 불러왔을 때만 true. 실패 시 절대 원격 저장을 허용하지 않는다.
+  const [hasLoadedRemoteSettings, setHasLoadedRemoteSettings] = useState(!USES_REMOTE_RESERVATION_STORAGE);
+  // 관리자가 실제로 값을 바꿨을 때만 true. 화면 초기 표시만으로는 원격에 쓰지 않는다.
+  const settingsDirtyRef = useRef(false);
+  function markSettingsDirty() { settingsDirtyRef.current = true; }
   const [activePolicyModal, setActivePolicyModal] = useState(null);
 
   const isAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
@@ -355,7 +360,7 @@ export default function AppSafe() {
       if (!isMounted) return;
       if (!result.ok) {
         console.warn("Remote admin settings load failed", result.error);
-        setNotice(`관리자 날짜 설정은 임시 저장소로 표시됩니다. ${getErrorMessage(result.error)}`);
+        setNotice(`서버에서 설정을 불러오지 못해 이 브라우저에 저장된 예전 내용을 보여주고 있습니다. 이 상태의 변경사항은 서버에 저장되지 않습니다. 새로고침해주세요. ${getErrorMessage(result.error)}`);
         setIsAdminSettingsReady(true);
         return;
       }
@@ -369,6 +374,7 @@ export default function AppSafe() {
       setHeaderLinks(nextSettings.headerLinks);
       setBoardingTime(nextSettings.boardingTime);
       saveAdminSettings(nextSettings);
+      setHasLoadedRemoteSettings(true);
       setIsAdminSettingsReady(true);
     }
     loadRemoteAdminSettings();
@@ -378,7 +384,11 @@ export default function AppSafe() {
   useEffect(() => {
     const nextSettings = { capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, pricingSettings, headerLinks, boardingTime };
     saveAdminSettings(nextSettings);
-    if (!USES_REMOTE_RESERVATION_STORAGE || !isAdminSettingsReady) return;
+    // 원격 저장 조건: (1) 서버에서 정상적으로 불러왔고 (2) 관리자가 실제로 수정했을 때만.
+    // 이 조건이 없으면 불러오기에 실패한 브라우저의 낡은 캐시가 서버 설정을 덮어쓴다.
+    if (!USES_REMOTE_RESERVATION_STORAGE) return;
+    if (!isAdminSettingsReady || !hasLoadedRemoteSettings) return;
+    if (!settingsDirtyRef.current) return;
     let isCancelled = false;
     async function saveRemoteSettings() {
       const result = await saveSiteSettings(nextSettings);
@@ -388,7 +398,7 @@ export default function AppSafe() {
     }
     saveRemoteSettings();
     return () => { isCancelled = true; };
-  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, pricingSettings, headerLinks, boardingTime, isAdminSettingsReady]);
+  }, [capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails, calendarSettings, pricingSettings, headerLinks, boardingTime, isAdminSettingsReady, hasLoadedRemoteSettings]);
 
   const managedDateSettings = useMemo(
     () => buildDateSettings({ capacityOverrides, priceOverrides, scheduleStatus, scheduleDetails }),
@@ -456,31 +466,34 @@ const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "clo
     setReservations([]); setAdminPassword(""); setAdminError("");
   }
 
-  function handleCapacityChange(date, nextCapacity) { setCapacityOverrides((prev) => updateCapacityOverride({ capacityOverrides: prev, date, nextCapacity })); }
-  function handlePriceChange(date, nextPrice) { setPriceOverrides((prev) => updatePriceOverride({ priceOverrides: prev, nextPrice, date })); }
-  function handleScheduleStatusChange(date, nextStatus) { setScheduleStatus((prev) => updateScheduleStatus({ scheduleStatus: prev, date, nextStatus })); }
+  function handleCapacityChange(date, nextCapacity) { markSettingsDirty(); setCapacityOverrides((prev) => updateCapacityOverride({ capacityOverrides: prev, date, nextCapacity })); }
+  function handlePriceChange(date, nextPrice) { markSettingsDirty(); setPriceOverrides((prev) => updatePriceOverride({ priceOverrides: prev, nextPrice, date })); }
+  function handleScheduleStatusChange(date, nextStatus) { markSettingsDirty(); setScheduleStatus((prev) => updateScheduleStatus({ scheduleStatus: prev, date, nextStatus })); }
   function handleScheduleDetailChange(date, nextDetail) {
     if (!date) { setNotice("일정을 저장할 날짜를 찾지 못했습니다."); return; }
+    markSettingsDirty();
     setScheduleDetails((prev) => updateScheduleDetail(prev, date, nextDetail));
     setNotice("여행 일정이 저장되었습니다.");
   }
   function handleRemoveScheduleDetail(date) {
     if (!date) { setNotice("삭제할 일정 날짜를 찾지 못했습니다."); return; }
+    markSettingsDirty();
     setScheduleDetails((prev) => removeDateKey(prev, date));
     setNotice("선택한 날짜의 여행 일정이 삭제되었습니다.");
   }
   function handleRemoveDateSettings(date) {
     if (!date) { setNotice("삭제할 날짜를 찾지 못했습니다."); return; }
+    markSettingsDirty();
     setCapacityOverrides((prev) => removeDateKey(prev, date));
     setPriceOverrides((prev) => removeDateKey(prev, date));
     setScheduleStatus((prev) => removeDateKey(prev, date));
     setScheduleDetails((prev) => removeDateKey(prev, date));
     setNotice("선택한 날짜 설정이 삭제되었습니다.");
   }
-  function handleUpdateCalendarSettings(nextSettings) { setCalendarSettings(normalizeCalendarSettings(nextSettings)); }
-  function handleUpdatePricingSettings(nextSettings) { setPricingSettings(normalizePricingSettings(nextSettings)); }
-  function handleUpdateHeaderLinks(nextLinks) { setHeaderLinks(Array.isArray(nextLinks) ? nextLinks : []); }
-  function handleUpdateBoardingTime(nextTime) { setBoardingTime(String(nextTime || "").trim() || "10:00"); }
+  function handleUpdateCalendarSettings(nextSettings) { markSettingsDirty(); setCalendarSettings(normalizeCalendarSettings(nextSettings)); }
+  function handleUpdatePricingSettings(nextSettings) { markSettingsDirty(); setPricingSettings(normalizePricingSettings(nextSettings)); }
+  function handleUpdateHeaderLinks(nextLinks) { markSettingsDirty(); setHeaderLinks(Array.isArray(nextLinks) ? nextLinks : []); }
+  function handleUpdateBoardingTime(nextTime) { markSettingsDirty(); setBoardingTime(String(nextTime || "").trim() || "10:00"); }
 
   async function handleRefreshReservations() {
     if (isRefreshingReservations) return;
