@@ -262,7 +262,12 @@ export default function ReservationPanel({
   const totalAmount =
     adultCount * safePrice + childCount * safeChildPrice + infantCount * safeInfantPrice;
   const hasAvailableSeats       = safeRemainingSeats > 0;
-  const hasValidPeopleSelection = selectedPeople >= 1 && selectedPeople <= safeRemainingSeats;
+  // 유아는 보호자 없이 탑승할 수 없고 요금도 0원이므로, 유아만 선택하면 0원 결제가 열린다.
+  // 요금이 발생하는 탑승객(성인+아동)이 최소 1명은 있어야 한다.
+  const payingPeople = adultCount + childCount;
+  const hasPayingPassenger = payingPeople >= 1;
+  const hasValidPeopleSelection =
+    selectedPeople >= 1 && selectedPeople <= safeRemainingSeats && hasPayingPassenger;
   const hasRequiredPhoneVerification = !SMS_VERIFICATION_ENABLED || isPhoneVerified;
 
   // 예약자명과 연락처는 결제 전 반드시 입력되어야 한다.
@@ -273,6 +278,7 @@ export default function ReservationPanel({
   const hasValidPhone = /^01[016789]\d{7,8}$/.test(phoneDigitsInput);
 
   const canSubmit = hasAvailableSeats && hasValidPeopleSelection && hasValidName && hasValidPhone
+    && totalAmount > 0
     && hasRequiredPhoneVerification && privacyConsent && !isSubmitting && !isPaymentProcessing;
 
   function updatePassengerCount(key, nextValue) {
@@ -288,6 +294,10 @@ export default function ReservationPanel({
     if (!canSubmit) return;
     if (!hasValidName || !hasValidPhone) {
       setPaymentNotice("예약자명과 연락처를 정확히 입력해주세요.");
+      return;
+    }
+    if (!hasPayingPassenger || !(totalAmount > 0)) {
+      setPaymentNotice("성인 또는 아동을 1명 이상 선택해주세요.");
       return;
     }
     setPaymentNotice("");
@@ -527,6 +537,7 @@ export default function ReservationPanel({
             {isPaymentProcessing ? "결제 처리 중..."
               : isSubmitting ? "예약 접수 중..."
               : !hasAvailableSeats ? "잔여 좌석 없음"
+              : !hasPayingPassenger ? "성인 또는 아동을 선택해주세요"
               : !hasValidName ? "예약자명 입력 후 결제"
               : !hasValidPhone ? "연락처 입력 후 결제"
               : SMS_VERIFICATION_ENABLED && !isPhoneVerified ? "휴대폰 인증 후 결제"
@@ -535,7 +546,9 @@ export default function ReservationPanel({
           </button>
         </div>
 
-        {!hasValidPeopleSelection ? (
+        {!hasPayingPassenger ? (
+          <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">유아는 보호자와 함께 탑승해야 합니다. 성인 또는 아동을 1명 이상 선택해주세요.</div>
+        ) : !hasValidPeopleSelection ? (
           <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600">예약 인원은 최소 1명 이상이며 잔여 좌석을 초과할 수 없습니다.</div>
         ) : null}
 
