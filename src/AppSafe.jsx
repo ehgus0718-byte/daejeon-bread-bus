@@ -667,8 +667,48 @@ const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "clo
 
       const createdReservations = Array.isArray(result.data) && result.data.length > 0
         ? result.data : [reservationItem];
-      const savedReservation = createdReservations[0];
+    const savedReservation = createdReservations[0];
 
+      setRecentChangedReservationId(getReservationId(savedReservation) || "");
+      setOperationNotice("신규 예약이 접수되었습니다.");
+
+      // ✅ 즉시 성공 메시지 세팅 + 폼 초기화 → ReservationPanel useEffect가 스피너 해제
+      setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
+      resetForm();
+
+      // ✅ 문자 발송은 await 없이 백그라운드 (블로킹 없음)
+      const bt = boardingTime || "10:00";
+      if (isPaid) {
+        sendReservationStatusSms({
+          reservation: { ...savedReservation, amount: paymentInfo.paymentAmt || savedReservation.amount },
+          status: "결제완료",
+          boardingTime: bt
+        }).catch((e) => console.warn("고객 결제완료 문자 발송 실패", e));
+      }
+      sendReservationStatusSms({
+        reservation: { ...savedReservation, phone: "01045606701" },
+        status: "예약접수",
+        boardingTime: bt
+      }).catch((e) => console.warn("관리자 예약 알림 문자 발송 실패", e));
+
+    } catch (error) {
+      setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(error)}`);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#fff8ef] text-stone-950">
+      <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4">
+          {isAdminPage ? (
+            <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
+              <div>
+                <h1 className="text-xl font-black">대전빵버스 빵셔틀</h1>
+                <p className="text-xs font-bold text-orange-500">↗ 고객화면 새 탭으로 보기</p>
+              </div>
+            </a>
+          ) : (
             <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
               <div>
