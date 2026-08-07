@@ -597,20 +597,34 @@ const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "clo
   // ── PC 결제 완료 후 예약 저장 ──
   // ✅ 최종 수정: DB 저장 완료 즉시 성공 메시지 + resetForm → 스피너 해제
   // ✅ 문자 발송은 await 없이 백그라운드 실행 (스피너에 영향 없음)
+  // ✅ 2026-08-07 중복행 수정:
+  //    ReservationPanel이 결제창을 열기 전에 이미 '결제대기' 행을 INSERT하고 그 id를 Moid로 쓴다.
+  //    여기서 새 행을 또 INSERT하면 결제대기 + 결제완료 두 건이 남아 관리자 목록·좌석·매출이 중복된다.
+  //    → paymentInfo.reservationId가 있으면 그 행을 '결제완료'로 UPDATE하고, 없거나 실패할 때만 신규 INSERT.
   async function handleSubmit(paymentInfo = {}) {
     setNotice(""); setReservationSuccessNotice(""); setOperationNotice(""); clearQuickAdminReservations();
 
-    const remainingSeats = remaining(selectedDate);
-    const validation = validateReservationForm({
-      selectedDate,
-      scheduleStatus: selectedScheduleStatus,
-      form: reservationForm,
-      remainingSeats
-    });
-    if (!validation.valid) { setNotice(validation.message); return; }
+    const isPaid = Boolean(paymentInfo?.paymentTID);
+
+    // 결제가 이미 승인된 뒤에는 폼 검증으로 기록을 막지 않는다.
+    // (막아봐야 결제는 이미 끝났고 예약 기록만 사라져 더 위험하다)
+    if (!isPaid) {
+      const remainingSeats = remaining(selectedDate);
+      const validation = validateReservationForm({
+        selectedDate,
+        scheduleStatus: selectedScheduleStatus,
+        form: reservationForm,
+        remainingSeats
+      });
+      if (!validation.valid) { setNotice(validation.message); return; }
+    }
 
     try {
-      const isPaid = Boolean(paymentInfo?.paymentTID);
+      const pendingReservationId = paymentInfo?.reservationId || "";
+      const approvedAmount = Number(paymentInfo?.paymentAmt);
+      const hasApprovedAmount = Number.isFinite(approvedAmount) && approvedAmount > 0;
+      const paymentTid = paymentInfo?.paymentTID ? String(paymentInfo.paymentTID) : "";
+
       const reservationItem = createReservation({
         selectedDate,
         form: reservationForm,
@@ -618,56 +632,43 @@ const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "clo
         status: isPaid ? "결제완료" : "결제대기",
       });
 
-      const result = await reservationRepository.add(reservationItem);
-      if (!result.ok) {
-        setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(result.error)}`);
-        return;
+      // 결제대기 행의 admin_note는 동일 포맷의 인원 구성 요약이라 TID만 덧붙인다.
+      const mergedAdminNote = [reservationItem.adminNote, paymentTid ? `TID:${paymentTid}` : ""]
+        .filter(Boolean).join(" · ");
+
+      let result = null;
+
+      if (isPaid && pendingReservationId) {
+        const updateResult = await reservationRepository.update(pendingReservationId, {
+          status: "결제완료",
+          adminNote: mergedAdminNote,
+          ...(hasApprovedAmount ? { amount: approvedAmount } : {})
+        });
+
+        if (updateResult.ok) {
+          result = updateResult;
+        } else {
+          console.warn("결제대기 예약 갱신 실패 → 신규 저장으로 대체", updateResult.error);
+        }
+      }
+
+      if (!result) {
+        result = await reservationRepository.add({
+          ...reservationItem,
+          adminNote: mergedAdminNote,
+          ...(hasApprovedAmount ? { amount: approvedAmount } : {})
+        });
+
+        if (!result.ok) {
+          setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(result.error)}`);
+          return;
+        }
       }
 
       const createdReservations = Array.isArray(result.data) && result.data.length > 0
         ? result.data : [reservationItem];
       const savedReservation = createdReservations[0];
 
-      setRecentChangedReservationId(getReservationId(savedReservation) || "");
-      setOperationNotice("신규 예약이 접수되었습니다.");
-
-      // ✅ 즉시 성공 메시지 세팅 + 폼 초기화 → ReservationPanel useEffect가 스피너 해제
-      setReservationSuccessNotice(RESERVATION_RECEIVED_NOTICE);
-      resetForm();
-
-      // ✅ 문자 발송은 await 없이 백그라운드 (블로킹 없음)
-      const bt = boardingTime || "10:00";
-      if (isPaid) {
-        sendReservationStatusSms({
-          reservation: { ...savedReservation, amount: paymentInfo.paymentAmt || savedReservation.amount },
-          status: "결제완료",
-          boardingTime: bt
-        }).catch((e) => console.warn("고객 결제완료 문자 발송 실패", e));
-      }
-      sendReservationStatusSms({
-        reservation: { ...savedReservation, phone: "01045606701" },
-        status: "예약접수",
-        boardingTime: bt
-      }).catch((e) => console.warn("관리자 예약 알림 문자 발송 실패", e));
-
-    } catch (error) {
-      setNotice(`예약 저장 중 오류가 발생했습니다. ${getErrorMessage(error)}`);
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#fff8ef] text-stone-950">
-      <header className="border-b border-orange-100 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-7xl grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4">
-          {isAdminPage ? (
-            <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
-              <div>
-                <h1 className="text-xl font-black">대전빵버스 빵셔틀</h1>
-                <p className="text-xs font-bold text-orange-500">↗ 고객화면 새 탭으로 보기</p>
-              </div>
-            </a>
-          ) : (
             <a href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-2xl text-white shadow-lg shadow-orange-200">🚌</div>
               <div>
