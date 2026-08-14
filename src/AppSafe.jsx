@@ -268,7 +268,7 @@ function PolicyModal({ type, onClose }) {
             <div><p className="font-black text-stone-900">제2조 (예약 접수)</p><p className="mt-2">고객은 날짜 선택, 휴대폰 인증, 예약 정보 입력을 통해 예약을 접수할 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">제3조 (결제)</p><p className="mt-2">카드결제로 결제를 완료하시면 예약확정 문자가 자동 발송되며, 이 시점에 예약이 최종 확정됩니다.</p></div>
             <div><p className="font-black text-stone-900">제4조 (청약철회 및 취소·환불)</p><ul className="mt-2 list-disc pl-5 space-y-1"><li>출발 5일 전까지 취소: 전액 환불</li><li>출발 3~4일 전 취소: 결제 금액의 50% 환불</li><li>출발 1~2일 전 및 당일 취소: 환불 불가</li><li>회사 사정으로 취소 시: 전액 환불</li></ul></div>
-            <div><p className="font-black text-stone-900">제5조 (운영 변경)</p><p className="mt-2">최소 출발 인원 미달, 기상 악화, 차량 사정 등으로 일정이 변경되거나 취소될 수 있습니다.</p></div>
+            <div><p className="font-black text-stone-900">제5조 (운영 변경)</p><p className="mt-2">최소 출발 인원(6명) 미달, 기상 악화, 차량 사정 등으로 일정이 변경되거나 취소될 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">제6조 (면책)</p><p className="mt-2">고객의 귀책 사유로 인한 취소·변경, 또는 천재지변으로 인한 운행 불가 시 회사는 책임을 지지 않습니다.</p></div>
             <div><p className="font-black text-stone-900">제7조 (문의)</p><p className="mt-2">예약 및 이용 문의: 010-4560-6701 / ehgus0718@naver.com | 운영시간: 09:00 ~ 18:00 (연중무휴)</p></div>
           </div>
@@ -794,7 +794,7 @@ const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "clo
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="rounded-3xl border border-red-100 bg-red-50 p-5"><p className="text-sm font-black text-red-700">취소 및 환불 안내</p><ul className="mt-3 space-y-2 text-sm font-bold leading-6 text-stone-700"><li>출발 5일 전까지 취소 시 전액 환불됩니다.</li><li>출발 3~4일 전 취소 시 결제 금액의 50%가 환불됩니다.</li><li>출발 1~2일 전 및 당일 취소는 환불이 어렵습니다.</li><li>운영사 사정으로 취소될 경우 전액 환불됩니다.</li></ul></div>
-            <div className="rounded-3xl border border-green-100 bg-green-50 p-5"><p className="text-sm font-black text-green-700">운영 안내</p><ul className="mt-3 space-y-2 text-sm font-bold leading-6 text-stone-700"><li>최소 출발 인원 미달 시 일정이 조정되거나 취소될 수 있습니다.</li><li>예약 변경은 잔여 좌석이 있는 경우에 한해 가능합니다.</li><li>문의가 필요한 경우 예약자 연락처로 안내드립니다.</li><li>예약 상태 변경 시 안내 문자가 자동 발송됩니다.</li></ul></div>
+            <div className="rounded-3xl border border-green-100 bg-green-50 p-5"><p className="text-sm font-black text-green-700">운영 안내</p><ul className="mt-3 space-y-2 text-sm font-bold leading-6 text-stone-700"><li>최소 출발 인원 6명 미달 시 일정이 조정되거나 취소될 수 있습니다.</li><li>예약 변경은 잔여 좌석이 있는 경우에 한해 가능합니다.</li><li>문의가 필요한 경우 예약자 연락처로 안내드립니다.</li><li>예약 상태 변경 시 안내 문자가 자동 발송됩니다.</li></ul></div>
           </div>
         </section>
 
