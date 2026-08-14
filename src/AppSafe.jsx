@@ -258,7 +258,7 @@ function PolicyModal({ type, onClose }) {
             <div><p className="font-black text-stone-900">5. 개인정보 처리 위탁</p><p className="mt-2">소망투어는 예약 안내 문자 발송을 위해 문자 발송 서비스 업체에 최소한의 개인정보(휴대폰 번호)를 위탁할 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">6. 정보주체의 권리</p><p className="mt-2">고객은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">7. 개인정보 파기</p><p className="mt-2">보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 즉시 파기합니다.</p></div>
-            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 전훈 | 소속: 소망투어 | 연락처: 010-4560-6701 / ehgus0718@naver.com</p></div>
+            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 추진호 | 소속: 소망투어 | 연락처: 010-4560-6701 / ehgus0718@naver.com</p></div>
             <div><p className="font-black text-stone-900">9. 권익침해 구제 방법</p><p className="mt-2">개인정보 침해 신고·상담: 개인정보보호위원회(privacy.go.kr, 182) 또는 한국인터넷진흥원(kisa.or.kr, 118)</p></div>
           </div>
         ) : (
