@@ -258,7 +258,7 @@ function PolicyModal({ type, onClose }) {
             <div><p className="font-black text-stone-900">5. 개인정보 처리 위탁</p><p className="mt-2">소망투어는 예약 안내 문자 발송을 위해 문자 발송 서비스 업체에 최소한의 개인정보(휴대폰 번호)를 위탁할 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">6. 정보주체의 권리</p><p className="mt-2">고객은 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">7. 개인정보 파기</p><p className="mt-2">보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 즉시 파기합니다.</p></div>
-            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 추진호 | 소속: 소망투어 | 연락처: 010-4560-6701 / ehgus0718@naver.com</p></div>
+            <div><p className="font-black text-stone-900">8. 개인정보보호책임자</p><p className="mt-2">성명: 추진호 | 소속: 소망투어 | 연락처: 010-4560-6701 / comanu0716@naver.com</p></div>
             <div><p className="font-black text-stone-900">9. 권익침해 구제 방법</p><p className="mt-2">개인정보 침해 신고·상담: 개인정보보호위원회(privacy.go.kr, 182) 또는 한국인터넷진흥원(kisa.or.kr, 118)</p></div>
           </div>
         ) : (
@@ -270,7 +270,7 @@ function PolicyModal({ type, onClose }) {
             <div><p className="font-black text-stone-900">제4조 (청약철회 및 취소·환불)</p><ul className="mt-2 list-disc pl-5 space-y-1"><li>출발 5일 전까지 취소: 전액 환불</li><li>출발 3~4일 전 취소: 결제 금액의 50% 환불</li><li>출발 1~2일 전 및 당일 취소: 환불 불가</li><li>회사 사정으로 취소 시: 전액 환불</li></ul></div>
             <div><p className="font-black text-stone-900">제5조 (운영 변경)</p><p className="mt-2">최소 출발 인원(6명) 미달, 기상 악화, 차량 사정 등으로 일정이 변경되거나 취소될 수 있습니다.</p></div>
             <div><p className="font-black text-stone-900">제6조 (면책)</p><p className="mt-2">고객의 귀책 사유로 인한 취소·변경, 또는 천재지변으로 인한 운행 불가 시 회사는 책임을 지지 않습니다.</p></div>
-            <div><p className="font-black text-stone-900">제7조 (문의)</p><p className="mt-2">예약 및 이용 문의: 010-4560-6701 / ehgus0718@naver.com | 운영시간: 09:00 ~ 18:00 (연중무휴)</p></div>
+            <div><p className="font-black text-stone-900">제7조 (문의)</p><p className="mt-2">예약 및 이용 문의: 010-4560-6701 / comanu0716@naver.com | 운영시간: 09:00 ~ 18:00 (연중무휴)</p></div>
           </div>
         )}
       </div>
@@ -810,7 +810,7 @@ const selectedScheduleStatus = managedDateSettings[selectedDate]?.status || "clo
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1"><span>사업자등록번호 781-69-00237</span><span>통신판매업 신고번호 2020-대전서구-0689</span></div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
               <span>주소 대전광역시 서구 청사서로 29</span>
-              <a href="mailto:ehgus0718@naver.com" className="text-stone-600 underline decoration-stone-300 underline-offset-4">이메일 ehgus0718@naver.com</a>
+              <a href="mailto:comanu0716@naver.com" className="text-stone-600 underline decoration-stone-300 underline-offset-4">이메일 comanu0716@naver.com</a>
               <span>운영시간 09:00 ~ 18:00 (연중무휴)</span>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
