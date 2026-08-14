@@ -180,17 +180,42 @@ export default function ReviewSlider({ previewMode = false }) {
   const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
   const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
 
-  const handleTransitionEnd = useCallback(() => {
-    if (!loopEnabled) return;
-    if (index >= clones + count) {
-      setTransitionOn(false);
-      setIndex(index - count);
-    } else if (index < clones) {
-      setTransitionOn(false);
-      setIndex(index + count);
-    }
-  }, [index, clones, count, loopEnabled]);
+  // 2026-08-14 수정: 무한루프 되돌아오기가 브라우저 애니메이션 종료 신호에만 의존해서,
+  // 신호가 한 번이라도 안 오면(빠른 연속 클릭, 순간이동 중 클릭 겹침 등) 복제 슬라이드 구간을
+  // 지나쳐 계속 오른쪽으로만 가고 빈 화면이 되어 스스로 복구되지 못했음.
+  //  (1) while로 정리해 여러 칸 넘어가도 한 번에 제자리로 돌아오게 함
+  //  (2) 카드 안 "자세히 보기" 버튼의 hover 애니메이션이 올려보내는 신호는 무시
+  //  (3) 아래 useEffect의 시간 기준 안전장치가 신호 없이도 위치를 되돌림
+  const handleTransitionEnd = useCallback(
+    (event) => {
+      if (!loopEnabled || count <= 0) return;
+      // 트랙 자신의 애니메이션만 처리 (자식 요소에서 올라온 신호는 무시)
+      if (event && event.target !== event.currentTarget) return;
+      if (index >= clones + count) {
+        let next = index;
+        while (next >= clones + count) next -= count;
+        setTransitionOn(false);
+        setIndex(next);
+      } else if (index < clones) {
+        let next = index;
+        while (next < clones) next += count;
+        setTransitionOn(false);
+        setIndex(next);
+      }
+    },
+    [index, clones, count, loopEnabled]
+  );
 
+  // 안전장치: 애니메이션 종료 신호가 오지 않아도 잠시 뒤 스스로 제자리로 되돌린다.
+  // 신호가 정상적으로 오면 index가 바뀌면서 이 타이머는 취소된다(중복 실행 없음).
+  useEffect(() => {
+    if (!loopEnabled || count <= 0) return undefined;
+    if (index < clones || index >= clones + count) {
+      const timer = setTimeout(() => handleTransitionEnd(), 600);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [index, clones, count, loopEnabled, handleTransitionEnd]);
   useEffect(() => {
     if (!transitionOn) {
       const raf = requestAnimationFrame(() => setTransitionOn(true));
