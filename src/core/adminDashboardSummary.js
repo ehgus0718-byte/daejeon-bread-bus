@@ -39,23 +39,23 @@ export function getAdminDashboardSummaryCards(summary = {}) {
     },
     {
       key: "totalPeople",
-      label: "전체 인원",
-      value: summary.reservationStats?.totalPeople || 0
+      label: "실결제 인원",
+      value: summary.reservationStats?.paidPeople || 0
     },
     {
       key: "totalAmount",
-      label: "예상 매출",
-      value: summary.reservationStats?.totalAmount || 0
+      label: "실결제 매출",
+      value: summary.reservationStats?.paidAmount || 0
+    },
+    {
+      key: "pendingAmount",
+      label: "미결제 대기",
+      value: summary.reservationStats?.pendingAmount || 0
     },
     {
       key: "availableSchedules",
       label: "예약 가능 일정",
       value: summary.availableScheduleCount || 0
-    },
-    {
-      key: "pendingNotifications",
-      label: "발송 대기 알림",
-      value: summary.pendingNotificationCount || 0
     }
   ];
 }
