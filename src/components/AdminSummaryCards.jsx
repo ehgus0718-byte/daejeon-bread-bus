@@ -1,12 +1,15 @@
 import React from "react";
 import { formatCurrency, formatPeopleCount } from "../core/formatters.js";
 
+const CURRENCY_CARD_KEYS = new Set(["totalAmount", "pendingAmount"]);
+const PEOPLE_CARD_KEYS = new Set(["totalPeople"]);
+
 function formatCardValue(card = {}) {
-  if (card.key === "totalAmount") {
+  if (CURRENCY_CARD_KEYS.has(card.key)) {
     return formatCurrency(card.value || 0);
   }
 
-  if (card.key === "totalPeople") {
+  if (PEOPLE_CARD_KEYS.has(card.key)) {
     return formatPeopleCount(card.value || 0);
   }
 
