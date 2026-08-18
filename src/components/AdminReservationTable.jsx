@@ -5,7 +5,11 @@ import AdminSectionTitle from "./AdminSectionTitle.jsx";
 import { filterReservations } from "../core/reservationFilters.js";
 import { sortReservations } from "../core/reservationSorters.js";
 import { formatPeopleCount } from "../core/formatters.js";
-import { RESERVATION_STATUS_OPTIONS } from "../core/statusConstants.js";
+import {
+  RESERVATION_STATUS_OPTIONS,
+  isPaidReservationStatus,
+  isPendingPaymentStatus
+} from "../core/statusConstants.js";
 
 const STATUS_OPTIONS = [...RESERVATION_STATUS_OPTIONS];
 const DEFAULT_STATUS = STATUS_OPTIONS[0] || "예약접수";
@@ -19,6 +23,7 @@ const STATUS_STYLES = {
   예약확정: "bg-green-50 text-green-700 border-green-100",
   예약취소: "bg-red-50 text-red-700 border-red-100",
   취소: "bg-red-50 text-red-700 border-red-100",
+  결제실패: "bg-stone-200 text-stone-600 border-stone-300",
   탑승완료: "bg-stone-100 text-stone-700 border-stone-200"
 };
 
@@ -70,34 +75,48 @@ function getReservationPhoneHref(phone = "") {
   return digits ? `tel:${digits}` : "";
 }
 
+// 금액·인원 합계 기준 (2026-08-18)
+//  - 실결제 인원 / 실결제 금액: 결제완료·예약확정·탑승완료만 합산한다.
+//    나이스페이에서 실제로 승인이 끝난 건만 잡히므로 정산 내역과 숫자가 맞는다.
+//  - 미결제 대기: 결제대기 금액만 따로 보여준다. 결제창을 열었다가 나간 흔적이라
+//    매출에 섞이면 안 되지만, 숫자가 사라지면 혼란스러우므로 별도 표시한다.
+//  - 예약취소·결제실패: 어느 쪽에도 잡히지 않는다.
 function createVisibleReservationSummary(reservations = []) {
   return reservations.reduce(
     (summary, reservation) => {
-      const people = Number(reservation.people || 0);
-      const amount = Number(reservation.amount || 0);
+      const rawPeople = Number(reservation.people || 0);
+      const rawAmount = Number(reservation.amount || 0);
+      const people = Number.isFinite(rawPeople) ? rawPeople : 0;
+      const amount = Number.isFinite(rawAmount) ? rawAmount : 0;
       const status = normalizeReservationStatus(String(reservation.status || ""));
+      const isPaid = isPaidReservationStatus(status);
+      const isPending = isPendingPaymentStatus(status);
 
       return {
         count: summary.count + 1,
-        people: summary.people + (Number.isFinite(people) ? people : 0),
-        amount: summary.amount + (Number.isFinite(amount) ? amount : 0),
+        paidPeople: summary.paidPeople + (isPaid ? people : 0),
+        paidAmount: summary.paidAmount + (isPaid ? amount : 0),
+        pendingAmount: summary.pendingAmount + (isPending ? amount : 0),
         received: summary.received + (status === "예약접수" ? 1 : 0),
         waiting: summary.waiting + (status === "결제대기" ? 1 : 0),
         paid: summary.paid + (status === "결제완료" ? 1 : 0),
         confirmed: summary.confirmed + (status === "예약확정" ? 1 : 0),
         cancelled: summary.cancelled + (status === "예약취소" ? 1 : 0),
+        failed: summary.failed + (status === "결제실패" ? 1 : 0),
         boarded: summary.boarded + (status === "탑승완료" ? 1 : 0)
       };
     },
     {
       count: 0,
-      people: 0,
-      amount: 0,
+      paidPeople: 0,
+      paidAmount: 0,
+      pendingAmount: 0,
       received: 0,
       waiting: 0,
       paid: 0,
       confirmed: 0,
       cancelled: 0,
+      failed: 0,
       boarded: 0
     }
   );
@@ -300,23 +319,27 @@ export default function AdminReservationTable({
         />
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-7">
         <SummaryItem label="예약접수" value={`${visibleSummary.received}건`} tone="orange" />
         <SummaryItem label="결제대기" value={`${visibleSummary.waiting}건`} tone="yellow" />
         <SummaryItem label="결제완료" value={`${visibleSummary.paid}건`} tone="blue" />
         <SummaryItem label="예약확정" value={`${visibleSummary.confirmed}건`} tone="green" />
         <SummaryItem label="예약취소" value={`${visibleSummary.cancelled}건`} tone="red" />
+        <SummaryItem label="결제실패" value={`${visibleSummary.failed}건`} tone="stone" />
         <SummaryItem label="탑승완료" value={`${visibleSummary.boarded}건`} tone="stone" />
       </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-3">
+      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryItem label="검색 결과" value={`${visibleSummary.count}건`} tone="stone" />
-        <SummaryItem label="총 인원" value={formatPeopleCount(visibleSummary.people)} tone="stone" />
-        <SummaryItem label="총 금액" value={formatCurrency(visibleSummary.amount)} tone="stone" />
+        <SummaryItem label="실결제 인원" value={formatPeopleCount(visibleSummary.paidPeople)} tone="blue" />
+        <SummaryItem label="실결제 금액" value={formatCurrency(visibleSummary.paidAmount)} tone="blue" />
+        <SummaryItem label="미결제 대기" value={formatCurrency(visibleSummary.pendingAmount)} tone="yellow" />
       </div>
 
       <div className="mt-4 rounded-3xl bg-stone-50 px-5 py-4 text-xs font-bold leading-6 text-stone-500">
         예약 목록은 성능을 위해 처음 {INITIAL_VISIBLE_COUNT}건만 표시합니다. 검색·필터·정렬 결과는 전체 예약을 기준으로 계산되며, 필요한 경우 아래에서 더 불러올 수 있습니다.
+        <br />
+        실결제 인원·금액은 결제완료·예약확정·탑승완료 건만 더한 값이라 나이스페이 정산 내역과 일치합니다. 결제창을 열었다가 나간 결제대기 건은 미결제 대기에 따로 표시되며, 예약취소·결제실패 건은 어느 쪽에도 포함되지 않습니다.
       </div>
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-stone-100">
