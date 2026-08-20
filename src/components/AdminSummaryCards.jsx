@@ -22,14 +22,14 @@ export default function AdminSummaryCards({ cards = [] }) {
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
       {cards.map((card) => (
         <div
           key={card.key}
-          className="rounded-3xl border border-orange-100 bg-white p-4 shadow-sm"
+          className="min-w-0 rounded-3xl border border-orange-100 bg-white p-4 shadow-sm"
         >
           <p className="text-xs font-black text-stone-500">{card.label}</p>
-          <p className="mt-2 text-2xl font-black text-stone-950">
+          <p className="mt-2 break-all text-xl font-black text-stone-950 md:text-2xl">
             {formatCardValue(card)}
           </p>
         </div>
