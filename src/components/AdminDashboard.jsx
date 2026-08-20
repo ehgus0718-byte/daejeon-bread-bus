@@ -350,7 +350,16 @@ export default function AdminDashboard({
         </div>
       ) : null}
 
-      <div className="grid gap-6">
+      {/*
+        모바일 가로 오버플로우 방지 (2026-08-19)
+        기존 `grid gap-6`은 CSS 그리드라 아이템의 min-width가 auto로 잡힌다.
+        폭이 안 줄어드는 자식(예: 예약 표의 grid-cols-6)이 하나라도 있으면
+        그 최소 폭이 컬럼 전체의 하한이 되어 형제 섹션까지 전부 늘어나고,
+        검은 섹션 배경 밖으로 삐져나온다.
+        세로 flex에서는 min-width:auto가 가로축에 적용되지 않으므로
+        넘치는 자식만 혼자 넘치고 형제는 영향을 받지 않는다.
+      */}
+      <div className="flex min-w-0 flex-col gap-6">
         <AdminSummaryCards cards={summaryCards} />
 
         <AdminDailyChecklist
