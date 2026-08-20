@@ -16,6 +16,10 @@ const DEFAULT_STATUS = STATUS_OPTIONS[0] || "예약접수";
 const INITIAL_VISIBLE_COUNT = 25;
 const VISIBLE_COUNT_STEP = 25;
 
+// 표 한 행의 최소 폭. 이보다 좁은 화면에서는 표가 찌그러지는 대신
+// 가로 스크롤로 밀어서 본다. (모바일에서 삭제 버튼이 잘려 못 누르던 문제)
+const TABLE_MIN_WIDTH_CLASS = "min-w-[760px]";
+
 const STATUS_STYLES = {
   예약접수: "bg-orange-50 text-orange-700 border-orange-100",
   결제대기: "bg-yellow-50 text-yellow-700 border-yellow-100",
@@ -133,9 +137,9 @@ function SummaryItem({ label, value, tone = "orange" }) {
   }[tone] || "border-orange-100 bg-orange-50/60 text-orange-600";
 
   return (
-    <div className={`rounded-3xl border px-4 py-3 ${toneClassName}`}>
+    <div className={`min-w-0 rounded-3xl border px-4 py-3 ${toneClassName}`}>
       <div className="text-xs font-black">{label}</div>
-      <div className="mt-1 text-lg font-black text-stone-900">{value}</div>
+      <div className="mt-1 break-all text-lg font-black text-stone-900">{value}</div>
     </div>
   );
 }
@@ -154,7 +158,7 @@ function ReservationRow({
 
   return (
     <div
-      className={`grid ${tableColumnClassName} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700 transition ${
+      className={`grid ${tableColumnClassName} ${TABLE_MIN_WIDTH_CLASS} items-center gap-4 px-5 py-5 text-sm font-bold text-stone-700 transition ${
         isRecentlyChanged ? "bg-orange-50/80 ring-2 ring-inset ring-orange-200" : "bg-white"
       }`}
     >
@@ -286,7 +290,7 @@ export default function AdminReservationTable({
   }
 
   return (
-    <section className="rounded-[2rem] border border-stone-200 bg-white p-6 shadow-sm">
+    <section className="min-w-0 rounded-[2rem] border border-stone-200 bg-white p-4 shadow-sm md:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <AdminSectionTitle
           eyebrow="Admin Reservation Control"
@@ -319,7 +323,7 @@ export default function AdminReservationTable({
         />
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-7">
+      <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
         <SummaryItem label="예약접수" value={`${visibleSummary.received}건`} tone="orange" />
         <SummaryItem label="결제대기" value={`${visibleSummary.waiting}건`} tone="yellow" />
         <SummaryItem label="결제완료" value={`${visibleSummary.paid}건`} tone="blue" />
@@ -329,7 +333,7 @@ export default function AdminReservationTable({
         <SummaryItem label="탑승완료" value={`${visibleSummary.boarded}건`} tone="stone" />
       </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <SummaryItem label="검색 결과" value={`${visibleSummary.count}건`} tone="stone" />
         <SummaryItem label="실결제 인원" value={formatPeopleCount(visibleSummary.paidPeople)} tone="blue" />
         <SummaryItem label="실결제 금액" value={formatCurrency(visibleSummary.paidAmount)} tone="blue" />
@@ -340,10 +344,12 @@ export default function AdminReservationTable({
         예약 목록은 성능을 위해 처음 {INITIAL_VISIBLE_COUNT}건만 표시합니다. 검색·필터·정렬 결과는 전체 예약을 기준으로 계산되며, 필요한 경우 아래에서 더 불러올 수 있습니다.
         <br />
         실결제 인원·금액은 결제완료·예약확정·탑승완료 건만 더한 값이라 나이스페이 정산 내역과 일치합니다. 결제창을 열었다가 나간 결제대기 건은 미결제 대기에 따로 표시되며, 예약취소·결제실패 건은 어느 쪽에도 포함되지 않습니다.
+        <br />
+        <span className="md:hidden">좁은 화면에서는 아래 표를 좌우로 밀어서 보실 수 있습니다.</span>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-3xl border border-stone-100">
-        <div className={`grid ${tableColumnClassName} bg-stone-50 px-5 py-4 text-xs font-black text-stone-500`}>
+      <div className="mt-6 overflow-x-auto rounded-3xl border border-stone-100">
+        <div className={`grid ${tableColumnClassName} ${TABLE_MIN_WIDTH_CLASS} bg-stone-50 px-5 py-4 text-xs font-black text-stone-500`}>
           <div>예약 날짜</div>
           <div>예약자 / 연락처</div>
           <div>인원</div>
